@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedrouter_hjgh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedRouter) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventring_qea2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventRing) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativefabric_j5v5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeFabric) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedchain_uwr4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedChain) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryproxy_euny_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryProxy) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendatacore_574h_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataCore) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16892,6 +16932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedrouter_hjgh_logic": {
+          try {
+            const { OpenDistributedRouterService } = await import("../liberty/opendistributedrouter_hjgh.service.js");
+            const res = await OpenDistributedRouterService.execute(args.target || "system");
+            return { output: `### OpenDistributedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventring_qea2_logic": {
+          try {
+            const { OpenEventRingService } = await import("../liberty/openeventring_qea2.service.js");
+            const res = await OpenEventRingService.execute(args.target || "system");
+            return { output: `### OpenEventRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativefabric_j5v5_logic": {
+          try {
+            const { OpenCloudNativeFabricService } = await import("../liberty/opencloud-nativefabric_j5v5.service.js");
+            const res = await OpenCloudNativeFabricService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedchain_uwr4_logic": {
+          try {
+            const { OpenFederatedChainService } = await import("../liberty/openfederatedchain_uwr4.service.js");
+            const res = await OpenFederatedChainService.execute(args.target || "system");
+            return { output: `### OpenFederatedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryproxy_euny_logic": {
+          try {
+            const { OpenPlanetaryProxyService } = await import("../liberty/openplanetaryproxy_euny.service.js");
+            const res = await OpenPlanetaryProxyService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryProxy failed: ${err.message}` };
+          }
+        }
         case "execute_opendatacore_574h_logic": {
           try {
             const { OpenDataCoreService } = await import("../liberty/opendatacore_574h.service.js");
