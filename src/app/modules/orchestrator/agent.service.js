@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizeddaemon_ourg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedDaemon) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesvortex_lu8b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesVortex) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantummatrix_nsdg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumMatrix) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableengine_iw36_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableEngine) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorypipeline_7c19_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryPipeline) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfproxy_z5zc_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFProxy) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9092,6 +9132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizeddaemon_ourg_logic": {
+          try {
+            const { OpenDecentralizedDaemonService } = await import("../liberty/opendecentralizeddaemon_ourg.service.js");
+            const res = await OpenDecentralizedDaemonService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesvortex_lu8b_logic": {
+          try {
+            const { OpenTimeSeriesVortexService } = await import("../liberty/opentime-seriesvortex_lu8b.service.js");
+            const res = await OpenTimeSeriesVortexService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantummatrix_nsdg_logic": {
+          try {
+            const { OpenQuantumMatrixService } = await import("../liberty/openquantummatrix_nsdg.service.js");
+            const res = await OpenQuantumMatrixService.execute(args.target || "system");
+            return { output: `### OpenQuantumMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableengine_iw36_logic": {
+          try {
+            const { OpenImmutableEngineService } = await import("../liberty/openimmutableengine_iw36.service.js");
+            const res = await OpenImmutableEngineService.execute(args.target || "system");
+            return { output: `### OpenImmutableEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorypipeline_7c19_logic": {
+          try {
+            const { OpenInMemoryPipelineService } = await import("../liberty/openin-memorypipeline_7c19.service.js");
+            const res = await OpenInMemoryPipelineService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfproxy_z5zc_logic": {
           try {
             const { OpeneBPFProxyService } = await import("../liberty/openebpfproxy_z5zc.service.js");
