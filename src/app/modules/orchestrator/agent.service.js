@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventcontroller_80is_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventController) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesproxy_42b3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesProxy) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisebroker_wwxw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseBroker) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialgrid_4qlz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialGrid) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesssync_22tx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessSync) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentfabric_snw8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentFabric) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20772,6 +20812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventcontroller_80is_logic": {
+          try {
+            const { OpenEventControllerService } = await import("../liberty/openeventcontroller_80is.service.js");
+            const res = await OpenEventControllerService.execute(args.target || "system");
+            return { output: `### OpenEventController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventController failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesproxy_42b3_logic": {
+          try {
+            const { OpenTimeSeriesProxyService } = await import("../liberty/opentime-seriesproxy_42b3.service.js");
+            const res = await OpenTimeSeriesProxyService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisebroker_wwxw_logic": {
+          try {
+            const { OpenEnterpriseBrokerService } = await import("../liberty/openenterprisebroker_wwxw.service.js");
+            const res = await OpenEnterpriseBrokerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialgrid_4qlz_logic": {
+          try {
+            const { OpenFinancialGridService } = await import("../liberty/openfinancialgrid_4qlz.service.js");
+            const res = await OpenFinancialGridService.execute(args.target || "system");
+            return { output: `### OpenFinancialGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesssync_22tx_logic": {
+          try {
+            const { OpenServerlessSyncService } = await import("../liberty/openserverlesssync_22tx.service.js");
+            const res = await OpenServerlessSyncService.execute(args.target || "system");
+            return { output: `### OpenServerlessSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessSync failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentfabric_snw8_logic": {
           try {
             const { OpenPersistentFabricService } = await import("../liberty/openpersistentfabric_snw8.service.js");
