@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicgrid_15nj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicGrid) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedchain_g45j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedChain) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphcontroller_viks_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphController) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventmatrix_zsq1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventMatrix) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessvortex_p6z8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessVortex) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativegraph_ofvb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeGraph) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6972,6 +7012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicgrid_15nj_logic": {
+          try {
+            const { OpenHomomorphicGridService } = await import("../liberty/openhomomorphicgrid_15nj.service.js");
+            const res = await OpenHomomorphicGridService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedchain_g45j_logic": {
+          try {
+            const { OpenDecentralizedChainService } = await import("../liberty/opendecentralizedchain_g45j.service.js");
+            const res = await OpenDecentralizedChainService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphcontroller_viks_logic": {
+          try {
+            const { OpenGraphControllerService } = await import("../liberty/opengraphcontroller_viks.service.js");
+            const res = await OpenGraphControllerService.execute(args.target || "system");
+            return { output: `### OpenGraphController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphController failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventmatrix_zsq1_logic": {
+          try {
+            const { OpenEventMatrixService } = await import("../liberty/openeventmatrix_zsq1.service.js");
+            const res = await OpenEventMatrixService.execute(args.target || "system");
+            return { output: `### OpenEventMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessvortex_p6z8_logic": {
+          try {
+            const { OpenServerlessVortexService } = await import("../liberty/openserverlessvortex_p6z8.service.js");
+            const res = await OpenServerlessVortexService.execute(args.target || "system");
+            return { output: `### OpenServerlessVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessVortex failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativegraph_ofvb_logic": {
           try {
             const { OpenCloudNativeGraphService } = await import("../liberty/opencloud-nativegraph_ofvb.service.js");
