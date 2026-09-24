@@ -4,6 +4,11 @@ import { RedisClient } from '../../../shared/redis.js';
 import jwt from 'jsonwebtoken';
 import config from '../../../../config/index.js';
 
+import crypto from 'crypto';
+
+// The OEM Master Key derived from OpenStack Barbican HSM for the Desktop Gateway
+const BARBICAN_AES_KEY = crypto.scryptSync(process.env.BARBICAN_SECRET || 'liberty-center-one-oem-key', 'salt', 32);
+
 export const DesktopGateway = {
   wss: null,
   clients: new Map(),
@@ -67,9 +72,24 @@ export const DesktopGateway = {
       throw new Error('Desktop App is not currently connected to the Liberty Center One bridge.');
     }
     
-    ws.send(JSON.stringify({
+    const plaintext = JSON.stringify({
       type: 'execute_mcp_tool',
       payload: actionPayload
+    });
+
+    // Encrypt the payload using AES-256-GCM
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-gcm', BARBICAN_AES_KEY, iv);
+    
+    let encrypted = cipher.update(plaintext, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag().toString('hex');
+
+    // Transmit the fully encrypted cipher
+    ws.send(JSON.stringify({
+      iv: iv.toString('hex'),
+      ciphertext: encrypted,
+      tag: authTag
     }));
   }
 };

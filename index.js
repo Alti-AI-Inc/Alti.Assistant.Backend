@@ -214,6 +214,10 @@ app.use(
   })
 );
 
+import { CloudflareShield } from './src/app/middlewares/cloudflare-shield.js';
+CloudflareShield.initialize();
+app.use(CloudflareShield.verifyRequest);
+
 // Request ID tracing — must be early for correlation across all middleware
 app.use(requestIdMiddleware);
 
