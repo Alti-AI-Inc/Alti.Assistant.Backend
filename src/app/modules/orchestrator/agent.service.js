@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendatacore_574h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataCore) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondcore_aanb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondCore) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelmesh_8fv7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMesh) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedlayer_fky7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedLayer) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticmesh_yl7a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticMesh) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativelayer_f0of_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeLayer) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16852,6 +16892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendatacore_574h_logic": {
+          try {
+            const { OpenDataCoreService } = await import("../liberty/opendatacore_574h.service.js");
+            const res = await OpenDataCoreService.execute(args.target || "system");
+            return { output: `### OpenDataCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondcore_aanb_logic": {
+          try {
+            const { OpenSubMillisecondCoreService } = await import("../liberty/opensub-millisecondcore_aanb.service.js");
+            const res = await OpenSubMillisecondCoreService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelmesh_8fv7_logic": {
+          try {
+            const { OpenMicroKernelMeshService } = await import("../liberty/openmicro-kernelmesh_8fv7.service.js");
+            const res = await OpenMicroKernelMeshService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedlayer_fky7_logic": {
+          try {
+            const { OpenFederatedLayerService } = await import("../liberty/openfederatedlayer_fky7.service.js");
+            const res = await OpenFederatedLayerService.execute(args.target || "system");
+            return { output: `### OpenFederatedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticmesh_yl7a_logic": {
+          try {
+            const { OpenStaticMeshService } = await import("../liberty/openstaticmesh_yl7a.service.js");
+            const res = await OpenStaticMeshService.execute(args.target || "system");
+            return { output: `### OpenStaticMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticMesh failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativelayer_f0of_logic": {
           try {
             const { OpenCloudNativeLayerService } = await import("../liberty/opencloud-nativelayer_f0of.service.js");
