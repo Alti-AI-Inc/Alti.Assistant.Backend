@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_fleet_patch",
+      description: "Use the Aphura Server Fleet Engine (SaltStack) to autonomously SSH into thousands of Linux servers simultaneously and deploy configuration patches or security updates.",
+      parameters: { type: "object", properties: { targetFleet: { type: "string" }, patchCommand: { type: "string" } }, required: ["targetFleet", "patchCommand"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_3d_webgl_scene",
+      description: "Use the Aphura 3D WebGL Engine (Three.js) to autonomously compile and embed interactive 3D scenes directly into the chat UI.",
+      parameters: { type: "object", properties: { sceneDescription: { type: "string" } }, required: ["sceneDescription"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_bi_dashboard",
+      description: "Use the Aphura BI Engine (Apache Superset) to autonomously compile and deploy enterprise-grade, interactive data visualization dashboards.",
+      parameters: { type: "object", properties: { datasetId: { type: "string" } }, required: ["datasetId"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_webrtc_room",
+      description: "Use the Aphura Media Engine (LiveKit) to autonomously spin up a low-latency WebRTC video conferencing room.",
+      parameters: { type: "object", properties: { roomName: { type: "string" } }, required: ["roomName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "cache_data_valkey",
+      description: "Use the Aphura Memory Engine (Valkey) to instantly cache heavy computational results or API payloads in RAM for sub-millisecond global retrieval.",
+      parameters: { type: "object", properties: { key: { type: "string" }, value: { type: "string" } }, required: ["key", "value"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "process_image_sharp",
       description: "Use the Aphura Vision Engine (Sharp) to autonomously composite, resize, and optimize massive batches of images into WebP format.",
       parameters: { type: "object", properties: { imageUrl: { type: "string" }, operations: { type: "string" } }, required: ["imageUrl"] }
@@ -812,7 +852,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "process_image_sharp": {
+        case "execute_fleet_patch": {
+          try {
+            const { SaltStackService } = await import("../devops/saltstack.service.js");
+            const res = await SaltStackService.deployPatch(args.targetFleet, args.patchCommand);
+            return { output: `### Fleet Execution Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Fleet patch failed: ${err.message}` };
+          }
+        }        case "generate_3d_webgl_scene": {
+          try {
+            const { ThreeJsService } = await import("../ui/threejs.service.js");
+            const res = await ThreeJsService.generateScene(args.sceneDescription);
+            return { output: res.markdown };
+          } catch (err) {
+            return { output: `3D WebGL generation failed: ${err.message}` };
+          }
+        }        case "generate_bi_dashboard": {
+          try {
+            const { SupersetService } = await import("../data/superset.service.js");
+            const res = await SupersetService.generateDashboard(args.datasetId);
+            return { output: `### Business Intelligence Dashboard\\n\\n[View Live Dashboard](${res.url})` };
+          } catch (err) {
+            return { output: `Dashboard generation failed: ${err.message}` };
+          }
+        }        case "create_webrtc_room": {
+          try {
+            const { LiveKitService } = await import("../media/livekit.service.js");
+            const res = await LiveKitService.createRoom(args.roomName);
+            return { output: `### Live WebRTC Room Created\\n\\n[Join Room](${res.url})` };
+          } catch (err) {
+            return { output: `Room creation failed: ${err.message}` };
+          }
+        }        case "cache_data_valkey": {
+          try {
+            const { ValkeyService } = await import("../data/valkey.service.js");
+            const res = await ValkeyService.cacheData(args.key, args.value);
+            return { output: `### Memory Cached\\n\\n${res.status}` };
+          } catch (err) {
+            return { output: `Valkey cache failed: ${err.message}` };
+          }
+        }        case "process_image_sharp": {
           try {
             const { SharpService } = await import("../vision/sharp.service.js");
             const res = await SharpService.processImage(args.imageUrl, args.operations);
