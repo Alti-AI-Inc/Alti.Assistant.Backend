@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedvault_c4m8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedVault) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicpipeline_03p4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicPipeline) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendnexus_vpfe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNexus) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarydaemon_2h31_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryDaemon) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openloggraph_3ydz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogGraph) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondgrid_u6ld_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondGrid) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7972,6 +8012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedvault_c4m8_logic": {
+          try {
+            const { OpenAutomatedVaultService } = await import("../liberty/openautomatedvault_c4m8.service.js");
+            const res = await OpenAutomatedVaultService.execute(args.target || "system");
+            return { output: `### OpenAutomatedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicpipeline_03p4_logic": {
+          try {
+            const { OpenNeuromorphicPipelineService } = await import("../liberty/openneuromorphicpipeline_03p4.service.js");
+            const res = await OpenNeuromorphicPipelineService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendnexus_vpfe_logic": {
+          try {
+            const { OpenMicroFrontendNexusService } = await import("../liberty/openmicro-frontendnexus_vpfe.service.js");
+            const res = await OpenMicroFrontendNexusService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarydaemon_2h31_logic": {
+          try {
+            const { OpenPlanetaryDaemonService } = await import("../liberty/openplanetarydaemon_2h31.service.js");
+            const res = await OpenPlanetaryDaemonService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openloggraph_3ydz_logic": {
+          try {
+            const { OpenLogGraphService } = await import("../liberty/openloggraph_3ydz.service.js");
+            const res = await OpenLogGraphService.execute(args.target || "system");
+            return { output: `### OpenLogGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogGraph failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondgrid_u6ld_logic": {
           try {
             const { OpenSubMillisecondGridService } = await import("../liberty/opensub-millisecondgrid_u6ld.service.js");
