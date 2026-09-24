@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openin-memoryengine_egmc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryEngine) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatavortex_mgw6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataVortex) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarymesh_xuwe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryMesh) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicproxy_8wgu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicProxy) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustfabric_7vq3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustFabric) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarycore_8boc_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCore) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9532,6 +9572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openin-memoryengine_egmc_logic": {
+          try {
+            const { OpenInMemoryEngineService } = await import("../liberty/openin-memoryengine_egmc.service.js");
+            const res = await OpenInMemoryEngineService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatavortex_mgw6_logic": {
+          try {
+            const { OpenDataVortexService } = await import("../liberty/opendatavortex_mgw6.service.js");
+            const res = await OpenDataVortexService.execute(args.target || "system");
+            return { output: `### OpenDataVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarymesh_xuwe_logic": {
+          try {
+            const { OpenPlanetaryMeshService } = await import("../liberty/openplanetarymesh_xuwe.service.js");
+            const res = await OpenPlanetaryMeshService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicproxy_8wgu_logic": {
+          try {
+            const { OpenHomomorphicProxyService } = await import("../liberty/openhomomorphicproxy_8wgu.service.js");
+            const res = await OpenHomomorphicProxyService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustfabric_7vq3_logic": {
+          try {
+            const { OpenZeroTrustFabricService } = await import("../liberty/openzero-trustfabric_7vq3.service.js");
+            const res = await OpenZeroTrustFabricService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarycore_8boc_logic": {
           try {
             const { OpenPlanetaryCoreService } = await import("../liberty/openplanetarycore_8boc.service.js");
