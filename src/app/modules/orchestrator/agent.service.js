@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlesssync_yc00_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessSync) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicrouter_0hlj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicRouter) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorystream_5zxs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryStream) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedproxy_rift_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedProxy) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisevault_9btn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseVault) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialmesh_mbsh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialMesh) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6772,6 +6812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlesssync_yc00_logic": {
+          try {
+            const { OpenServerlessSyncService } = await import("../liberty/openserverlesssync_yc00.service.js");
+            const res = await OpenServerlessSyncService.execute(args.target || "system");
+            return { output: `### OpenServerlessSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicrouter_0hlj_logic": {
+          try {
+            const { OpenHomomorphicRouterService } = await import("../liberty/openhomomorphicrouter_0hlj.service.js");
+            const res = await OpenHomomorphicRouterService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorystream_5zxs_logic": {
+          try {
+            const { OpenInMemoryStreamService } = await import("../liberty/openin-memorystream_5zxs.service.js");
+            const res = await OpenInMemoryStreamService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedproxy_rift_logic": {
+          try {
+            const { OpenFederatedProxyService } = await import("../liberty/openfederatedproxy_rift.service.js");
+            const res = await OpenFederatedProxyService.execute(args.target || "system");
+            return { output: `### OpenFederatedProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisevault_9btn_logic": {
+          try {
+            const { OpenEnterpriseVaultService } = await import("../liberty/openenterprisevault_9btn.service.js");
+            const res = await OpenEnterpriseVaultService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseVault failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialmesh_mbsh_logic": {
           try {
             const { OpenFinancialMeshService } = await import("../liberty/openfinancialmesh_mbsh.service.js");
