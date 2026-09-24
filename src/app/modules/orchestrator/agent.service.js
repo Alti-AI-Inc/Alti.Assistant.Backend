@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelplane_0zjn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelPlane) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativelayer_iajh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeLayer) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarypipeline_eeuy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryPipeline) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosswarm_wipk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosSwarm) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphlayer_sz7x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphLayer) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendatanexus_wotm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataNexus) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12692,6 +12732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelplane_0zjn_logic": {
+          try {
+            const { OpenMicroKernelPlaneService } = await import("../liberty/openmicro-kernelplane_0zjn.service.js");
+            const res = await OpenMicroKernelPlaneService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativelayer_iajh_logic": {
+          try {
+            const { OpenCloudNativeLayerService } = await import("../liberty/opencloud-nativelayer_iajh.service.js");
+            const res = await OpenCloudNativeLayerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarypipeline_eeuy_logic": {
+          try {
+            const { OpenPlanetaryPipelineService } = await import("../liberty/openplanetarypipeline_eeuy.service.js");
+            const res = await OpenPlanetaryPipelineService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosswarm_wipk_logic": {
+          try {
+            const { OpenChaosSwarmService } = await import("../liberty/openchaosswarm_wipk.service.js");
+            const res = await OpenChaosSwarmService.execute(args.target || "system");
+            return { output: `### OpenChaosSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphlayer_sz7x_logic": {
+          try {
+            const { OpenGraphLayerService } = await import("../liberty/opengraphlayer_sz7x.service.js");
+            const res = await OpenGraphLayerService.execute(args.target || "system");
+            return { output: `### OpenGraphLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphLayer failed: ${err.message}` };
+          }
+        }
         case "execute_opendatanexus_wotm_logic": {
           try {
             const { OpenDataNexusService } = await import("../liberty/opendatanexus_wotm.service.js");
