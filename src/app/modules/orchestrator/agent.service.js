@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "compile_tailwind_css",
+      description: "Use the Aphura Styling Engine (Tailwind CSS) to autonomously scan HTML architectures and compile perfectly optimized, pixel-perfect CSS stylesheets.",
+      parameters: { type: "object", properties: { htmlContent: { type: "string" } }, required: ["htmlContent"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "run_ui_automation_test",
+      description: "Use the Aphura QA Engine (Appium) to autonomously launch iOS/Android emulators and simulate human tapping, swiping, and typing to validate cross-platform UI flows.",
+      parameters: { type: "object", properties: { appBinaryPath: { type: "string" }, testScript: { type: "string" } }, required: ["appBinaryPath", "testScript"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "inject_native_hardware_bridge",
+      description: "Use the Aphura Native Bridge Engine (Capacitor) to seamlessly bind standard web applications to native mobile hardware components like the Camera, GPS, or Accelerometer.",
+      parameters: { type: "object", properties: { webAppPath: { type: "string" }, targetHardware: { type: "array", items: { type: "string" } } }, required: ["webAppPath", "targetHardware"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_desktop_app",
+      description: "Use the Aphura Desktop Engine (Tauri) to securely package web applications into hyper-fast, lightweight native Rust executables for Windows, macOS, or Linux.",
+      parameters: { type: "object", properties: { webAppPath: { type: "string" }, osTarget: { type: "string", enum: ["Windows", "macOS", "Linux"] } }, required: ["webAppPath", "osTarget"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_mobile_app",
+      description: "Use the Aphura Mobile OS Engine (React Native) to autonomously compile JavaScript codebases into native, installable iOS (.ipa) and Android (.apk) binaries.",
+      parameters: { type: "object", properties: { projectName: { type: "string" }, targetOs: { type: "string", enum: ["iOS", "Android"] } }, required: ["projectName", "targetOs"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "transpile_typescript_esbuild",
       description: "Use the Aphura Extreme-Speed Bundler (ESBuild) to bypass Node.js entirely and compile massive TypeScript projects using Go-native threads 100x faster than traditional tools.",
       parameters: { type: "object", properties: { entryFile: { type: "string" } }, required: ["entryFile"] }
@@ -1132,7 +1172,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "transpile_typescript_esbuild": {
+        case "compile_tailwind_css": {
+          try {
+            const { TailwindService } = await import("../ui/tailwind.service.js");
+            const res = await TailwindService.compileStyles(args.htmlContent);
+            return { output: `### CSS Compiled\\n\\n```css\\n${res.css}\\n```` };
+          } catch (err) {
+            return { output: `CSS compilation failed: ${err.message}` };
+          }
+        }        case "run_ui_automation_test": {
+          try {
+            const { AppiumService } = await import("../qa/appium.service.js");
+            const res = await AppiumService.runUiTests(args.appBinaryPath, args.testScript);
+            return { output: `### UI Automation Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `UI automation failed: ${err.message}` };
+          }
+        }        case "inject_native_hardware_bridge": {
+          try {
+            const { CapacitorService } = await import("../mobile/capacitor.service.js");
+            const res = await CapacitorService.injectNativeBridge(args.webAppPath, args.targetHardware);
+            return { output: `### Native Bridge Configured\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Bridge injection failed: ${err.message}` };
+          }
+        }        case "compile_desktop_app": {
+          try {
+            const { TauriService } = await import("../desktop/tauri.service.js");
+            const res = await TauriService.compileDesktopApp(args.webAppPath, args.osTarget);
+            return { output: `### Native Desktop Build\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Desktop compilation failed: ${err.message}` };
+          }
+        }        case "compile_mobile_app": {
+          try {
+            const { ReactNativeService } = await import("../mobile/reactnative.service.js");
+            const res = await ReactNativeService.compileMobileApp(args.projectName, args.targetOs);
+            return { output: `### Mobile Build Complete\\n\\n[Download ${res.os} Binary](${res.url})` };
+          } catch (err) {
+            return { output: `Mobile compilation failed: ${err.message}` };
+          }
+        }        case "transpile_typescript_esbuild": {
           try {
             const { ESBuildService } = await import("../ide/esbuild.service.js");
             const res = await ESBuildService.transpileTypeScript(args.entryFile);
