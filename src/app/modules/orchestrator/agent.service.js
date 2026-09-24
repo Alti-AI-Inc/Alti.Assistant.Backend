@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphiccompiler_o4r1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicCompiler) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedgrid_dh66_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedGrid) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventrouter_i05y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventRouter) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfledger_do1e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFLedger) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumring_447i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumRing) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partyengine_a1j2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyEngine) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2612,6 +2652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphiccompiler_o4r1_logic": {
+          try {
+            const { OpenHomomorphicCompilerService } = await import("../liberty/openhomomorphiccompiler_o4r1.service.js");
+            const res = await OpenHomomorphicCompilerService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedgrid_dh66_logic": {
+          try {
+            const { OpenFederatedGridService } = await import("../liberty/openfederatedgrid_dh66.service.js");
+            const res = await OpenFederatedGridService.execute(args.target || "system");
+            return { output: `### OpenFederatedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventrouter_i05y_logic": {
+          try {
+            const { OpenEventRouterService } = await import("../liberty/openeventrouter_i05y.service.js");
+            const res = await OpenEventRouterService.execute(args.target || "system");
+            return { output: `### OpenEventRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfledger_do1e_logic": {
+          try {
+            const { OpeneBPFLedgerService } = await import("../liberty/openebpfledger_do1e.service.js");
+            const res = await OpeneBPFLedgerService.execute(args.target || "system");
+            return { output: `### OpeneBPFLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumring_447i_logic": {
+          try {
+            const { OpenQuantumRingService } = await import("../liberty/openquantumring_447i.service.js");
+            const res = await OpenQuantumRingService.execute(args.target || "system");
+            return { output: `### OpenQuantumRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumRing failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partyengine_a1j2_logic": {
           try {
             const { OpenMultiPartyEngineService } = await import("../liberty/openmulti-partyengine_a1j2.service.js");
