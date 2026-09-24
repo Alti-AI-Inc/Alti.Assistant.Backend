@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwarestream_vbfe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareStream) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventchain_hz6x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventChain) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivesync_blvo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveSync) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisecluster_w4ct_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseCluster) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosnexus_3utf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNexus) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessoracle_7huj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessOracle) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5852,6 +5892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwarestream_vbfe_logic": {
+          try {
+            const { OpenHardwareStreamService } = await import("../liberty/openhardwarestream_vbfe.service.js");
+            const res = await OpenHardwareStreamService.execute(args.target || "system");
+            return { output: `### OpenHardwareStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventchain_hz6x_logic": {
+          try {
+            const { OpenEventChainService } = await import("../liberty/openeventchain_hz6x.service.js");
+            const res = await OpenEventChainService.execute(args.target || "system");
+            return { output: `### OpenEventChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivesync_blvo_logic": {
+          try {
+            const { OpenPredictiveSyncService } = await import("../liberty/openpredictivesync_blvo.service.js");
+            const res = await OpenPredictiveSyncService.execute(args.target || "system");
+            return { output: `### OpenPredictiveSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisecluster_w4ct_logic": {
+          try {
+            const { OpenEnterpriseClusterService } = await import("../liberty/openenterprisecluster_w4ct.service.js");
+            const res = await OpenEnterpriseClusterService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosnexus_3utf_logic": {
+          try {
+            const { OpenChaosNexusService } = await import("../liberty/openchaosnexus_3utf.service.js");
+            const res = await OpenChaosNexusService.execute(args.target || "system");
+            return { output: `### OpenChaosNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessoracle_7huj_logic": {
           try {
             const { OpenServerlessOracleService } = await import("../liberty/openserverlessoracle_7huj.service.js");
