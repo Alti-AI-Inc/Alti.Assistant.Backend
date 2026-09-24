@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedlayer_no6a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLayer) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfsync_xu9t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFSync) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendfabric_qf4q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendFabric) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicoracle_txab_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicOracle) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgraph_kilf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedgrid_oy08_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedGrid) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16172,6 +16212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedlayer_no6a_logic": {
+          try {
+            const { OpenDecentralizedLayerService } = await import("../liberty/opendecentralizedlayer_no6a.service.js");
+            const res = await OpenDecentralizedLayerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfsync_xu9t_logic": {
+          try {
+            const { OpeneBPFSyncService } = await import("../liberty/openebpfsync_xu9t.service.js");
+            const res = await OpeneBPFSyncService.execute(args.target || "system");
+            return { output: `### OpeneBPFSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendfabric_qf4q_logic": {
+          try {
+            const { OpenMicroFrontendFabricService } = await import("../liberty/openmicro-frontendfabric_qf4q.service.js");
+            const res = await OpenMicroFrontendFabricService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicoracle_txab_logic": {
+          try {
+            const { OpenNeuromorphicOracleService } = await import("../liberty/openneuromorphicoracle_txab.service.js");
+            const res = await OpenNeuromorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgraph_kilf_logic": {
+          try {
+            const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_kilf.service.js");
+            const res = await OpenDecentralizedGraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedgrid_oy08_logic": {
           try {
             const { OpenDistributedGridService } = await import("../liberty/opendistributedgrid_oy08.service.js");
