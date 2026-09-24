@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "dspy_compile_task",
+      description: "Use the DSPy Prompt Compiler to automatically optimize and execute a highly complex reasoning task. Use this instead of standard reasoning when maximum accuracy is required.",
+      parameters: { type: "object", properties: { taskDescription: { type: "string" }, inputs: { type: "object" } }, required: ["taskDescription", "inputs"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "crawl_website",
       description: "Use the Aphura supersonic crawler (Crawl4AI) to rip an entire website, documentation, or sitemap and return the clean markdown instantly.",
       parameters: { type: "object", properties: { url: { type: "string" }, depth: { type: "number" } }, required: ["url"] }
@@ -644,7 +652,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "crawl_website": {
+        case "dspy_compile_task": {
+          try {
+            const { DSPyService } = await import("./dspy.service.js");
+            const res = await DSPyService.compileAndRun(args.taskDescription, args.inputs);
+            return { output: `### DSPy Optimized Result\\n\\n${res}` };
+          } catch (err) {
+            return { output: `DSPy compilation failed: ${err.message}` };
+          }
+        }        case "crawl_website": {
           try {
             const { CrawlerService } = await import("../browser/crawler.service.js");
             const res = await CrawlerService.crawlWebsite(args.url, args.depth || 1);
