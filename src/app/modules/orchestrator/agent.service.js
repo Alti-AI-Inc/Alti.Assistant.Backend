@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpugraph_zd00_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUGraph) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedcompiler_1upa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedCompiler) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedsync_z9tg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSync) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictiveoracle_z4xj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveOracle) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustnexus_82o7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustNexus) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedlayer_uhb2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLayer) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12892,6 +12932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpugraph_zd00_logic": {
+          try {
+            const { OpenGPUGraphService } = await import("../liberty/opengpugraph_zd00.service.js");
+            const res = await OpenGPUGraphService.execute(args.target || "system");
+            return { output: `### OpenGPUGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedcompiler_1upa_logic": {
+          try {
+            const { OpenAutomatedCompilerService } = await import("../liberty/openautomatedcompiler_1upa.service.js");
+            const res = await OpenAutomatedCompilerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedsync_z9tg_logic": {
+          try {
+            const { OpenDecentralizedSyncService } = await import("../liberty/opendecentralizedsync_z9tg.service.js");
+            const res = await OpenDecentralizedSyncService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictiveoracle_z4xj_logic": {
+          try {
+            const { OpenPredictiveOracleService } = await import("../liberty/openpredictiveoracle_z4xj.service.js");
+            const res = await OpenPredictiveOracleService.execute(args.target || "system");
+            return { output: `### OpenPredictiveOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustnexus_82o7_logic": {
+          try {
+            const { OpenZeroTrustNexusService } = await import("../liberty/openzero-trustnexus_82o7.service.js");
+            const res = await OpenZeroTrustNexusService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustNexus failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedlayer_uhb2_logic": {
           try {
             const { OpenDecentralizedLayerService } = await import("../liberty/opendecentralizedlayer_uhb2.service.js");
