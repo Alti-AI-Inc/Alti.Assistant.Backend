@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialproxy_0ww1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialProxy) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesledger_t8n3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesLedger) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedlayer_5nqy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedLayer) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticfabric_a24j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticFabric) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryoracle_rqi8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryOracle) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialgrid_1srv_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialGrid) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3372,6 +3412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialproxy_0ww1_logic": {
+          try {
+            const { OpenFinancialProxyService } = await import("../liberty/openfinancialproxy_0ww1.service.js");
+            const res = await OpenFinancialProxyService.execute(args.target || "system");
+            return { output: `### OpenFinancialProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesledger_t8n3_logic": {
+          try {
+            const { OpenTimeSeriesLedgerService } = await import("../liberty/opentime-seriesledger_t8n3.service.js");
+            const res = await OpenTimeSeriesLedgerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedlayer_5nqy_logic": {
+          try {
+            const { OpenDistributedLayerService } = await import("../liberty/opendistributedlayer_5nqy.service.js");
+            const res = await OpenDistributedLayerService.execute(args.target || "system");
+            return { output: `### OpenDistributedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticfabric_a24j_logic": {
+          try {
+            const { OpenSemanticFabricService } = await import("../liberty/opensemanticfabric_a24j.service.js");
+            const res = await OpenSemanticFabricService.execute(args.target || "system");
+            return { output: `### OpenSemanticFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryoracle_rqi8_logic": {
+          try {
+            const { OpenInMemoryOracleService } = await import("../liberty/openin-memoryoracle_rqi8.service.js");
+            const res = await OpenInMemoryOracleService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialgrid_1srv_logic": {
           try {
             const { OpenFinancialGridService } = await import("../liberty/openfinancialgrid_1srv.service.js");
