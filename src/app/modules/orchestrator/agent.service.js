@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentcore_yzt1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentCore) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicchain_ezci_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicChain) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentgraph_iqkl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentGraph) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicvortex_cluu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicVortex) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgrid_7sb6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGrid) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpuswarm_26sk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUSwarm) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20252,6 +20292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentcore_yzt1_logic": {
+          try {
+            const { OpenPersistentCoreService } = await import("../liberty/openpersistentcore_yzt1.service.js");
+            const res = await OpenPersistentCoreService.execute(args.target || "system");
+            return { output: `### OpenPersistentCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicchain_ezci_logic": {
+          try {
+            const { OpenNeuromorphicChainService } = await import("../liberty/openneuromorphicchain_ezci.service.js");
+            const res = await OpenNeuromorphicChainService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentgraph_iqkl_logic": {
+          try {
+            const { OpenPersistentGraphService } = await import("../liberty/openpersistentgraph_iqkl.service.js");
+            const res = await OpenPersistentGraphService.execute(args.target || "system");
+            return { output: `### OpenPersistentGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicvortex_cluu_logic": {
+          try {
+            const { OpenHomomorphicVortexService } = await import("../liberty/openhomomorphicvortex_cluu.service.js");
+            const res = await OpenHomomorphicVortexService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgrid_7sb6_logic": {
+          try {
+            const { OpenDecentralizedGridService } = await import("../liberty/opendecentralizedgrid_7sb6.service.js");
+            const res = await OpenDecentralizedGridService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opengpuswarm_26sk_logic": {
           try {
             const { OpenGPUSwarmService } = await import("../liberty/opengpuswarm_26sk.service.js");
