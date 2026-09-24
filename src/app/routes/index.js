@@ -58,10 +58,12 @@ import langChainExtendedRoutes from '../modules/langchain/langchain.extended.rou
 const router = express.Router();
 
 import { secRoutes } from '../modules/sec/sec.route.js';
+import { inferenceRoutes } from '../modules/inference/inference.route.js';
 
 const moduleRoutes = [
   { path: '/mobile', route: MobileRoutes },
   { path: '/sec', route: secRoutes },
+  { path: '', route: inferenceRoutes },
   {
     path: '/tenant',
     route: tenantRoutes,
