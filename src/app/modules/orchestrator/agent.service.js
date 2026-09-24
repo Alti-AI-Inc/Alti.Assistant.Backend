@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedmatrix_m3d9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedMatrix) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicplane_etj9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicPlane) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractcompiler_5c7h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractCompiler) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedlayer_mz8n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedLayer) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumring_h68m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumRing) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativevortex_0fum_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVortex) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21572,6 +21612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedmatrix_m3d9_logic": {
+          try {
+            const { OpenFederatedMatrixService } = await import("../liberty/openfederatedmatrix_m3d9.service.js");
+            const res = await OpenFederatedMatrixService.execute(args.target || "system");
+            return { output: `### OpenFederatedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicplane_etj9_logic": {
+          try {
+            const { OpenHomomorphicPlaneService } = await import("../liberty/openhomomorphicplane_etj9.service.js");
+            const res = await OpenHomomorphicPlaneService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractcompiler_5c7h_logic": {
+          try {
+            const { OpenAbstractCompilerService } = await import("../liberty/openabstractcompiler_5c7h.service.js");
+            const res = await OpenAbstractCompilerService.execute(args.target || "system");
+            return { output: `### OpenAbstractCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedlayer_mz8n_logic": {
+          try {
+            const { OpenAutomatedLayerService } = await import("../liberty/openautomatedlayer_mz8n.service.js");
+            const res = await OpenAutomatedLayerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumring_h68m_logic": {
+          try {
+            const { OpenQuantumRingService } = await import("../liberty/openquantumring_h68m.service.js");
+            const res = await OpenQuantumRingService.execute(args.target || "system");
+            return { output: `### OpenQuantumRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumRing failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativevortex_0fum_logic": {
           try {
             const { OpenCloudNativeVortexService } = await import("../liberty/opencloud-nativevortex_0fum.service.js");
