@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "provision_skywalking_apm",
+      description: "Use the Aphura Engine (Apache SkyWalking) to Provision Application Performance Monitoring (APM) for distributed mesh architectures.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "route_fluentbit_logs",
+      description: "Use the Aphura Engine (Fluent Bit) to Autonomously collect, parse, and route massive log streams across the Kubernetes cluster.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "analyze_zipkin_latency",
+      description: "Use the Aphura Engine (Zipkin) to Execute timing analysis across distributed systems to identify latency bottlenecks.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deploy_jaeger_tracing",
+      description: "Use the Aphura Engine (Jaeger) to Deploy distributed tracing backends to visualize and troubleshoot complex microservice transactions.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "instrument_opentelemetry",
+      description: "Use the Aphura Engine (OpenTelemetry) to Autonomously instrument microservices for distributed tracing and telemetry collection.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_ninja_build",
       description: "Use the Aphura Engine (Ninja Build) to Orchestrate the compilation of massive C/C++ architectures at blistering speeds via maximum CPU parallelization.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1452,6 +1492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "provision_skywalking_apm": {
+          try {
+            const { SkywalkingService } = await import("../devops/skywalking.service.js");
+            const res = await SkywalkingService.execute(args.target || "system");
+            return { output: `### Apache SkyWalking Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Apache SkyWalking failed: ${err.message}` };
+          }
+        }
+        case "route_fluentbit_logs": {
+          try {
+            const { FluentbitService } = await import("../devops/fluentbit.service.js");
+            const res = await FluentbitService.execute(args.target || "system");
+            return { output: `### Fluent Bit Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Fluent Bit failed: ${err.message}` };
+          }
+        }
+        case "analyze_zipkin_latency": {
+          try {
+            const { ZipkinService } = await import("../devops/zipkin.service.js");
+            const res = await ZipkinService.execute(args.target || "system");
+            return { output: `### Zipkin Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Zipkin failed: ${err.message}` };
+          }
+        }
+        case "deploy_jaeger_tracing": {
+          try {
+            const { JaegerService } = await import("../devops/jaeger.service.js");
+            const res = await JaegerService.execute(args.target || "system");
+            return { output: `### Jaeger Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Jaeger failed: ${err.message}` };
+          }
+        }
+        case "instrument_opentelemetry": {
+          try {
+            const { OpentelemetryService } = await import("../devops/opentelemetry.service.js");
+            const res = await OpentelemetryService.execute(args.target || "system");
+            return { output: `### OpenTelemetry Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTelemetry failed: ${err.message}` };
+          }
+        }
         case "execute_ninja_build": {
           try {
             const { NinjaService } = await import("../devops/ninja.service.js");
