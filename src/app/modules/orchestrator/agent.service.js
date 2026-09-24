@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpustream_ftfa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUStream) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriescontroller_jywe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesController) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesschain_bgyb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessChain) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesscluster_7ne1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessCluster) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractring_vgma_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractRing) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondvortex_5ace_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondVortex) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7212,6 +7252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpustream_ftfa_logic": {
+          try {
+            const { OpenGPUStreamService } = await import("../liberty/opengpustream_ftfa.service.js");
+            const res = await OpenGPUStreamService.execute(args.target || "system");
+            return { output: `### OpenGPUStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriescontroller_jywe_logic": {
+          try {
+            const { OpenTimeSeriesControllerService } = await import("../liberty/opentime-seriescontroller_jywe.service.js");
+            const res = await OpenTimeSeriesControllerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesController failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesschain_bgyb_logic": {
+          try {
+            const { OpenHeadlessChainService } = await import("../liberty/openheadlesschain_bgyb.service.js");
+            const res = await OpenHeadlessChainService.execute(args.target || "system");
+            return { output: `### OpenHeadlessChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesscluster_7ne1_logic": {
+          try {
+            const { OpenServerlessClusterService } = await import("../liberty/openserverlesscluster_7ne1.service.js");
+            const res = await OpenServerlessClusterService.execute(args.target || "system");
+            return { output: `### OpenServerlessCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractring_vgma_logic": {
+          try {
+            const { OpenAbstractRingService } = await import("../liberty/openabstractring_vgma.service.js");
+            const res = await OpenAbstractRingService.execute(args.target || "system");
+            return { output: `### OpenAbstractRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractRing failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondvortex_5ace_logic": {
           try {
             const { OpenSubMillisecondVortexService } = await import("../liberty/opensub-millisecondvortex_5ace.service.js");
