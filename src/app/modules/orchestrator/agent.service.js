@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "generate_video_clip",
+      description: "Use the Aphura VideoGen engine (Mochi-1) to generate a short 3-5 second video clip based on a text prompt. Returns a playable CDN URL.",
+      parameters: { type: "object", properties: { prompt: { type: "string" }, duration: { type: "number" } }, required: ["prompt"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "dspy_compile_task",
       description: "Use the DSPy Prompt Compiler to automatically optimize and execute a highly complex reasoning task. Use this instead of standard reasoning when maximum accuracy is required.",
       parameters: { type: "object", properties: { taskDescription: { type: "string" }, inputs: { type: "object" } }, required: ["taskDescription", "inputs"] }
@@ -652,7 +660,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "dspy_compile_task": {
+        case "generate_video_clip": {
+          try {
+            const { VideoGenService } = await import("../video/videogen.service.js");
+            const res = await VideoGenService.generateVideo(args.prompt, args.duration);
+            return { output: `### Generated Video\\n\\n[Click here to view your video](${res.url})` };
+          } catch (err) {
+            return { output: `Video generation failed: ${err.message}` };
+          }
+        }        case "dspy_compile_task": {
           try {
             const { DSPyService } = await import("./dspy.service.js");
             const res = await DSPyService.compileAndRun(args.taskDescription, args.inputs);
