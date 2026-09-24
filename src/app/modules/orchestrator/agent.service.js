@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicplane_z7nk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicPlane) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeproxy_g915_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeProxy) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatalayer_ymyd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataLayer) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenet_qufq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNet) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivegraph_8m8u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveGraph) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhigh-frequencypipeline_k5vb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyPipeline) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17132,6 +17172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicplane_z7nk_logic": {
+          try {
+            const { OpenHomomorphicPlaneService } = await import("../liberty/openhomomorphicplane_z7nk.service.js");
+            const res = await OpenHomomorphicPlaneService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeproxy_g915_logic": {
+          try {
+            const { OpenEdgeProxyService } = await import("../liberty/openedgeproxy_g915.service.js");
+            const res = await OpenEdgeProxyService.execute(args.target || "system");
+            return { output: `### OpenEdgeProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatalayer_ymyd_logic": {
+          try {
+            const { OpenDataLayerService } = await import("../liberty/opendatalayer_ymyd.service.js");
+            const res = await OpenDataLayerService.execute(args.target || "system");
+            return { output: `### OpenDataLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenet_qufq_logic": {
+          try {
+            const { OpenCloudNativeNetService } = await import("../liberty/opencloud-nativenet_qufq.service.js");
+            const res = await OpenCloudNativeNetService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivegraph_8m8u_logic": {
+          try {
+            const { OpenPredictiveGraphService } = await import("../liberty/openpredictivegraph_8m8u.service.js");
+            const res = await OpenPredictiveGraphService.execute(args.target || "system");
+            return { output: `### OpenPredictiveGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openhigh-frequencypipeline_k5vb_logic": {
           try {
             const { OpenHighFrequencyPipelineService } = await import("../liberty/openhigh-frequencypipeline_k5vb.service.js");
