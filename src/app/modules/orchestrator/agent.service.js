@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlesscore_sibm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCore) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativeledger_cwop_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeLedger) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativeengine_4bt8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeEngine) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablenet_4u6y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableNet) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencygraph_r6ph_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyGraph) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedlayer_jans_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedLayer) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7772,6 +7812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlesscore_sibm_logic": {
+          try {
+            const { OpenHeadlessCoreService } = await import("../liberty/openheadlesscore_sibm.service.js");
+            const res = await OpenHeadlessCoreService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativeledger_cwop_logic": {
+          try {
+            const { OpenCloudNativeLedgerService } = await import("../liberty/opencloud-nativeledger_cwop.service.js");
+            const res = await OpenCloudNativeLedgerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativeengine_4bt8_logic": {
+          try {
+            const { OpenCloudNativeEngineService } = await import("../liberty/opencloud-nativeengine_4bt8.service.js");
+            const res = await OpenCloudNativeEngineService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablenet_4u6y_logic": {
+          try {
+            const { OpenImmutableNetService } = await import("../liberty/openimmutablenet_4u6y.service.js");
+            const res = await OpenImmutableNetService.execute(args.target || "system");
+            return { output: `### OpenImmutableNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencygraph_r6ph_logic": {
+          try {
+            const { OpenHighFrequencyGraphService } = await import("../liberty/openhigh-frequencygraph_r6ph.service.js");
+            const res = await OpenHighFrequencyGraphService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedlayer_jans_logic": {
           try {
             const { OpenAutomatedLayerService } = await import("../liberty/openautomatedlayer_jans.service.js");
