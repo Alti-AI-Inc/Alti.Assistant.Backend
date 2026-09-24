@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelcore_4acj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelCore) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedplane_ro1s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedPlane) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondplane_mu2n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondPlane) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterpipeline_6264_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterPipeline) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativevault_s2q2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVault) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessnode_x7za_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessNode) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18372,6 +18412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelcore_4acj_logic": {
+          try {
+            const { OpenMicroKernelCoreService } = await import("../liberty/openmicro-kernelcore_4acj.service.js");
+            const res = await OpenMicroKernelCoreService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedplane_ro1s_logic": {
+          try {
+            const { OpenAutomatedPlaneService } = await import("../liberty/openautomatedplane_ro1s.service.js");
+            const res = await OpenAutomatedPlaneService.execute(args.target || "system");
+            return { output: `### OpenAutomatedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondplane_mu2n_logic": {
+          try {
+            const { OpenSubMillisecondPlaneService } = await import("../liberty/opensub-millisecondplane_mu2n.service.js");
+            const res = await OpenSubMillisecondPlaneService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterpipeline_6264_logic": {
+          try {
+            const { OpenCrossClusterPipelineService } = await import("../liberty/opencross-clusterpipeline_6264.service.js");
+            const res = await OpenCrossClusterPipelineService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativevault_s2q2_logic": {
+          try {
+            const { OpenCloudNativeVaultService } = await import("../liberty/opencloud-nativevault_s2q2.service.js");
+            const res = await OpenCloudNativeVaultService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeVault failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessnode_x7za_logic": {
           try {
             const { OpenServerlessNodeService } = await import("../liberty/openserverlessnode_x7za.service.js");
