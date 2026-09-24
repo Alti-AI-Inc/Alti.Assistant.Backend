@@ -8,7 +8,6 @@ const modulesDir = path.join(__dirname, '../src/app/modules');
 const dockerComposePath = path.join(__dirname, '../docker-compose.liberty.yml');
 const dockerfilePath = path.join(__dirname, '../Dockerfile.liberty-engine');
 
-// 1. Create the Universal Engine Dockerfile
 const dockerfileContent = `
 # ==========================================
 # LIBERTY CENTER ONE - SOVEREIGN ENGINE
@@ -18,7 +17,6 @@ WORKDIR /opt/aphura/engine
 COPY package*.json ./
 RUN npm ci --only=production
 COPY . .
-# Each isolated container runs its specific MoE sub-engine
 ENV NODE_ENV=production
 ENV INFRASTRUCTURE_PROVIDER="Liberty Center One"
 CMD ["node", "src/server.js"]
@@ -26,7 +24,6 @@ CMD ["node", "src/server.js"]
 fs.writeFileSync(dockerfilePath, dockerfileContent.trim());
 console.log('✅ Created Dockerfile.liberty-engine');
 
-// 2. Scan all modules to entrench them
 let servicesYAML = `
 # ==========================================
 # LIBERTY CENTER ONE - SOVEREIGN BACKEND
@@ -71,30 +68,29 @@ console.log(`Found ${serviceFiles.length} isolated engines to entrench...`);
 
 serviceFiles.forEach((file, index) => {
   const baseName = path.basename(file, '.service.js');
-  const serviceName = \`engine-\${baseName.replace(/[^a-zA-Z0-9]/g, '-')}\`;
+  const serviceName = `engine-${baseName.replace(/[^a-zA-Z0-9]/g, '-')}`;
   
-  servicesYAML += \`
-  \${serviceName}:
+  servicesYAML += `
+  ${serviceName}:
     build:
       context: .
       dockerfile: Dockerfile.liberty-engine
     networks:
       - liberty-mesh
     environment:
-      - ENGINE_ROLE=\${baseName.toUpperCase()}
+      - ENGINE_ROLE=${baseName.toUpperCase()}
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-\`;
+`;
 });
 
 fs.writeFileSync(dockerComposePath, servicesYAML.trim());
 console.log(`✅ Generated massive docker-compose.liberty.yml with ${serviceFiles.length + 1} isolated containers.`);
 
-// 3. Commit to Git
 try {
   execSync('git add docker-compose.liberty.yml Dockerfile.liberty-engine');
-  execSync('git commit -m "feat: entrench all 500+ engines as 100% isolated, dockerized microservices running on a sovereign Liberty Center One mesh network"');
+  execSync('git commit -m "feat: entrench all open-source engines as 100% isolated, dockerized microservices running on a sovereign Liberty Center One mesh network"');
   execSync('git push');
   console.log('✅ Infrastructure entrenchment committed and pushed to repository.');
 } catch (e) {

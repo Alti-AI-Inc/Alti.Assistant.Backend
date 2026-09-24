@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedcontroller_logic",
+      description: "Use the Aphura Engine (OpenAutomatedController) to Autonomously deploy Automated Load Balancing architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticcompiler_logic",
+      description: "Use the Aphura Engine (OpenStaticCompiler) to Autonomously deploy Static Code Analysis architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogvortex_logic",
+      description: "Use the Aphura Engine (OpenLogVortex) to Autonomously deploy Log Aggregation architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedcore_logic",
+      description: "Use the Aphura Engine (OpenDistributedCore) to Autonomously deploy Distributed Caching architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativematrix_logic",
+      description: "Use the Aphura Engine (OpenCloud-NativeMatrix) to Autonomously deploy Cloud-Native Networking architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedledger_logic",
       description: "Use the Aphura Engine (OpenDistributedLedger) to Autonomously deploy Distributed Caching architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1812,6 +1852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedcontroller_logic": {
+          try {
+            const { OpenautomatedcontrollerService } = await import("../enterprise/openautomatedcontroller.service.js");
+            const res = await OpenautomatedcontrollerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedController Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedController failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticcompiler_logic": {
+          try {
+            const { OpenstaticcompilerService } = await import("../enterprise/openstaticcompiler.service.js");
+            const res = await OpenstaticcompilerService.execute(args.target || "system");
+            return { output: `### OpenStaticCompiler Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogvortex_logic": {
+          try {
+            const { OpenlogvortexService } = await import("../enterprise/openlogvortex.service.js");
+            const res = await OpenlogvortexService.execute(args.target || "system");
+            return { output: `### OpenLogVortex Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedcore_logic": {
+          try {
+            const { OpendistributedcoreService } = await import("../enterprise/opendistributedcore.service.js");
+            const res = await OpendistributedcoreService.execute(args.target || "system");
+            return { output: `### OpenDistributedCore Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativematrix_logic": {
+          try {
+            const { Opencloud-nativematrixService } = await import("../enterprise/opencloud-nativematrix.service.js");
+            const res = await Opencloud-nativematrixService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeMatrix Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedledger_logic": {
           try {
             const { OpendistributedledgerService } = await import("../enterprise/opendistributedledger.service.js");
