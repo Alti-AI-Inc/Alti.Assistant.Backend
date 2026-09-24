@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedmesh_02ke_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedMesh) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticproxy_mniv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticProxy) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscluster_ktc8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCluster) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicgraph_oewo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicGraph) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablerouter_3ecb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableRouter) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendnet_9ces_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNet) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8052,6 +8092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedmesh_02ke_logic": {
+          try {
+            const { OpenAutomatedMeshService } = await import("../liberty/openautomatedmesh_02ke.service.js");
+            const res = await OpenAutomatedMeshService.execute(args.target || "system");
+            return { output: `### OpenAutomatedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticproxy_mniv_logic": {
+          try {
+            const { OpenSemanticProxyService } = await import("../liberty/opensemanticproxy_mniv.service.js");
+            const res = await OpenSemanticProxyService.execute(args.target || "system");
+            return { output: `### OpenSemanticProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscluster_ktc8_logic": {
+          try {
+            const { OpenHeadlessClusterService } = await import("../liberty/openheadlesscluster_ktc8.service.js");
+            const res = await OpenHeadlessClusterService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicgraph_oewo_logic": {
+          try {
+            const { OpenHomomorphicGraphService } = await import("../liberty/openhomomorphicgraph_oewo.service.js");
+            const res = await OpenHomomorphicGraphService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablerouter_3ecb_logic": {
+          try {
+            const { OpenImmutableRouterService } = await import("../liberty/openimmutablerouter_3ecb.service.js");
+            const res = await OpenImmutableRouterService.execute(args.target || "system");
+            return { output: `### OpenImmutableRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendnet_9ces_logic": {
           try {
             const { OpenMicroFrontendNetService } = await import("../liberty/openmicro-frontendnet_9ces.service.js");
