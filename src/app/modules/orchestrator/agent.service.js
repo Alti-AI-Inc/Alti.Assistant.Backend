@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "run_security_audit",
+      description: "Use the Aphura Cyber-Security Engine (Semgrep) to autonomously scan a codebase for Zero-Day vulnerabilities, SQL injections, or memory leaks.",
+      parameters: { type: "object", properties: { repoPath: { type: "string" } }, required: ["repoPath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "query_financial_terminal",
       description: "Query the Aphura OpenBB Financial Engine to retrieve live market data, options chains, crypto order books, or macroeconomic indicators.",
       parameters: { type: "object", properties: { ticker: { type: "string" }, dataClass: { type: "string", enum: ["equity", "crypto", "options", "macro"] } }, required: ["ticker"] }
@@ -668,7 +676,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "query_financial_terminal": {
+        case "run_security_audit": {
+          try {
+            const { SemgrepService } = await import("../security/semgrep.service.js");
+            const res = await SemgrepService.scanRepository(args.repoPath);
+            return { output: `### Security Audit Complete\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Security audit failed: ${err.message}` };
+          }
+        }        case "query_financial_terminal": {
           try {
             const { OpenBBService } = await import("../finance/openbb.service.js");
             const res = await OpenBBService.queryMarketData(args.ticker, args.dataClass);
