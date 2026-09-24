@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessstream_4tl8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessStream) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentgraph_ew8x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentGraph) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativebroker_akym_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeBroker) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatavortex_3cg6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataVortex) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentrouter_0e15_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentRouter) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendswarm_4b3j_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendSwarm) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17212,6 +17252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessstream_4tl8_logic": {
+          try {
+            const { OpenHeadlessStreamService } = await import("../liberty/openheadlessstream_4tl8.service.js");
+            const res = await OpenHeadlessStreamService.execute(args.target || "system");
+            return { output: `### OpenHeadlessStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentgraph_ew8x_logic": {
+          try {
+            const { OpenPersistentGraphService } = await import("../liberty/openpersistentgraph_ew8x.service.js");
+            const res = await OpenPersistentGraphService.execute(args.target || "system");
+            return { output: `### OpenPersistentGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativebroker_akym_logic": {
+          try {
+            const { OpenCloudNativeBrokerService } = await import("../liberty/opencloud-nativebroker_akym.service.js");
+            const res = await OpenCloudNativeBrokerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatavortex_3cg6_logic": {
+          try {
+            const { OpenDataVortexService } = await import("../liberty/opendatavortex_3cg6.service.js");
+            const res = await OpenDataVortexService.execute(args.target || "system");
+            return { output: `### OpenDataVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentrouter_0e15_logic": {
+          try {
+            const { OpenPersistentRouterService } = await import("../liberty/openpersistentrouter_0e15.service.js");
+            const res = await OpenPersistentRouterService.execute(args.target || "system");
+            return { output: `### OpenPersistentRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendswarm_4b3j_logic": {
           try {
             const { OpenMicroFrontendSwarmService } = await import("../liberty/openmicro-frontendswarm_4b3j.service.js");
