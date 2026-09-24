@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentproxy_itz7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentProxy) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyplane_6hq5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyPlane) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelvault_c4ee_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelVault) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgeoracle_kqpl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeOracle) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphcompiler_2kdx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphCompiler) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelmesh_45mb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMesh) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7452,6 +7492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentproxy_itz7_logic": {
+          try {
+            const { OpenPersistentProxyService } = await import("../liberty/openpersistentproxy_itz7.service.js");
+            const res = await OpenPersistentProxyService.execute(args.target || "system");
+            return { output: `### OpenPersistentProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyplane_6hq5_logic": {
+          try {
+            const { OpenHighFrequencyPlaneService } = await import("../liberty/openhigh-frequencyplane_6hq5.service.js");
+            const res = await OpenHighFrequencyPlaneService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelvault_c4ee_logic": {
+          try {
+            const { OpenMicroKernelVaultService } = await import("../liberty/openmicro-kernelvault_c4ee.service.js");
+            const res = await OpenMicroKernelVaultService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgeoracle_kqpl_logic": {
+          try {
+            const { OpenZeroKnowledgeOracleService } = await import("../liberty/openzero-knowledgeoracle_kqpl.service.js");
+            const res = await OpenZeroKnowledgeOracleService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphcompiler_2kdx_logic": {
+          try {
+            const { OpenGraphCompilerService } = await import("../liberty/opengraphcompiler_2kdx.service.js");
+            const res = await OpenGraphCompilerService.execute(args.target || "system");
+            return { output: `### OpenGraphCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelmesh_45mb_logic": {
           try {
             const { OpenMicroKernelMeshService } = await import("../liberty/openmicro-kernelmesh_45mb.service.js");
