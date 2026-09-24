@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "process_image_sharp",
+      description: "Use the Aphura Vision Engine (Sharp) to autonomously composite, resize, and optimize massive batches of images into WebP format.",
+      parameters: { type: "object", properties: { imageUrl: { type: "string" }, operations: { type: "string" } }, required: ["imageUrl"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "publish_kafka_event",
+      description: "Use the Aphura Streaming Engine (Apache Kafka) to publish real-time events to distributed message brokers.",
+      parameters: { type: "object", properties: { topic: { type: "string" }, payload: { type: "object" } }, required: ["topic", "payload"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "blast_marketing_email",
+      description: "Use the Aphura Marketing Engine (Nodemailer) to autonomously convert text into beautiful HTML and blast it to massive email lists via SMTP.",
+      parameters: { type: "object", properties: { subject: { type: "string" }, markdownContent: { type: "string" }, targetList: { type: "string" } }, required: ["subject", "markdownContent"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "run_dbt_transformation",
+      description: "Use the Aphura Big Data Engine (dbt Core) to autonomously orchestrate massive SQL transformations and ETL DAGs across data warehouses.",
+      parameters: { type: "object", properties: { warehouseUrl: { type: "string" }, sqlLogic: { type: "string" } }, required: ["warehouseUrl", "sqlLogic"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "audit_smart_contract",
+      description: "Use the Aphura Web3 Engine (Foundry) to compile, fuzz-test, and securely audit Solidity smart contracts for re-entrancy and gas optimization.",
+      parameters: { type: "object", properties: { solidityCode: { type: "string" } }, required: ["solidityCode"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "test_api_endpoint",
       description: "Use the Aphura API Engine (Hoppscotch) to autonomously probe, execute, and validate REST or GraphQL endpoints.",
       parameters: { type: "object", properties: { endpointUrl: { type: "string" }, method: { type: "string" } }, required: ["endpointUrl"] }
@@ -772,7 +812,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "test_api_endpoint": {
+        case "process_image_sharp": {
+          try {
+            const { SharpService } = await import("../vision/sharp.service.js");
+            const res = await SharpService.processImage(args.imageUrl, args.operations);
+            return { output: `### Image Processed\\n\\n[View Result](${res.url})` };
+          } catch (err) {
+            return { output: `Image processing failed: ${err.message}` };
+          }
+        }        case "publish_kafka_event": {
+          try {
+            const { KafkaService } = await import("../data/kafka.service.js");
+            const res = await KafkaService.publishEvent(args.topic, args.payload);
+            return { output: `### Event Streamed\\n\\n${res.status}` };
+          } catch (err) {
+            return { output: `Kafka publish failed: ${err.message}` };
+          }
+        }        case "blast_marketing_email": {
+          try {
+            const { EmailService } = await import("../marketing/email.service.js");
+            const res = await EmailService.blastEmail(args.subject, args.markdownContent, args.targetList);
+            return { output: `### Marketing Execution\\n\\nSuccessfully dispatched ${res.dispatched} HTML emails to ${args.targetList || "default_list"}.` };
+          } catch (err) {
+            return { output: `Email blast failed: ${err.message}` };
+          }
+        }        case "run_dbt_transformation": {
+          try {
+            const { DbtService } = await import("../data/dbt.service.js");
+            const res = await DbtService.runTransformation(args.warehouseUrl, args.sqlLogic);
+            return { output: `### Big Data ETL Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `dbt execution failed: ${err.message}` };
+          }
+        }        case "audit_smart_contract": {
+          try {
+            const { FoundryService } = await import("../web3/foundry.service.js");
+            const res = await FoundryService.compileAndAuditContract(args.solidityCode);
+            return { output: `### Web3 Audit Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Web3 audit failed: ${err.message}` };
+          }
+        }        case "test_api_endpoint": {
           try {
             const { HoppscotchService } = await import("../devops/hoppscotch.service.js");
             const res = await HoppscotchService.testEndpoint(args.endpointUrl, args.method);
