@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialgrid_1srv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialGrid) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessnexus_h7no_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNexus) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablenexus_9uxf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableNexus) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphplane_uauu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphPlane) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgestream_s4id_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeStream) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticgrid_5uea_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticGrid) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3332,6 +3372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialgrid_1srv_logic": {
+          try {
+            const { OpenFinancialGridService } = await import("../liberty/openfinancialgrid_1srv.service.js");
+            const res = await OpenFinancialGridService.execute(args.target || "system");
+            return { output: `### OpenFinancialGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessnexus_h7no_logic": {
+          try {
+            const { OpenHeadlessNexusService } = await import("../liberty/openheadlessnexus_h7no.service.js");
+            const res = await OpenHeadlessNexusService.execute(args.target || "system");
+            return { output: `### OpenHeadlessNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablenexus_9uxf_logic": {
+          try {
+            const { OpenImmutableNexusService } = await import("../liberty/openimmutablenexus_9uxf.service.js");
+            const res = await OpenImmutableNexusService.execute(args.target || "system");
+            return { output: `### OpenImmutableNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphplane_uauu_logic": {
+          try {
+            const { OpenGraphPlaneService } = await import("../liberty/opengraphplane_uauu.service.js");
+            const res = await OpenGraphPlaneService.execute(args.target || "system");
+            return { output: `### OpenGraphPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgestream_s4id_logic": {
+          try {
+            const { OpenZeroKnowledgeStreamService } = await import("../liberty/openzero-knowledgestream_s4id.service.js");
+            const res = await OpenZeroKnowledgeStreamService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeStream failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticgrid_5uea_logic": {
           try {
             const { OpenStaticGridService } = await import("../liberty/openstaticgrid_5uea.service.js");
