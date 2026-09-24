@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepdaemon_fwow_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepDaemon) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepcompiler_8z81_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepCompiler) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedmesh_bq68_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedMesh) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfsync_an9y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFSync) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpucore_lnmf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUCore) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgesync_21uz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeSync) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18252,6 +18292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepdaemon_fwow_logic": {
+          try {
+            const { OpenDeepDaemonService } = await import("../liberty/opendeepdaemon_fwow.service.js");
+            const res = await OpenDeepDaemonService.execute(args.target || "system");
+            return { output: `### OpenDeepDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepcompiler_8z81_logic": {
+          try {
+            const { OpenDeepCompilerService } = await import("../liberty/opendeepcompiler_8z81.service.js");
+            const res = await OpenDeepCompilerService.execute(args.target || "system");
+            return { output: `### OpenDeepCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedmesh_bq68_logic": {
+          try {
+            const { OpenDistributedMeshService } = await import("../liberty/opendistributedmesh_bq68.service.js");
+            const res = await OpenDistributedMeshService.execute(args.target || "system");
+            return { output: `### OpenDistributedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfsync_an9y_logic": {
+          try {
+            const { OpeneBPFSyncService } = await import("../liberty/openebpfsync_an9y.service.js");
+            const res = await OpeneBPFSyncService.execute(args.target || "system");
+            return { output: `### OpeneBPFSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpucore_lnmf_logic": {
+          try {
+            const { OpenGPUCoreService } = await import("../liberty/opengpucore_lnmf.service.js");
+            const res = await OpenGPUCoreService.execute(args.target || "system");
+            return { output: `### OpenGPUCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUCore failed: ${err.message}` };
+          }
+        }
         case "execute_openedgesync_21uz_logic": {
           try {
             const { OpenEdgeSyncService } = await import("../liberty/openedgesync_21uz.service.js");
