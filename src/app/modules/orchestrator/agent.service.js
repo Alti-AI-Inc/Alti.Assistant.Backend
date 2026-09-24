@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticfabric_t5cg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticFabric) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticlayer_zioa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticLayer) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfgrid_hac6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFGrid) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativebroker_rx7h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeBroker) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscontroller_wn4p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessController) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisecluster_zmpc_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseCluster) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20852,6 +20892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticfabric_t5cg_logic": {
+          try {
+            const { OpenSemanticFabricService } = await import("../liberty/opensemanticfabric_t5cg.service.js");
+            const res = await OpenSemanticFabricService.execute(args.target || "system");
+            return { output: `### OpenSemanticFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticlayer_zioa_logic": {
+          try {
+            const { OpenStaticLayerService } = await import("../liberty/openstaticlayer_zioa.service.js");
+            const res = await OpenStaticLayerService.execute(args.target || "system");
+            return { output: `### OpenStaticLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfgrid_hac6_logic": {
+          try {
+            const { OpeneBPFGridService } = await import("../liberty/openebpfgrid_hac6.service.js");
+            const res = await OpeneBPFGridService.execute(args.target || "system");
+            return { output: `### OpeneBPFGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativebroker_rx7h_logic": {
+          try {
+            const { OpenCloudNativeBrokerService } = await import("../liberty/opencloud-nativebroker_rx7h.service.js");
+            const res = await OpenCloudNativeBrokerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscontroller_wn4p_logic": {
+          try {
+            const { OpenHeadlessControllerService } = await import("../liberty/openheadlesscontroller_wn4p.service.js");
+            const res = await OpenHeadlessControllerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessController failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisecluster_zmpc_logic": {
           try {
             const { OpenEnterpriseClusterService } = await import("../liberty/openenterprisecluster_zmpc.service.js");
