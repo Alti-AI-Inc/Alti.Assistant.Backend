@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendswarm_4b3j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendSwarm) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicnode_5vvw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicNode) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelvault_zdj5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelVault) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedswarm_aigz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedSwarm) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticrouter_jdqb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticRouter) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicplane_z7nk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicPlane) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17172,6 +17212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendswarm_4b3j_logic": {
+          try {
+            const { OpenMicroFrontendSwarmService } = await import("../liberty/openmicro-frontendswarm_4b3j.service.js");
+            const res = await OpenMicroFrontendSwarmService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicnode_5vvw_logic": {
+          try {
+            const { OpenNeuromorphicNodeService } = await import("../liberty/openneuromorphicnode_5vvw.service.js");
+            const res = await OpenNeuromorphicNodeService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelvault_zdj5_logic": {
+          try {
+            const { OpenMicroKernelVaultService } = await import("../liberty/openmicro-kernelvault_zdj5.service.js");
+            const res = await OpenMicroKernelVaultService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedswarm_aigz_logic": {
+          try {
+            const { OpenDistributedSwarmService } = await import("../liberty/opendistributedswarm_aigz.service.js");
+            const res = await OpenDistributedSwarmService.execute(args.target || "system");
+            return { output: `### OpenDistributedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticrouter_jdqb_logic": {
+          try {
+            const { OpenSemanticRouterService } = await import("../liberty/opensemanticrouter_jdqb.service.js");
+            const res = await OpenSemanticRouterService.execute(args.target || "system");
+            return { output: `### OpenSemanticRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicplane_z7nk_logic": {
           try {
             const { OpenHomomorphicPlaneService } = await import("../liberty/openhomomorphicplane_z7nk.service.js");
