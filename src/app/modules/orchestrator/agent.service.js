@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedvault_6us9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedVault) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedledger_0a5k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedLedger) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablecore_fvfc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableCore) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustgrid_fb5n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustGrid) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryswarm_hngz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetarySwarm) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengraphvortex_ow1e_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGraphVortex) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8572,6 +8612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedvault_6us9_logic": {
+          try {
+            const { OpenDistributedVaultService } = await import("../liberty/opendistributedvault_6us9.service.js");
+            const res = await OpenDistributedVaultService.execute(args.target || "system");
+            return { output: `### OpenDistributedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedledger_0a5k_logic": {
+          try {
+            const { OpenAdvancedLedgerService } = await import("../liberty/openadvancedledger_0a5k.service.js");
+            const res = await OpenAdvancedLedgerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablecore_fvfc_logic": {
+          try {
+            const { OpenImmutableCoreService } = await import("../liberty/openimmutablecore_fvfc.service.js");
+            const res = await OpenImmutableCoreService.execute(args.target || "system");
+            return { output: `### OpenImmutableCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustgrid_fb5n_logic": {
+          try {
+            const { OpenZeroTrustGridService } = await import("../liberty/openzero-trustgrid_fb5n.service.js");
+            const res = await OpenZeroTrustGridService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryswarm_hngz_logic": {
+          try {
+            const { OpenPlanetarySwarmService } = await import("../liberty/openplanetaryswarm_hngz.service.js");
+            const res = await OpenPlanetarySwarmService.execute(args.target || "system");
+            return { output: `### OpenPlanetarySwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetarySwarm failed: ${err.message}` };
+          }
+        }
         case "execute_opengraphvortex_ow1e_logic": {
           try {
             const { OpenGraphVortexService } = await import("../liberty/opengraphvortex_ow1e.service.js");
