@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "transpile_typescript_esbuild",
+      description: "Use the Aphura Extreme-Speed Bundler (ESBuild) to bypass Node.js entirely and compile massive TypeScript projects using Go-native threads 100x faster than traditional tools.",
+      parameters: { type: "object", properties: { entryFile: { type: "string" } }, required: ["entryFile"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "bundle_frontend_vite",
+      description: "Use the Aphura Frontend Engine (Vite) to autonomously compile, bundle, and hot-reload massive React/Vue architectures in milliseconds using native ES modules.",
+      parameters: { type: "object", properties: { repoPath: { type: "string" } }, required: ["repoPath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "provision_nix_environment",
+      description: "Use the Aphura OS Engine (Nix) to autonomously deploy mathematically reproducible development environments, eliminating the it-works-on-my-machine problem entirely.",
+      parameters: { type: "object", properties: { flakeConfig: { type: "string" } }, required: ["flakeConfig"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_bazel_build",
+      description: "Use the Aphura Monorepo Build Engine (Bazel) to autonomously compile massive, multi-language codebases with high cache-hit ratios.",
+      parameters: { type: "object", properties: { targetPath: { type: "string" } }, required: ["targetPath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_cicd_pipeline",
+      description: "Use the Aphura CI/CD Engine (Drone) to autonomously execute container-native testing and deployment pipelines.",
+      parameters: { type: "object", properties: { repoUrl: { type: "string" }, pipelineYaml: { type: "string" } }, required: ["repoUrl", "pipelineYaml"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "spin_up_binder_env",
       description: "Use the Aphura Cloud Notebook Engine (BinderHub) to autonomously convert any GitHub repository into a live, executable Jupyter environment running in the browser.",
       parameters: { type: "object", properties: { repoUrl: { type: "string" } }, required: ["repoUrl"] }
@@ -1092,7 +1132,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "spin_up_binder_env": {
+        case "transpile_typescript_esbuild": {
+          try {
+            const { ESBuildService } = await import("../ide/esbuild.service.js");
+            const res = await ESBuildService.transpileTypeScript(args.entryFile);
+            return { output: `### ESBuild Compilation Complete\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `ESBuild failed: ${err.message}` };
+          }
+        }        case "bundle_frontend_vite": {
+          try {
+            const { ViteService } = await import("../ide/vite.service.js");
+            const res = await ViteService.bundleFrontend(args.repoPath);
+            return { output: `### Vite Bundle Complete\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Vite bundling failed: ${err.message}` };
+          }
+        }        case "provision_nix_environment": {
+          try {
+            const { NixService } = await import("../devops/nix.service.js");
+            const res = await NixService.provisionEnvironment(args.flakeConfig);
+            return { output: `### Nix Environment Active\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Nix provision failed: ${err.message}` };
+          }
+        }        case "execute_bazel_build": {
+          try {
+            const { BazelService } = await import("../ide/bazel.service.js");
+            const res = await BazelService.executeBuild(args.targetPath);
+            return { output: `### Monorepo Build Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Bazel build failed: ${err.message}` };
+          }
+        }        case "execute_cicd_pipeline": {
+          try {
+            const { DroneService } = await import("../devops/drone.service.js");
+            const res = await DroneService.executePipeline(args.repoUrl, args.pipelineYaml);
+            return { output: `### CI/CD Pipeline Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Pipeline execution failed: ${err.message}` };
+          }
+        }        case "spin_up_binder_env": {
           try {
             const { BinderHubService } = await import("../compute/binderhub.service.js");
             const res = await BinderHubService.spinUpEnvironment(args.repoUrl);
