@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomateddaemon_2rq0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedDaemon) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustgrid_x1nt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustGrid) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosnexus_vowm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNexus) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorgraph_gnkj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorGraph) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessstream_607d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessStream) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivering_n6s5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveRing) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18532,6 +18572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomateddaemon_2rq0_logic": {
+          try {
+            const { OpenAutomatedDaemonService } = await import("../liberty/openautomateddaemon_2rq0.service.js");
+            const res = await OpenAutomatedDaemonService.execute(args.target || "system");
+            return { output: `### OpenAutomatedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustgrid_x1nt_logic": {
+          try {
+            const { OpenZeroTrustGridService } = await import("../liberty/openzero-trustgrid_x1nt.service.js");
+            const res = await OpenZeroTrustGridService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosnexus_vowm_logic": {
+          try {
+            const { OpenChaosNexusService } = await import("../liberty/openchaosnexus_vowm.service.js");
+            const res = await OpenChaosNexusService.execute(args.target || "system");
+            return { output: `### OpenChaosNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorgraph_gnkj_logic": {
+          try {
+            const { OpenVectorGraphService } = await import("../liberty/openvectorgraph_gnkj.service.js");
+            const res = await OpenVectorGraphService.execute(args.target || "system");
+            return { output: `### OpenVectorGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessstream_607d_logic": {
+          try {
+            const { OpenHeadlessStreamService } = await import("../liberty/openheadlessstream_607d.service.js");
+            const res = await OpenHeadlessStreamService.execute(args.target || "system");
+            return { output: `### OpenHeadlessStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessStream failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivering_n6s5_logic": {
           try {
             const { OpenPredictiveRingService } = await import("../liberty/openpredictivering_n6s5.service.js");
