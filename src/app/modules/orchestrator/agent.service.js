@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlesscluster_g664_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessCluster) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumrouter_qb98_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumRouter) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentchain_qla3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentChain) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedbroker_smkt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedBroker) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesproxy_w41o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesProxy) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwarenode_z9j0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareNode) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20132,6 +20172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlesscluster_g664_logic": {
+          try {
+            const { OpenServerlessClusterService } = await import("../liberty/openserverlesscluster_g664.service.js");
+            const res = await OpenServerlessClusterService.execute(args.target || "system");
+            return { output: `### OpenServerlessCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumrouter_qb98_logic": {
+          try {
+            const { OpenQuantumRouterService } = await import("../liberty/openquantumrouter_qb98.service.js");
+            const res = await OpenQuantumRouterService.execute(args.target || "system");
+            return { output: `### OpenQuantumRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentchain_qla3_logic": {
+          try {
+            const { OpenPersistentChainService } = await import("../liberty/openpersistentchain_qla3.service.js");
+            const res = await OpenPersistentChainService.execute(args.target || "system");
+            return { output: `### OpenPersistentChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedbroker_smkt_logic": {
+          try {
+            const { OpenAdvancedBrokerService } = await import("../liberty/openadvancedbroker_smkt.service.js");
+            const res = await OpenAdvancedBrokerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesproxy_w41o_logic": {
+          try {
+            const { OpenTimeSeriesProxyService } = await import("../liberty/opentime-seriesproxy_w41o.service.js");
+            const res = await OpenTimeSeriesProxyService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwarenode_z9j0_logic": {
           try {
             const { OpenHardwareNodeService } = await import("../liberty/openhardwarenode_z9j0.service.js");
