@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpmesh_ptkn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPMesh) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedsync_vqh2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedSync) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedledger_nukt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedLedger) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiccore_qsr8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicCore) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorledger_thmb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorLedger) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openin-memoryvault_i8ec_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryVault) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12372,6 +12412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpmesh_ptkn_logic": {
+          try {
+            const { OpenBGPMeshService } = await import("../liberty/openbgpmesh_ptkn.service.js");
+            const res = await OpenBGPMeshService.execute(args.target || "system");
+            return { output: `### OpenBGPMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedsync_vqh2_logic": {
+          try {
+            const { OpenAdvancedSyncService } = await import("../liberty/openadvancedsync_vqh2.service.js");
+            const res = await OpenAdvancedSyncService.execute(args.target || "system");
+            return { output: `### OpenAdvancedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedledger_nukt_logic": {
+          try {
+            const { OpenAutomatedLedgerService } = await import("../liberty/openautomatedledger_nukt.service.js");
+            const res = await OpenAutomatedLedgerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiccore_qsr8_logic": {
+          try {
+            const { OpenNeuromorphicCoreService } = await import("../liberty/openneuromorphiccore_qsr8.service.js");
+            const res = await OpenNeuromorphicCoreService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorledger_thmb_logic": {
+          try {
+            const { OpenVectorLedgerService } = await import("../liberty/openvectorledger_thmb.service.js");
+            const res = await OpenVectorLedgerService.execute(args.target || "system");
+            return { output: `### OpenVectorLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorLedger failed: ${err.message}` };
+          }
+        }
         case "execute_openin-memoryvault_i8ec_logic": {
           try {
             const { OpenInMemoryVaultService } = await import("../liberty/openin-memoryvault_i8ec.service.js");
