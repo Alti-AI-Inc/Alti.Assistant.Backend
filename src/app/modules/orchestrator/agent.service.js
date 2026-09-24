@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativenet_bcef_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNet) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecore_uqne_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCore) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcontroller_u1xo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPController) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondbroker_3ia8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondBroker) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessstream_0szo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessStream) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessbroker_vzan_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessBroker) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21292,6 +21332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativenet_bcef_logic": {
+          try {
+            const { OpenCloudNativeNetService } = await import("../liberty/opencloud-nativenet_bcef.service.js");
+            const res = await OpenCloudNativeNetService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecore_uqne_logic": {
+          try {
+            const { OpenCloudNativeCoreService } = await import("../liberty/opencloud-nativecore_uqne.service.js");
+            const res = await OpenCloudNativeCoreService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcontroller_u1xo_logic": {
+          try {
+            const { OpenBGPControllerService } = await import("../liberty/openbgpcontroller_u1xo.service.js");
+            const res = await OpenBGPControllerService.execute(args.target || "system");
+            return { output: `### OpenBGPController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPController failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondbroker_3ia8_logic": {
+          try {
+            const { OpenSubMillisecondBrokerService } = await import("../liberty/opensub-millisecondbroker_3ia8.service.js");
+            const res = await OpenSubMillisecondBrokerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessstream_0szo_logic": {
+          try {
+            const { OpenServerlessStreamService } = await import("../liberty/openserverlessstream_0szo.service.js");
+            const res = await OpenServerlessStreamService.execute(args.target || "system");
+            return { output: `### OpenServerlessStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessStream failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessbroker_vzan_logic": {
           try {
             const { OpenServerlessBrokerService } = await import("../liberty/openserverlessbroker_vzan.service.js");
