@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventnode_eqd9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventNode) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwareswarm_a1i1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareSwarm) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessnode_vkir_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessNode) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesnet_r9i6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNet) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphbroker_sgpb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphBroker) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedcore_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedCore) to Autonomously deploy Distributed Caching architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2452,6 +2492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventnode_eqd9_logic": {
+          try {
+            const { OpenEventNodeService } = await import("../liberty/openeventnode_eqd9.service.js");
+            const res = await OpenEventNodeService.execute(args.target || "system");
+            return { output: `### OpenEventNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwareswarm_a1i1_logic": {
+          try {
+            const { OpenHardwareSwarmService } = await import("../liberty/openhardwareswarm_a1i1.service.js");
+            const res = await OpenHardwareSwarmService.execute(args.target || "system");
+            return { output: `### OpenHardwareSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessnode_vkir_logic": {
+          try {
+            const { OpenServerlessNodeService } = await import("../liberty/openserverlessnode_vkir.service.js");
+            const res = await OpenServerlessNodeService.execute(args.target || "system");
+            return { output: `### OpenServerlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesnet_r9i6_logic": {
+          try {
+            const { OpenTimeSeriesNetService } = await import("../liberty/opentime-seriesnet_r9i6.service.js");
+            const res = await OpenTimeSeriesNetService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphbroker_sgpb_logic": {
+          try {
+            const { OpenGraphBrokerService } = await import("../liberty/opengraphbroker_sgpb.service.js");
+            const res = await OpenGraphBrokerService.execute(args.target || "system");
+            return { output: `### OpenGraphBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphBroker failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedcore_logic": {
           try {
             const { OpendistributedcoreService } = await import("../enterprise/opendistributedcore.service.js");
