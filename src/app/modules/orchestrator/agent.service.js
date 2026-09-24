@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedvault_4r1s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVault) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustcontroller_fofc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustController) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedvault_9ml7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedVault) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarypipeline_1xi9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryPipeline) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedlayer_r06x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedLayer) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpustream_ftfa_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUStream) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7252,6 +7292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedvault_4r1s_logic": {
+          try {
+            const { OpenDecentralizedVaultService } = await import("../liberty/opendecentralizedvault_4r1s.service.js");
+            const res = await OpenDecentralizedVaultService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustcontroller_fofc_logic": {
+          try {
+            const { OpenZeroTrustControllerService } = await import("../liberty/openzero-trustcontroller_fofc.service.js");
+            const res = await OpenZeroTrustControllerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustController failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedvault_9ml7_logic": {
+          try {
+            const { OpenDistributedVaultService } = await import("../liberty/opendistributedvault_9ml7.service.js");
+            const res = await OpenDistributedVaultService.execute(args.target || "system");
+            return { output: `### OpenDistributedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarypipeline_1xi9_logic": {
+          try {
+            const { OpenPlanetaryPipelineService } = await import("../liberty/openplanetarypipeline_1xi9.service.js");
+            const res = await OpenPlanetaryPipelineService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedlayer_r06x_logic": {
+          try {
+            const { OpenFederatedLayerService } = await import("../liberty/openfederatedlayer_r06x.service.js");
+            const res = await OpenFederatedLayerService.execute(args.target || "system");
+            return { output: `### OpenFederatedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedLayer failed: ${err.message}` };
+          }
+        }
         case "execute_opengpustream_ftfa_logic": {
           try {
             const { OpenGPUStreamService } = await import("../liberty/opengpustream_ftfa.service.js");
