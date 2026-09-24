@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativering_q2sq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeRing) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpdaemon_fe49_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPDaemon) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedlayer_8d8l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedLayer) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticmatrix_fmpq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticMatrix) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustmatrix_ylb0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustMatrix) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openin-memorycluster_krhx_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryCluster) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5612,6 +5652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativering_q2sq_logic": {
+          try {
+            const { OpenCloudNativeRingService } = await import("../liberty/opencloud-nativering_q2sq.service.js");
+            const res = await OpenCloudNativeRingService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpdaemon_fe49_logic": {
+          try {
+            const { OpenBGPDaemonService } = await import("../liberty/openbgpdaemon_fe49.service.js");
+            const res = await OpenBGPDaemonService.execute(args.target || "system");
+            return { output: `### OpenBGPDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedlayer_8d8l_logic": {
+          try {
+            const { OpenDistributedLayerService } = await import("../liberty/opendistributedlayer_8d8l.service.js");
+            const res = await OpenDistributedLayerService.execute(args.target || "system");
+            return { output: `### OpenDistributedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticmatrix_fmpq_logic": {
+          try {
+            const { OpenSemanticMatrixService } = await import("../liberty/opensemanticmatrix_fmpq.service.js");
+            const res = await OpenSemanticMatrixService.execute(args.target || "system");
+            return { output: `### OpenSemanticMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustmatrix_ylb0_logic": {
+          try {
+            const { OpenZeroTrustMatrixService } = await import("../liberty/openzero-trustmatrix_ylb0.service.js");
+            const res = await OpenZeroTrustMatrixService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openin-memorycluster_krhx_logic": {
           try {
             const { OpenInMemoryClusterService } = await import("../liberty/openin-memorycluster_krhx.service.js");
