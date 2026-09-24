@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openneuromorphicmesh_fiy9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicMesh) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedstream_78qw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedStream) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalstream_4xuj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalStream) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentmesh_ykxa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentMesh) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorcontroller_y2k5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorController) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalfabric_pq5r_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalFabric) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4932,6 +4972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openneuromorphicmesh_fiy9_logic": {
+          try {
+            const { OpenNeuromorphicMeshService } = await import("../liberty/openneuromorphicmesh_fiy9.service.js");
+            const res = await OpenNeuromorphicMeshService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedstream_78qw_logic": {
+          try {
+            const { OpenDistributedStreamService } = await import("../liberty/opendistributedstream_78qw.service.js");
+            const res = await OpenDistributedStreamService.execute(args.target || "system");
+            return { output: `### OpenDistributedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalstream_4xuj_logic": {
+          try {
+            const { OpenHyperDimensionalStreamService } = await import("../liberty/openhyper-dimensionalstream_4xuj.service.js");
+            const res = await OpenHyperDimensionalStreamService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentmesh_ykxa_logic": {
+          try {
+            const { OpenPersistentMeshService } = await import("../liberty/openpersistentmesh_ykxa.service.js");
+            const res = await OpenPersistentMeshService.execute(args.target || "system");
+            return { output: `### OpenPersistentMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorcontroller_y2k5_logic": {
+          try {
+            const { OpenVectorControllerService } = await import("../liberty/openvectorcontroller_y2k5.service.js");
+            const res = await OpenVectorControllerService.execute(args.target || "system");
+            return { output: `### OpenVectorController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorController failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalfabric_pq5r_logic": {
           try {
             const { OpenHyperDimensionalFabricService } = await import("../liberty/openhyper-dimensionalfabric_pq5r.service.js");
