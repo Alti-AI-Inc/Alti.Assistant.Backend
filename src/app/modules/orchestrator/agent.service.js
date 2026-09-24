@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvanceddaemon_nhd4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedDaemon) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondring_b91a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondRing) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessoracle_2b17_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessOracle) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialoracle_7yfh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialOracle) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventgrid_qgl4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventGrid) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivematrix_587f_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveMatrix) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16492,6 +16532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvanceddaemon_nhd4_logic": {
+          try {
+            const { OpenAdvancedDaemonService } = await import("../liberty/openadvanceddaemon_nhd4.service.js");
+            const res = await OpenAdvancedDaemonService.execute(args.target || "system");
+            return { output: `### OpenAdvancedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondring_b91a_logic": {
+          try {
+            const { OpenSubMillisecondRingService } = await import("../liberty/opensub-millisecondring_b91a.service.js");
+            const res = await OpenSubMillisecondRingService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessoracle_2b17_logic": {
+          try {
+            const { OpenHeadlessOracleService } = await import("../liberty/openheadlessoracle_2b17.service.js");
+            const res = await OpenHeadlessOracleService.execute(args.target || "system");
+            return { output: `### OpenHeadlessOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialoracle_7yfh_logic": {
+          try {
+            const { OpenFinancialOracleService } = await import("../liberty/openfinancialoracle_7yfh.service.js");
+            const res = await OpenFinancialOracleService.execute(args.target || "system");
+            return { output: `### OpenFinancialOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventgrid_qgl4_logic": {
+          try {
+            const { OpenEventGridService } = await import("../liberty/openeventgrid_qgl4.service.js");
+            const res = await OpenEventGridService.execute(args.target || "system");
+            return { output: `### OpenEventGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivematrix_587f_logic": {
           try {
             const { OpenPredictiveMatrixService } = await import("../liberty/openpredictivematrix_587f.service.js");
