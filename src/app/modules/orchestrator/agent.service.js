@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partycluster_om6h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyCluster) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenexus_4i4t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNexus) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedpipeline_08uu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedPipeline) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscontroller_auv5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessController) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumgrid_xukd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumGrid) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgeplane_2giq_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgePlane) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4572,6 +4612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partycluster_om6h_logic": {
+          try {
+            const { OpenMultiPartyClusterService } = await import("../liberty/openmulti-partycluster_om6h.service.js");
+            const res = await OpenMultiPartyClusterService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenexus_4i4t_logic": {
+          try {
+            const { OpenCloudNativeNexusService } = await import("../liberty/opencloud-nativenexus_4i4t.service.js");
+            const res = await OpenCloudNativeNexusService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedpipeline_08uu_logic": {
+          try {
+            const { OpenAdvancedPipelineService } = await import("../liberty/openadvancedpipeline_08uu.service.js");
+            const res = await OpenAdvancedPipelineService.execute(args.target || "system");
+            return { output: `### OpenAdvancedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscontroller_auv5_logic": {
+          try {
+            const { OpenHeadlessControllerService } = await import("../liberty/openheadlesscontroller_auv5.service.js");
+            const res = await OpenHeadlessControllerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessController failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumgrid_xukd_logic": {
+          try {
+            const { OpenQuantumGridService } = await import("../liberty/openquantumgrid_xukd.service.js");
+            const res = await OpenQuantumGridService.execute(args.target || "system");
+            return { output: `### OpenQuantumGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgeplane_2giq_logic": {
           try {
             const { OpenZeroKnowledgePlaneService } = await import("../liberty/openzero-knowledgeplane_2giq.service.js");
