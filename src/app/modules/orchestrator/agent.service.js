@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendcluster_veq4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCluster) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedswarm_u631_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedSwarm) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedvortex_usrf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVortex) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondsync_xjjb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondSync) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondnexus_qjy5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondNexus) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedproxy_yd20_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedProxy) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5092,6 +5132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendcluster_veq4_logic": {
+          try {
+            const { OpenMicroFrontendClusterService } = await import("../liberty/openmicro-frontendcluster_veq4.service.js");
+            const res = await OpenMicroFrontendClusterService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedswarm_u631_logic": {
+          try {
+            const { OpenAdvancedSwarmService } = await import("../liberty/openadvancedswarm_u631.service.js");
+            const res = await OpenAdvancedSwarmService.execute(args.target || "system");
+            return { output: `### OpenAdvancedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedvortex_usrf_logic": {
+          try {
+            const { OpenDecentralizedVortexService } = await import("../liberty/opendecentralizedvortex_usrf.service.js");
+            const res = await OpenDecentralizedVortexService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondsync_xjjb_logic": {
+          try {
+            const { OpenSubMillisecondSyncService } = await import("../liberty/opensub-millisecondsync_xjjb.service.js");
+            const res = await OpenSubMillisecondSyncService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondnexus_qjy5_logic": {
+          try {
+            const { OpenSubMillisecondNexusService } = await import("../liberty/opensub-millisecondnexus_qjy5.service.js");
+            const res = await OpenSubMillisecondNexusService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedproxy_yd20_logic": {
           try {
             const { OpenFederatedProxyService } = await import("../liberty/openfederatedproxy_yd20.service.js");
