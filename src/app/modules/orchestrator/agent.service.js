@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgechain_7z87_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeChain) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustcore_xbq6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustCore) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencymatrix_7duz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyMatrix) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesmatrix_50av_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesMatrix) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumfabric_u3se_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumFabric) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalcluster_yoz0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalCluster) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14492,6 +14532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgechain_7z87_logic": {
+          try {
+            const { OpenEdgeChainService } = await import("../liberty/openedgechain_7z87.service.js");
+            const res = await OpenEdgeChainService.execute(args.target || "system");
+            return { output: `### OpenEdgeChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustcore_xbq6_logic": {
+          try {
+            const { OpenZeroTrustCoreService } = await import("../liberty/openzero-trustcore_xbq6.service.js");
+            const res = await OpenZeroTrustCoreService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencymatrix_7duz_logic": {
+          try {
+            const { OpenHighFrequencyMatrixService } = await import("../liberty/openhigh-frequencymatrix_7duz.service.js");
+            const res = await OpenHighFrequencyMatrixService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesmatrix_50av_logic": {
+          try {
+            const { OpenTimeSeriesMatrixService } = await import("../liberty/opentime-seriesmatrix_50av.service.js");
+            const res = await OpenTimeSeriesMatrixService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumfabric_u3se_logic": {
+          try {
+            const { OpenQuantumFabricService } = await import("../liberty/openquantumfabric_u3se.service.js");
+            const res = await OpenQuantumFabricService.execute(args.target || "system");
+            return { output: `### OpenQuantumFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalcluster_yoz0_logic": {
           try {
             const { OpenHyperDimensionalClusterService } = await import("../liberty/openhyper-dimensionalcluster_yoz0.service.js");
