@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialsync_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialSync) to Autonomously deploy Financial Ledger State architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventledger_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventLedger) to Autonomously deploy Event Streaming architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendataengine_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataEngine) to Autonomously deploy Data Lineage architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentledger_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentLedger) to Autonomously deploy Persistent Memory architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcore_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCore) to Autonomously deploy Decentralized Auth architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedgraph_logic",
       description: "Use the Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy Decentralized Auth architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2372,6 +2412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialsync_logic": {
+          try {
+            const { OpenfinancialsyncService } = await import("../enterprise/openfinancialsync.service.js");
+            const res = await OpenfinancialsyncService.execute(args.target || "system");
+            return { output: `### OpenFinancialSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventledger_logic": {
+          try {
+            const { OpeneventledgerService } = await import("../enterprise/openeventledger.service.js");
+            const res = await OpeneventledgerService.execute(args.target || "system");
+            return { output: `### OpenEventLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opendataengine_logic": {
+          try {
+            const { OpendataengineService } = await import("../enterprise/opendataengine.service.js");
+            const res = await OpendataengineService.execute(args.target || "system");
+            return { output: `### OpenDataEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentledger_logic": {
+          try {
+            const { OpenpersistentledgerService } = await import("../enterprise/openpersistentledger.service.js");
+            const res = await OpenpersistentledgerService.execute(args.target || "system");
+            return { output: `### OpenPersistentLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcore_logic": {
+          try {
+            const { OpendecentralizedcoreService } = await import("../enterprise/opendecentralizedcore.service.js");
+            const res = await OpendecentralizedcoreService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCore failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedgraph_logic": {
           try {
             const { OpendecentralizedgraphService } = await import("../enterprise/opendecentralizedgraph.service.js");
