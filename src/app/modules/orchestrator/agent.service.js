@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepmatrix_j8z7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepMatrix) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentdaemon_htl3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentDaemon) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryrouter_2xcf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryRouter) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryfabric_ioxc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryFabric) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelengine_e7lp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelEngine) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessnexus_9ouu_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessNexus) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16252,6 +16292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepmatrix_j8z7_logic": {
+          try {
+            const { OpenDeepMatrixService } = await import("../liberty/opendeepmatrix_j8z7.service.js");
+            const res = await OpenDeepMatrixService.execute(args.target || "system");
+            return { output: `### OpenDeepMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentdaemon_htl3_logic": {
+          try {
+            const { OpenPersistentDaemonService } = await import("../liberty/openpersistentdaemon_htl3.service.js");
+            const res = await OpenPersistentDaemonService.execute(args.target || "system");
+            return { output: `### OpenPersistentDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryrouter_2xcf_logic": {
+          try {
+            const { OpenInMemoryRouterService } = await import("../liberty/openin-memoryrouter_2xcf.service.js");
+            const res = await OpenInMemoryRouterService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryfabric_ioxc_logic": {
+          try {
+            const { OpenInMemoryFabricService } = await import("../liberty/openin-memoryfabric_ioxc.service.js");
+            const res = await OpenInMemoryFabricService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelengine_e7lp_logic": {
+          try {
+            const { OpenMicroKernelEngineService } = await import("../liberty/openmicro-kernelengine_e7lp.service.js");
+            const res = await OpenMicroKernelEngineService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessnexus_9ouu_logic": {
           try {
             const { OpenServerlessNexusService } = await import("../liberty/openserverlessnexus_9ouu.service.js");
