@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgeoracle_r0ou_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeOracle) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablenet_z1fk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableNet) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcompiler_m5lf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCompiler) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecontroller_zcmr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeController) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedbroker_1ij4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedBroker) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedmatrix_st0g_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedMatrix) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11892,6 +11932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgeoracle_r0ou_logic": {
+          try {
+            const { OpenZeroKnowledgeOracleService } = await import("../liberty/openzero-knowledgeoracle_r0ou.service.js");
+            const res = await OpenZeroKnowledgeOracleService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablenet_z1fk_logic": {
+          try {
+            const { OpenImmutableNetService } = await import("../liberty/openimmutablenet_z1fk.service.js");
+            const res = await OpenImmutableNetService.execute(args.target || "system");
+            return { output: `### OpenImmutableNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcompiler_m5lf_logic": {
+          try {
+            const { OpenDecentralizedCompilerService } = await import("../liberty/opendecentralizedcompiler_m5lf.service.js");
+            const res = await OpenDecentralizedCompilerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecontroller_zcmr_logic": {
+          try {
+            const { OpenCloudNativeControllerService } = await import("../liberty/opencloud-nativecontroller_zcmr.service.js");
+            const res = await OpenCloudNativeControllerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeController failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedbroker_1ij4_logic": {
+          try {
+            const { OpenAdvancedBrokerService } = await import("../liberty/openadvancedbroker_1ij4.service.js");
+            const res = await OpenAdvancedBrokerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedBroker failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedmatrix_st0g_logic": {
           try {
             const { OpenDecentralizedMatrixService } = await import("../liberty/opendecentralizedmatrix_st0g.service.js");
