@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticrouter_l62u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticRouter) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedoracle_09es_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedOracle) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesring_kstt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesRing) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencygrid_qdbe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyGrid) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectororacle_i28x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorOracle) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivenexus_vaxr_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNexus) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9892,6 +9932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticrouter_l62u_logic": {
+          try {
+            const { OpenStaticRouterService } = await import("../liberty/openstaticrouter_l62u.service.js");
+            const res = await OpenStaticRouterService.execute(args.target || "system");
+            return { output: `### OpenStaticRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedoracle_09es_logic": {
+          try {
+            const { OpenDecentralizedOracleService } = await import("../liberty/opendecentralizedoracle_09es.service.js");
+            const res = await OpenDecentralizedOracleService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesring_kstt_logic": {
+          try {
+            const { OpenTimeSeriesRingService } = await import("../liberty/opentime-seriesring_kstt.service.js");
+            const res = await OpenTimeSeriesRingService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencygrid_qdbe_logic": {
+          try {
+            const { OpenHighFrequencyGridService } = await import("../liberty/openhigh-frequencygrid_qdbe.service.js");
+            const res = await OpenHighFrequencyGridService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectororacle_i28x_logic": {
+          try {
+            const { OpenVectorOracleService } = await import("../liberty/openvectororacle_i28x.service.js");
+            const res = await OpenVectorOracleService.execute(args.target || "system");
+            return { output: `### OpenVectorOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivenexus_vaxr_logic": {
           try {
             const { OpenPredictiveNexusService } = await import("../liberty/openpredictivenexus_vaxr.service.js");
