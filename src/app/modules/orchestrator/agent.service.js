@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialoracle_7uav_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialOracle) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumrouter_xh6c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumRouter) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventmesh_xxc1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventMesh) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessnet_9b6d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNet) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorydaemon_vwpy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryDaemon) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialcluster_f7wa_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialCluster) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11252,6 +11292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialoracle_7uav_logic": {
+          try {
+            const { OpenFinancialOracleService } = await import("../liberty/openfinancialoracle_7uav.service.js");
+            const res = await OpenFinancialOracleService.execute(args.target || "system");
+            return { output: `### OpenFinancialOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumrouter_xh6c_logic": {
+          try {
+            const { OpenQuantumRouterService } = await import("../liberty/openquantumrouter_xh6c.service.js");
+            const res = await OpenQuantumRouterService.execute(args.target || "system");
+            return { output: `### OpenQuantumRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventmesh_xxc1_logic": {
+          try {
+            const { OpenEventMeshService } = await import("../liberty/openeventmesh_xxc1.service.js");
+            const res = await OpenEventMeshService.execute(args.target || "system");
+            return { output: `### OpenEventMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessnet_9b6d_logic": {
+          try {
+            const { OpenHeadlessNetService } = await import("../liberty/openheadlessnet_9b6d.service.js");
+            const res = await OpenHeadlessNetService.execute(args.target || "system");
+            return { output: `### OpenHeadlessNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorydaemon_vwpy_logic": {
+          try {
+            const { OpenInMemoryDaemonService } = await import("../liberty/openin-memorydaemon_vwpy.service.js");
+            const res = await OpenInMemoryDaemonService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryDaemon failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialcluster_f7wa_logic": {
           try {
             const { OpenFinancialClusterService } = await import("../liberty/openfinancialcluster_f7wa.service.js");
