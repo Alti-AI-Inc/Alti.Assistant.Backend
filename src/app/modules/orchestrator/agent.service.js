@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendatasync_jrkq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataSync) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableengine_b95p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableEngine) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivepipeline_us2h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictivePipeline) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseengine_6xw1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseEngine) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedplane_u6x1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedPlane) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeeprouter_g7ih_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepRouter) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9452,6 +9492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendatasync_jrkq_logic": {
+          try {
+            const { OpenDataSyncService } = await import("../liberty/opendatasync_jrkq.service.js");
+            const res = await OpenDataSyncService.execute(args.target || "system");
+            return { output: `### OpenDataSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableengine_b95p_logic": {
+          try {
+            const { OpenImmutableEngineService } = await import("../liberty/openimmutableengine_b95p.service.js");
+            const res = await OpenImmutableEngineService.execute(args.target || "system");
+            return { output: `### OpenImmutableEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivepipeline_us2h_logic": {
+          try {
+            const { OpenPredictivePipelineService } = await import("../liberty/openpredictivepipeline_us2h.service.js");
+            const res = await OpenPredictivePipelineService.execute(args.target || "system");
+            return { output: `### OpenPredictivePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictivePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseengine_6xw1_logic": {
+          try {
+            const { OpenEnterpriseEngineService } = await import("../liberty/openenterpriseengine_6xw1.service.js");
+            const res = await OpenEnterpriseEngineService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedplane_u6x1_logic": {
+          try {
+            const { OpenDecentralizedPlaneService } = await import("../liberty/opendecentralizedplane_u6x1.service.js");
+            const res = await OpenDecentralizedPlaneService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedPlane failed: ${err.message}` };
+          }
+        }
         case "execute_opendeeprouter_g7ih_logic": {
           try {
             const { OpenDeepRouterService } = await import("../liberty/opendeeprouter_g7ih.service.js");
