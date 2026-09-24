@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosnode_c67q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNode) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributeddaemon_9b8l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedDaemon) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedsync_2uwr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSync) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondswarm_je38_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondSwarm) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendvault_fmmo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendVault) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticlayer_c0zp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticLayer) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5212,6 +5252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosnode_c67q_logic": {
+          try {
+            const { OpenChaosNodeService } = await import("../liberty/openchaosnode_c67q.service.js");
+            const res = await OpenChaosNodeService.execute(args.target || "system");
+            return { output: `### OpenChaosNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributeddaemon_9b8l_logic": {
+          try {
+            const { OpenDistributedDaemonService } = await import("../liberty/opendistributeddaemon_9b8l.service.js");
+            const res = await OpenDistributedDaemonService.execute(args.target || "system");
+            return { output: `### OpenDistributedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedsync_2uwr_logic": {
+          try {
+            const { OpenDecentralizedSyncService } = await import("../liberty/opendecentralizedsync_2uwr.service.js");
+            const res = await OpenDecentralizedSyncService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondswarm_je38_logic": {
+          try {
+            const { OpenSubMillisecondSwarmService } = await import("../liberty/opensub-millisecondswarm_je38.service.js");
+            const res = await OpenSubMillisecondSwarmService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendvault_fmmo_logic": {
+          try {
+            const { OpenMicroFrontendVaultService } = await import("../liberty/openmicro-frontendvault_fmmo.service.js");
+            const res = await OpenMicroFrontendVaultService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendVault failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticlayer_c0zp_logic": {
           try {
             const { OpenSemanticLayerService } = await import("../liberty/opensemanticlayer_c0zp.service.js");
