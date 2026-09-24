@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgeswarm_frmp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSwarm) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfnode_tkbs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFNode) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgenode_o93a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeNode) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialstream_eu09_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialStream) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessvortex_yyc3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessVortex) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumrouter_js8x_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumRouter) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14652,6 +14692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgeswarm_frmp_logic": {
+          try {
+            const { OpenEdgeSwarmService } = await import("../liberty/openedgeswarm_frmp.service.js");
+            const res = await OpenEdgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenEdgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfnode_tkbs_logic": {
+          try {
+            const { OpeneBPFNodeService } = await import("../liberty/openebpfnode_tkbs.service.js");
+            const res = await OpeneBPFNodeService.execute(args.target || "system");
+            return { output: `### OpeneBPFNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgenode_o93a_logic": {
+          try {
+            const { OpenEdgeNodeService } = await import("../liberty/openedgenode_o93a.service.js");
+            const res = await OpenEdgeNodeService.execute(args.target || "system");
+            return { output: `### OpenEdgeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialstream_eu09_logic": {
+          try {
+            const { OpenFinancialStreamService } = await import("../liberty/openfinancialstream_eu09.service.js");
+            const res = await OpenFinancialStreamService.execute(args.target || "system");
+            return { output: `### OpenFinancialStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessvortex_yyc3_logic": {
+          try {
+            const { OpenHeadlessVortexService } = await import("../liberty/openheadlessvortex_yyc3.service.js");
+            const res = await OpenHeadlessVortexService.execute(args.target || "system");
+            return { output: `### OpenHeadlessVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumrouter_js8x_logic": {
           try {
             const { OpenQuantumRouterService } = await import("../liberty/openquantumrouter_js8x.service.js");
