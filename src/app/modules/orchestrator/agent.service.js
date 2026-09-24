@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedswarm_qew1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedSwarm) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesssync_owkf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessSync) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedledger_1k50_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLedger) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessvault_pwgg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessVault) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessmatrix_x3qg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessMatrix) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictiveoracle_3nt3_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveOracle) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8452,6 +8492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedswarm_qew1_logic": {
+          try {
+            const { OpenAutomatedSwarmService } = await import("../liberty/openautomatedswarm_qew1.service.js");
+            const res = await OpenAutomatedSwarmService.execute(args.target || "system");
+            return { output: `### OpenAutomatedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesssync_owkf_logic": {
+          try {
+            const { OpenServerlessSyncService } = await import("../liberty/openserverlesssync_owkf.service.js");
+            const res = await OpenServerlessSyncService.execute(args.target || "system");
+            return { output: `### OpenServerlessSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedledger_1k50_logic": {
+          try {
+            const { OpenDecentralizedLedgerService } = await import("../liberty/opendecentralizedledger_1k50.service.js");
+            const res = await OpenDecentralizedLedgerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessvault_pwgg_logic": {
+          try {
+            const { OpenServerlessVaultService } = await import("../liberty/openserverlessvault_pwgg.service.js");
+            const res = await OpenServerlessVaultService.execute(args.target || "system");
+            return { output: `### OpenServerlessVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessmatrix_x3qg_logic": {
+          try {
+            const { OpenHeadlessMatrixService } = await import("../liberty/openheadlessmatrix_x3qg.service.js");
+            const res = await OpenHeadlessMatrixService.execute(args.target || "system");
+            return { output: `### OpenHeadlessMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictiveoracle_3nt3_logic": {
           try {
             const { OpenPredictiveOracleService } = await import("../liberty/openpredictiveoracle_3nt3.service.js");
