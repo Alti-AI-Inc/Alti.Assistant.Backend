@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticvault_9yaa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticVault) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableswarm_31vc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableSwarm) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpforacle_hphp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFOracle) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesscore_dwnt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessCore) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarychain_cixs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryChain) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendcore_lfvn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCore) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5692,6 +5732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticvault_9yaa_logic": {
+          try {
+            const { OpenStaticVaultService } = await import("../liberty/openstaticvault_9yaa.service.js");
+            const res = await OpenStaticVaultService.execute(args.target || "system");
+            return { output: `### OpenStaticVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableswarm_31vc_logic": {
+          try {
+            const { OpenImmutableSwarmService } = await import("../liberty/openimmutableswarm_31vc.service.js");
+            const res = await OpenImmutableSwarmService.execute(args.target || "system");
+            return { output: `### OpenImmutableSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpforacle_hphp_logic": {
+          try {
+            const { OpeneBPFOracleService } = await import("../liberty/openebpforacle_hphp.service.js");
+            const res = await OpeneBPFOracleService.execute(args.target || "system");
+            return { output: `### OpeneBPFOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesscore_dwnt_logic": {
+          try {
+            const { OpenServerlessCoreService } = await import("../liberty/openserverlesscore_dwnt.service.js");
+            const res = await OpenServerlessCoreService.execute(args.target || "system");
+            return { output: `### OpenServerlessCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarychain_cixs_logic": {
+          try {
+            const { OpenPlanetaryChainService } = await import("../liberty/openplanetarychain_cixs.service.js");
+            const res = await OpenPlanetaryChainService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryChain failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendcore_lfvn_logic": {
           try {
             const { OpenMicroFrontendCoreService } = await import("../liberty/openmicro-frontendcore_lfvn.service.js");
