@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativefabric_b977_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeFabric) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedledger_f7t9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedLedger) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryfabric_669w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryFabric) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticsync_k00v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticSync) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustsync_8wgn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustSync) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivenet_1ui9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNet) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16012,6 +16052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativefabric_b977_logic": {
+          try {
+            const { OpenCloudNativeFabricService } = await import("../liberty/opencloud-nativefabric_b977.service.js");
+            const res = await OpenCloudNativeFabricService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedledger_f7t9_logic": {
+          try {
+            const { OpenDistributedLedgerService } = await import("../liberty/opendistributedledger_f7t9.service.js");
+            const res = await OpenDistributedLedgerService.execute(args.target || "system");
+            return { output: `### OpenDistributedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryfabric_669w_logic": {
+          try {
+            const { OpenInMemoryFabricService } = await import("../liberty/openin-memoryfabric_669w.service.js");
+            const res = await OpenInMemoryFabricService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticsync_k00v_logic": {
+          try {
+            const { OpenSemanticSyncService } = await import("../liberty/opensemanticsync_k00v.service.js");
+            const res = await OpenSemanticSyncService.execute(args.target || "system");
+            return { output: `### OpenSemanticSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustsync_8wgn_logic": {
+          try {
+            const { OpenZeroTrustSyncService } = await import("../liberty/openzero-trustsync_8wgn.service.js");
+            const res = await OpenZeroTrustSyncService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustSync failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivenet_1ui9_logic": {
           try {
             const { OpenPredictiveNetService } = await import("../liberty/openpredictivenet_1ui9.service.js");
