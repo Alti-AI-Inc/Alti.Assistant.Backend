@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialvault_efny_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialVault) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgenode_mwt9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeNode) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedmatrix_syb2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedMatrix) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticengine_eyts_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticEngine) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelledger_fow9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelLedger) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwaredaemon_oxht_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareDaemon) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8892,6 +8932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialvault_efny_logic": {
+          try {
+            const { OpenFinancialVaultService } = await import("../liberty/openfinancialvault_efny.service.js");
+            const res = await OpenFinancialVaultService.execute(args.target || "system");
+            return { output: `### OpenFinancialVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgenode_mwt9_logic": {
+          try {
+            const { OpenEdgeNodeService } = await import("../liberty/openedgenode_mwt9.service.js");
+            const res = await OpenEdgeNodeService.execute(args.target || "system");
+            return { output: `### OpenEdgeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedmatrix_syb2_logic": {
+          try {
+            const { OpenDistributedMatrixService } = await import("../liberty/opendistributedmatrix_syb2.service.js");
+            const res = await OpenDistributedMatrixService.execute(args.target || "system");
+            return { output: `### OpenDistributedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticengine_eyts_logic": {
+          try {
+            const { OpenStaticEngineService } = await import("../liberty/openstaticengine_eyts.service.js");
+            const res = await OpenStaticEngineService.execute(args.target || "system");
+            return { output: `### OpenStaticEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelledger_fow9_logic": {
+          try {
+            const { OpenMicroKernelLedgerService } = await import("../liberty/openmicro-kernelledger_fow9.service.js");
+            const res = await OpenMicroKernelLedgerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelLedger failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwaredaemon_oxht_logic": {
           try {
             const { OpenHardwareDaemonService } = await import("../liberty/openhardwaredaemon_oxht.service.js");
