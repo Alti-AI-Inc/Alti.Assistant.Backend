@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativelayer_f0of_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeLayer) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableproxy_lutl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableProxy) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorlayer_p5r5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorLayer) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgeswarm_3bdm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeSwarm) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalcluster_kxxm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalCluster) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhigh-frequencysync_rt4u_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencySync) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16812,6 +16852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativelayer_f0of_logic": {
+          try {
+            const { OpenCloudNativeLayerService } = await import("../liberty/opencloud-nativelayer_f0of.service.js");
+            const res = await OpenCloudNativeLayerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableproxy_lutl_logic": {
+          try {
+            const { OpenImmutableProxyService } = await import("../liberty/openimmutableproxy_lutl.service.js");
+            const res = await OpenImmutableProxyService.execute(args.target || "system");
+            return { output: `### OpenImmutableProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorlayer_p5r5_logic": {
+          try {
+            const { OpenVectorLayerService } = await import("../liberty/openvectorlayer_p5r5.service.js");
+            const res = await OpenVectorLayerService.execute(args.target || "system");
+            return { output: `### OpenVectorLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgeswarm_3bdm_logic": {
+          try {
+            const { OpenZeroKnowledgeSwarmService } = await import("../liberty/openzero-knowledgeswarm_3bdm.service.js");
+            const res = await OpenZeroKnowledgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalcluster_kxxm_logic": {
+          try {
+            const { OpenHyperDimensionalClusterService } = await import("../liberty/openhyper-dimensionalcluster_kxxm.service.js");
+            const res = await OpenHyperDimensionalClusterService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openhigh-frequencysync_rt4u_logic": {
           try {
             const { OpenHighFrequencySyncService } = await import("../liberty/openhigh-frequencysync_rt4u.service.js");
