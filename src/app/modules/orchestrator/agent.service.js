@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendcompiler_xkuh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCompiler) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecore_6mld_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCore) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedpipeline_in3b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedPipeline) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesoracle_97av_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesOracle) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustmesh_u26n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustMesh) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgesync_1qew_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeSync) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10892,6 +10932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendcompiler_xkuh_logic": {
+          try {
+            const { OpenMicroFrontendCompilerService } = await import("../liberty/openmicro-frontendcompiler_xkuh.service.js");
+            const res = await OpenMicroFrontendCompilerService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecore_6mld_logic": {
+          try {
+            const { OpenCloudNativeCoreService } = await import("../liberty/opencloud-nativecore_6mld.service.js");
+            const res = await OpenCloudNativeCoreService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedpipeline_in3b_logic": {
+          try {
+            const { OpenDecentralizedPipelineService } = await import("../liberty/opendecentralizedpipeline_in3b.service.js");
+            const res = await OpenDecentralizedPipelineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesoracle_97av_logic": {
+          try {
+            const { OpenTimeSeriesOracleService } = await import("../liberty/opentime-seriesoracle_97av.service.js");
+            const res = await OpenTimeSeriesOracleService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustmesh_u26n_logic": {
+          try {
+            const { OpenZeroTrustMeshService } = await import("../liberty/openzero-trustmesh_u26n.service.js");
+            const res = await OpenZeroTrustMeshService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openedgesync_1qew_logic": {
           try {
             const { OpenEdgeSyncService } = await import("../liberty/openedgesync_1qew.service.js");
