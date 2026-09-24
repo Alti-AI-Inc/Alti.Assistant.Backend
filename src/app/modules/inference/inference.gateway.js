@@ -58,10 +58,15 @@ export const InferenceGateway = {
 
     for (let i = 0; i < attempts.length; i++) {
       const targetModel = attempts[i];
-      logger.info(`[Inference Gateway] Routing to: ${targetModel} (Attempt ${i + 1}/${attempts.length})`);
+      
+      // 🛑 OEM HARD LAW: EXCLUSIVE PROVIDER LOCK
+      // Ensure that under no circumstances can the target model be routed outside Together AI.
+      const TOGETHER_ENDPOINT = 'https://api.together.xyz/v1/chat/completions';
+      
+      logger.info(`[Inference Gateway] Routing to: ${targetModel} on Together.ai (Attempt ${i + 1}/${attempts.length})`);
 
       try {
-        const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+        const response = await fetch(TOGETHER_ENDPOINT, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${TOGETHER_API_KEY}`,

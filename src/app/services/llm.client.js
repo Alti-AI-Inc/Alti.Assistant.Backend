@@ -2,8 +2,12 @@ import Together from 'together-ai';
 import config from '../../../config/index.js';
 import { logger } from '../shared/logger.js';
 
+// 🛑 OEM HARD LAW: EXCLUSIVE PROVIDER LOCK
+// Liberty Center One is strictly bound to Together.ai as the sole inference engine.
+// Connecting to OpenAI, Anthropic, Google, or any other provider is mathematically forbidden.
 const llmClient = new Together({
   apiKey: config.llm?.apiKey || process.env.TOGETHER_API_KEY || 'dummy_key',
+  baseURL: 'https://api.together.xyz/v1', // Hardcoded base URL lock
   maxRetries: 3,
   timeout: 60 * 1000, 
 });
