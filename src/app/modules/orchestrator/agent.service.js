@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpuoracle_8qsk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUOracle) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessmatrix_7pfh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessMatrix) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedcore_twmg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedCore) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kerneldaemon_qhsw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelDaemon) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusternexus_2vjz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterNexus) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusternexus_nbqe_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterNexus) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18452,6 +18492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpuoracle_8qsk_logic": {
+          try {
+            const { OpenGPUOracleService } = await import("../liberty/opengpuoracle_8qsk.service.js");
+            const res = await OpenGPUOracleService.execute(args.target || "system");
+            return { output: `### OpenGPUOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessmatrix_7pfh_logic": {
+          try {
+            const { OpenServerlessMatrixService } = await import("../liberty/openserverlessmatrix_7pfh.service.js");
+            const res = await OpenServerlessMatrixService.execute(args.target || "system");
+            return { output: `### OpenServerlessMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedcore_twmg_logic": {
+          try {
+            const { OpenAutomatedCoreService } = await import("../liberty/openautomatedcore_twmg.service.js");
+            const res = await OpenAutomatedCoreService.execute(args.target || "system");
+            return { output: `### OpenAutomatedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kerneldaemon_qhsw_logic": {
+          try {
+            const { OpenMicroKernelDaemonService } = await import("../liberty/openmicro-kerneldaemon_qhsw.service.js");
+            const res = await OpenMicroKernelDaemonService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusternexus_2vjz_logic": {
+          try {
+            const { OpenCrossClusterNexusService } = await import("../liberty/opencross-clusternexus_2vjz.service.js");
+            const res = await OpenCrossClusterNexusService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterNexus failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusternexus_nbqe_logic": {
           try {
             const { OpenCrossClusterNexusService } = await import("../liberty/opencross-clusternexus_nbqe.service.js");
