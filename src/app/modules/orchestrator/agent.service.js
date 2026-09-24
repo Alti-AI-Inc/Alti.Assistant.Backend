@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "deploy_edge_vision",
+      description: "Use the Aphura Edge AI Engine (MediaPipe) to autonomously deploy ultra-fast, on-device machine learning vision pipelines (like 3D hand tracking or pose estimation) that run entirely offline without cloud servers.",
+      parameters: { type: "object", properties: { trackingMode: { type: "string" } }, required: ["trackingMode"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_embedded_firmware",
+      description: "Use the Aphura Hardware Build Engine (PlatformIO) to autonomously resolve complex C/C++ dependencies and compile firmware binaries for thousands of physical IoT boards (Arduino, ESP32, STM32).",
+      parameters: { type: "object", properties: { boardType: { type: "string" } }, required: ["boardType"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_ml_to_hardware",
+      description: "Use the Aphura Hardware Compiler Engine (Apache TVM) to autonomously compile raw deep learning models directly into optimized bare-metal instructions for CPUs, GPUs, or specialized AI accelerators.",
+      parameters: { type: "object", properties: { modelArch: { type: "string" }, hardwareTarget: { type: "string" } }, required: ["modelArch", "hardwareTarget"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_freertos_firmware",
+      description: "Use the Aphura Microcontroller Engine (FreeRTOS) to autonomously compile sub-millisecond, real-time preemptive firmware tasks for physical IoT Edge devices.",
+      parameters: { type: "object", properties: { taskDescription: { type: "string" } }, required: ["taskDescription"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "simulate_quantum_circuit",
+      description: "Use the Aphura Quantum Engine (Qiskit) to autonomously author, compile, and simulate complex Quantum Circuits for cryptographic or molecular algorithms.",
+      parameters: { type: "object", properties: { circuitDescription: { type: "string" } }, required: ["circuitDescription"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "compile_tailwind_css",
       description: "Use the Aphura Styling Engine (Tailwind CSS) to autonomously scan HTML architectures and compile perfectly optimized, pixel-perfect CSS stylesheets.",
       parameters: { type: "object", properties: { htmlContent: { type: "string" } }, required: ["htmlContent"] }
@@ -1172,7 +1212,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "compile_tailwind_css": {
+        case "deploy_edge_vision": {
+          try {
+            const { MediaPipeService } = await import("../ai/mediapipe.service.js");
+            const res = await MediaPipeService.deployVisionPipeline(args.trackingMode);
+            return { output: `### Edge AI Vision Active\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Edge vision failed: ${err.message}` };
+          }
+        }        case "compile_embedded_firmware": {
+          try {
+            const { PlatformIOService } = await import("../iot/platformio.service.js");
+            const res = await PlatformIOService.compileHardwareBinary(args.boardType);
+            return { output: `### PlatformIO Build Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `PlatformIO build failed: ${err.message}` };
+          }
+        }        case "compile_ml_to_hardware": {
+          try {
+            const { TVMService } = await import("../ai/tvm.service.js");
+            const res = await TVMService.compileHardwareModel(args.modelArch, args.hardwareTarget);
+            return { output: `### TVM Hardware Compilation\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `TVM compilation failed: ${err.message}` };
+          }
+        }        case "compile_freertos_firmware": {
+          try {
+            const { FreeRTOSService } = await import("../iot/freertos.service.js");
+            const res = await FreeRTOSService.deployFirmwareTask(args.taskDescription);
+            return { output: `### Embedded Firmware Compiled\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Firmware compilation failed: ${err.message}` };
+          }
+        }        case "simulate_quantum_circuit": {
+          try {
+            const { QiskitService } = await import("../compute/qiskit.service.js");
+            const res = await QiskitService.simulateQuantumCircuit(args.circuitDescription);
+            return { output: `### Quantum Simulation Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Quantum simulation failed: ${err.message}` };
+          }
+        }        case "compile_tailwind_css": {
           try {
             const { TailwindService } = await import("../ui/tailwind.service.js");
             const res = await TailwindService.compileStyles(args.htmlContent);
