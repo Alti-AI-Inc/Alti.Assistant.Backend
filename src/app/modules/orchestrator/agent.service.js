@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondgrid_u6ld_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondGrid) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgporacle_xh2n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPOracle) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarygraph_uvla_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryGraph) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractstream_dm8v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractStream) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpugrid_8bex_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUGrid) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedgraph_csen_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7932,6 +7972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondgrid_u6ld_logic": {
+          try {
+            const { OpenSubMillisecondGridService } = await import("../liberty/opensub-millisecondgrid_u6ld.service.js");
+            const res = await OpenSubMillisecondGridService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgporacle_xh2n_logic": {
+          try {
+            const { OpenBGPOracleService } = await import("../liberty/openbgporacle_xh2n.service.js");
+            const res = await OpenBGPOracleService.execute(args.target || "system");
+            return { output: `### OpenBGPOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarygraph_uvla_logic": {
+          try {
+            const { OpenPlanetaryGraphService } = await import("../liberty/openplanetarygraph_uvla.service.js");
+            const res = await OpenPlanetaryGraphService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractstream_dm8v_logic": {
+          try {
+            const { OpenAbstractStreamService } = await import("../liberty/openabstractstream_dm8v.service.js");
+            const res = await OpenAbstractStreamService.execute(args.target || "system");
+            return { output: `### OpenAbstractStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpugrid_8bex_logic": {
+          try {
+            const { OpenGPUGridService } = await import("../liberty/opengpugrid_8bex.service.js");
+            const res = await OpenGPUGridService.execute(args.target || "system");
+            return { output: `### OpenGPUGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedgraph_csen_logic": {
           try {
             const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_csen.service.js");
