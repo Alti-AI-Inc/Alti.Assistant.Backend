@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialnet_93vw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialNet) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfmesh_ksh2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFMesh) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicmesh_riov_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMesh) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgering_5spx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeRing) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedpipeline_eaz5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedPipeline) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutableengine_hyku_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableEngine) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5492,6 +5532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialnet_93vw_logic": {
+          try {
+            const { OpenFinancialNetService } = await import("../liberty/openfinancialnet_93vw.service.js");
+            const res = await OpenFinancialNetService.execute(args.target || "system");
+            return { output: `### OpenFinancialNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfmesh_ksh2_logic": {
+          try {
+            const { OpeneBPFMeshService } = await import("../liberty/openebpfmesh_ksh2.service.js");
+            const res = await OpeneBPFMeshService.execute(args.target || "system");
+            return { output: `### OpeneBPFMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicmesh_riov_logic": {
+          try {
+            const { OpenHomomorphicMeshService } = await import("../liberty/openhomomorphicmesh_riov.service.js");
+            const res = await OpenHomomorphicMeshService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgering_5spx_logic": {
+          try {
+            const { OpenEdgeRingService } = await import("../liberty/openedgering_5spx.service.js");
+            const res = await OpenEdgeRingService.execute(args.target || "system");
+            return { output: `### OpenEdgeRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedpipeline_eaz5_logic": {
+          try {
+            const { OpenAutomatedPipelineService } = await import("../liberty/openautomatedpipeline_eaz5.service.js");
+            const res = await OpenAutomatedPipelineService.execute(args.target || "system");
+            return { output: `### OpenAutomatedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutableengine_hyku_logic": {
           try {
             const { OpenImmutableEngineService } = await import("../liberty/openimmutableengine_hyku.service.js");
