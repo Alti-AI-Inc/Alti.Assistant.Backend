@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticlayer_c0zp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticLayer) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectordaemon_9f2r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorDaemon) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendrouter_hr9h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRouter) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencygrid_rogt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyGrid) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessoracle_zkp3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessOracle) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisegrid_rowb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGrid) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5172,6 +5212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticlayer_c0zp_logic": {
+          try {
+            const { OpenSemanticLayerService } = await import("../liberty/opensemanticlayer_c0zp.service.js");
+            const res = await OpenSemanticLayerService.execute(args.target || "system");
+            return { output: `### OpenSemanticLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectordaemon_9f2r_logic": {
+          try {
+            const { OpenVectorDaemonService } = await import("../liberty/openvectordaemon_9f2r.service.js");
+            const res = await OpenVectorDaemonService.execute(args.target || "system");
+            return { output: `### OpenVectorDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendrouter_hr9h_logic": {
+          try {
+            const { OpenMicroFrontendRouterService } = await import("../liberty/openmicro-frontendrouter_hr9h.service.js");
+            const res = await OpenMicroFrontendRouterService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencygrid_rogt_logic": {
+          try {
+            const { OpenHighFrequencyGridService } = await import("../liberty/openhigh-frequencygrid_rogt.service.js");
+            const res = await OpenHighFrequencyGridService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessoracle_zkp3_logic": {
+          try {
+            const { OpenServerlessOracleService } = await import("../liberty/openserverlessoracle_zkp3.service.js");
+            const res = await OpenServerlessOracleService.execute(args.target || "system");
+            return { output: `### OpenServerlessOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisegrid_rowb_logic": {
           try {
             const { OpenEnterpriseGridService } = await import("../liberty/openenterprisegrid_rowb.service.js");
