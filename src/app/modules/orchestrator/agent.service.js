@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "query_financial_terminal",
+      description: "Query the Aphura OpenBB Financial Engine to retrieve live market data, options chains, crypto order books, or macroeconomic indicators.",
+      parameters: { type: "object", properties: { ticker: { type: "string" }, dataClass: { type: "string", enum: ["equity", "crypto", "options", "macro"] } }, required: ["ticker"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "generate_video_clip",
       description: "Use the Aphura VideoGen engine (Mochi-1) to generate a short 3-5 second video clip based on a text prompt. Returns a playable CDN URL.",
       parameters: { type: "object", properties: { prompt: { type: "string" }, duration: { type: "number" } }, required: ["prompt"] }
@@ -660,7 +668,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "generate_video_clip": {
+        case "query_financial_terminal": {
+          try {
+            const { OpenBBService } = await import("../finance/openbb.service.js");
+            const res = await OpenBBService.queryMarketData(args.ticker, args.dataClass);
+            return { output: `### Financial Analysis\\n\\n```text\\n${res.data}\\n```` };
+          } catch (err) {
+            return { output: `Financial query failed: ${err.message}` };
+          }
+        }        case "generate_video_clip": {
           try {
             const { VideoGenService } = await import("../video/videogen.service.js");
             const res = await VideoGenService.generateVideo(args.prompt, args.duration);
