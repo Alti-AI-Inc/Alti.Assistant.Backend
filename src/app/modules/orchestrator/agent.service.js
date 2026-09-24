@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticrouter_bzqd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticRouter) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosoracle_ioqt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosOracle) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycompiler_xz6f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyCompiler) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorymatrix_cc3g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryMatrix) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractsync_p3zx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractSync) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepcore_04gf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepCore) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14172,6 +14212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticrouter_bzqd_logic": {
+          try {
+            const { OpenSemanticRouterService } = await import("../liberty/opensemanticrouter_bzqd.service.js");
+            const res = await OpenSemanticRouterService.execute(args.target || "system");
+            return { output: `### OpenSemanticRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosoracle_ioqt_logic": {
+          try {
+            const { OpenChaosOracleService } = await import("../liberty/openchaosoracle_ioqt.service.js");
+            const res = await OpenChaosOracleService.execute(args.target || "system");
+            return { output: `### OpenChaosOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycompiler_xz6f_logic": {
+          try {
+            const { OpenHighFrequencyCompilerService } = await import("../liberty/openhigh-frequencycompiler_xz6f.service.js");
+            const res = await OpenHighFrequencyCompilerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorymatrix_cc3g_logic": {
+          try {
+            const { OpenInMemoryMatrixService } = await import("../liberty/openin-memorymatrix_cc3g.service.js");
+            const res = await OpenInMemoryMatrixService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractsync_p3zx_logic": {
+          try {
+            const { OpenAbstractSyncService } = await import("../liberty/openabstractsync_p3zx.service.js");
+            const res = await OpenAbstractSyncService.execute(args.target || "system");
+            return { output: `### OpenAbstractSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractSync failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepcore_04gf_logic": {
           try {
             const { OpenDeepCoreService } = await import("../liberty/opendeepcore_04gf.service.js");
