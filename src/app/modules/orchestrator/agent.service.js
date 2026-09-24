@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventledger_ukis_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventLedger) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesbroker_n8ac_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesBroker) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepnet_vs7w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepNet) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorymatrix_44ow_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryMatrix) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustoracle_8je2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustOracle) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederateddaemon_0z8o_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedDaemon) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4212,6 +4252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventledger_ukis_logic": {
+          try {
+            const { OpenEventLedgerService } = await import("../liberty/openeventledger_ukis.service.js");
+            const res = await OpenEventLedgerService.execute(args.target || "system");
+            return { output: `### OpenEventLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesbroker_n8ac_logic": {
+          try {
+            const { OpenTimeSeriesBrokerService } = await import("../liberty/opentime-seriesbroker_n8ac.service.js");
+            const res = await OpenTimeSeriesBrokerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepnet_vs7w_logic": {
+          try {
+            const { OpenDeepNetService } = await import("../liberty/opendeepnet_vs7w.service.js");
+            const res = await OpenDeepNetService.execute(args.target || "system");
+            return { output: `### OpenDeepNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorymatrix_44ow_logic": {
+          try {
+            const { OpenInMemoryMatrixService } = await import("../liberty/openin-memorymatrix_44ow.service.js");
+            const res = await OpenInMemoryMatrixService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustoracle_8je2_logic": {
+          try {
+            const { OpenZeroTrustOracleService } = await import("../liberty/openzero-trustoracle_8je2.service.js");
+            const res = await OpenZeroTrustOracleService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openfederateddaemon_0z8o_logic": {
           try {
             const { OpenFederatedDaemonService } = await import("../liberty/openfederateddaemon_0z8o.service.js");
