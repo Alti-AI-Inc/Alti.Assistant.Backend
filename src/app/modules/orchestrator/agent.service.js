@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustgraph_4qi3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustGraph) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarydaemon_b5kd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryDaemon) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarenode_974z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareNode) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedplane_j4pu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedPlane) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogdaemon_fc6u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogDaemon) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentlayer_vwj2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentLayer) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15372,6 +15412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustgraph_4qi3_logic": {
+          try {
+            const { OpenZeroTrustGraphService } = await import("../liberty/openzero-trustgraph_4qi3.service.js");
+            const res = await OpenZeroTrustGraphService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarydaemon_b5kd_logic": {
+          try {
+            const { OpenPlanetaryDaemonService } = await import("../liberty/openplanetarydaemon_b5kd.service.js");
+            const res = await OpenPlanetaryDaemonService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarenode_974z_logic": {
+          try {
+            const { OpenHardwareNodeService } = await import("../liberty/openhardwarenode_974z.service.js");
+            const res = await OpenHardwareNodeService.execute(args.target || "system");
+            return { output: `### OpenHardwareNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedplane_j4pu_logic": {
+          try {
+            const { OpenFederatedPlaneService } = await import("../liberty/openfederatedplane_j4pu.service.js");
+            const res = await OpenFederatedPlaneService.execute(args.target || "system");
+            return { output: `### OpenFederatedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogdaemon_fc6u_logic": {
+          try {
+            const { OpenLogDaemonService } = await import("../liberty/openlogdaemon_fc6u.service.js");
+            const res = await OpenLogDaemonService.execute(args.target || "system");
+            return { output: `### OpenLogDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogDaemon failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentlayer_vwj2_logic": {
           try {
             const { OpenPersistentLayerService } = await import("../liberty/openpersistentlayer_vwj2.service.js");
