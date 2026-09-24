@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelswarm_5gmt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelSwarm) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicmatrix_fz57_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMatrix) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableproxy_8zo8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableProxy) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepvortex_tobe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepVortex) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgeproxy_ttmh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeProxy) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwareswarm_7bl9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareSwarm) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21492,6 +21532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelswarm_5gmt_logic": {
+          try {
+            const { OpenMicroKernelSwarmService } = await import("../liberty/openmicro-kernelswarm_5gmt.service.js");
+            const res = await OpenMicroKernelSwarmService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicmatrix_fz57_logic": {
+          try {
+            const { OpenHomomorphicMatrixService } = await import("../liberty/openhomomorphicmatrix_fz57.service.js");
+            const res = await OpenHomomorphicMatrixService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableproxy_8zo8_logic": {
+          try {
+            const { OpenImmutableProxyService } = await import("../liberty/openimmutableproxy_8zo8.service.js");
+            const res = await OpenImmutableProxyService.execute(args.target || "system");
+            return { output: `### OpenImmutableProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepvortex_tobe_logic": {
+          try {
+            const { OpenDeepVortexService } = await import("../liberty/opendeepvortex_tobe.service.js");
+            const res = await OpenDeepVortexService.execute(args.target || "system");
+            return { output: `### OpenDeepVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgeproxy_ttmh_logic": {
+          try {
+            const { OpenZeroKnowledgeProxyService } = await import("../liberty/openzero-knowledgeproxy_ttmh.service.js");
+            const res = await OpenZeroKnowledgeProxyService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwareswarm_7bl9_logic": {
           try {
             const { OpenHardwareSwarmService } = await import("../liberty/openhardwareswarm_7bl9.service.js");
