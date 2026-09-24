@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_saas_action",
+      description: "Use the Aphura Workflow Engine (Activepieces) to execute an action on any enterprise SaaS platform (e.g. Salesforce, Google Drive, Slack, HubSpot).",
+      parameters: { type: "object", properties: { appName: { type: "string" }, actionName: { type: "string" }, payload: { type: "object" } }, required: ["appName", "actionName", "payload"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "delegate_to_aphura_sovereign_agent",
       description: "Delegate complex, multi-step autonomous reasoning to the Aphura Sovereign Agent (Cleaned Hermes Engine).",
       parameters: { type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"] }
@@ -556,7 +564,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "delegate_to_aphura_sovereign_agent": {
+        case "execute_saas_action": {
+          try {
+            const { ActivepiecesService } = await import("../workflows/activepieces.service.js");
+            const res = await ActivepiecesService.executeSaaSAction(args.appName, args.actionName, args.payload);
+            return { output: `SaaS Action Successful:\n${JSON.stringify(res.data)}` };
+          } catch (err) {
+            return { output: `SaaS Action failed: ${err.message}` };
+          }
+        }        case "delegate_to_aphura_sovereign_agent": {
           try {
             const { HermesAgentService } = await import("../agents/hermes.service.js");
             const res = await HermesAgentService.executeTask(args.prompt);
