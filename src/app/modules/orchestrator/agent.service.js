@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openin-memoryrouter_ed29_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryRouter) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatavortex_ub0x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataVortex) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedrouter_qkk7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpufabric_uik8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUFabric) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecore_7t3s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareCore) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederateddaemon_kd22_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedDaemon) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14852,6 +14892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openin-memoryrouter_ed29_logic": {
+          try {
+            const { OpenInMemoryRouterService } = await import("../liberty/openin-memoryrouter_ed29.service.js");
+            const res = await OpenInMemoryRouterService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatavortex_ub0x_logic": {
+          try {
+            const { OpenDataVortexService } = await import("../liberty/opendatavortex_ub0x.service.js");
+            const res = await OpenDataVortexService.execute(args.target || "system");
+            return { output: `### OpenDataVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedrouter_qkk7_logic": {
+          try {
+            const { OpenDecentralizedRouterService } = await import("../liberty/opendecentralizedrouter_qkk7.service.js");
+            const res = await OpenDecentralizedRouterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpufabric_uik8_logic": {
+          try {
+            const { OpenGPUFabricService } = await import("../liberty/opengpufabric_uik8.service.js");
+            const res = await OpenGPUFabricService.execute(args.target || "system");
+            return { output: `### OpenGPUFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecore_7t3s_logic": {
+          try {
+            const { OpenHardwareCoreService } = await import("../liberty/openhardwarecore_7t3s.service.js");
+            const res = await OpenHardwareCoreService.execute(args.target || "system");
+            return { output: `### OpenHardwareCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareCore failed: ${err.message}` };
+          }
+        }
         case "execute_openfederateddaemon_kd22_logic": {
           try {
             const { OpenFederatedDaemonService } = await import("../liberty/openfederateddaemon_kd22.service.js");
