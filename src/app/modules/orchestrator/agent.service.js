@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendatanexus_logic",
+      description: "Use the Aphura Engine (OpenDataNexus) to Autonomously deploy Data Lineage architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesscore_logic",
+      description: "Use the Aphura Engine (OpenServerlessCore) to Autonomously deploy Serverless Orchestration architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustbroker_logic",
+      description: "Use the Aphura Engine (OpenZero-TrustBroker) to Autonomously deploy Zero-Trust Security architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustergrid_logic",
+      description: "Use the Aphura Engine (OpenCross-ClusterGrid) to Autonomously deploy Cross-Cluster Replication architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgevortex_logic",
+      description: "Use the Aphura Engine (OpenEdgeVortex) to Autonomously deploy Edge Proxy Gateways architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedcontroller_logic",
       description: "Use the Aphura Engine (OpenAutomatedController) to Autonomously deploy Automated Load Balancing architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1852,6 +1892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendatanexus_logic": {
+          try {
+            const { OpendatanexusService } = await import("../enterprise/opendatanexus.service.js");
+            const res = await OpendatanexusService.execute(args.target || "system");
+            return { output: `### OpenDataNexus Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesscore_logic": {
+          try {
+            const { OpenserverlesscoreService } = await import("../enterprise/openserverlesscore.service.js");
+            const res = await OpenserverlesscoreService.execute(args.target || "system");
+            return { output: `### OpenServerlessCore Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustbroker_logic": {
+          try {
+            const { Openzero-trustbrokerService } = await import("../enterprise/openzero-trustbroker.service.js");
+            const res = await Openzero-trustbrokerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustBroker Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustergrid_logic": {
+          try {
+            const { Opencross-clustergridService } = await import("../enterprise/opencross-clustergrid.service.js");
+            const res = await Opencross-clustergridService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterGrid Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgevortex_logic": {
+          try {
+            const { OpenedgevortexService } = await import("../enterprise/openedgevortex.service.js");
+            const res = await OpenedgevortexService.execute(args.target || "system");
+            return { output: `### OpenEdgeVortex Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedcontroller_logic": {
           try {
             const { OpenautomatedcontrollerService } = await import("../enterprise/openautomatedcontroller.service.js");
