@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwareoracle_pp79_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareOracle) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscluster_vfx3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCluster) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicvault_vy41_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicVault) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscluster_jia4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCluster) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepplane_xie2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepPlane) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterpipeline_s5a8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterPipeline) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7332,6 +7372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwareoracle_pp79_logic": {
+          try {
+            const { OpenHardwareOracleService } = await import("../liberty/openhardwareoracle_pp79.service.js");
+            const res = await OpenHardwareOracleService.execute(args.target || "system");
+            return { output: `### OpenHardwareOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscluster_vfx3_logic": {
+          try {
+            const { OpenHeadlessClusterService } = await import("../liberty/openheadlesscluster_vfx3.service.js");
+            const res = await OpenHeadlessClusterService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicvault_vy41_logic": {
+          try {
+            const { OpenNeuromorphicVaultService } = await import("../liberty/openneuromorphicvault_vy41.service.js");
+            const res = await OpenNeuromorphicVaultService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscluster_jia4_logic": {
+          try {
+            const { OpenChaosClusterService } = await import("../liberty/openchaoscluster_jia4.service.js");
+            const res = await OpenChaosClusterService.execute(args.target || "system");
+            return { output: `### OpenChaosCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepplane_xie2_logic": {
+          try {
+            const { OpenDeepPlaneService } = await import("../liberty/opendeepplane_xie2.service.js");
+            const res = await OpenDeepPlaneService.execute(args.target || "system");
+            return { output: `### OpenDeepPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepPlane failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterpipeline_s5a8_logic": {
           try {
             const { OpenCrossClusterPipelineService } = await import("../liberty/opencross-clusterpipeline_s5a8.service.js");
