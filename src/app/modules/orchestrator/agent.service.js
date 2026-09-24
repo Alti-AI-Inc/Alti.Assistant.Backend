@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "provision_data_notebook",
+      description: "Use the Aphura Analytics Engine (Apache Zeppelin) to autonomously deploy interactive, multi-language data notebooks for complex data science tasks.",
+      parameters: { type: "object", properties: { notebookName: { type: "string" }, languages: { type: "array", items: { type: "string" } } }, required: ["notebookName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "transpile_code_ast",
+      description: "Use the Aphura AST Engine (SWC) to perfectly transpile massive codebases from one language to another by directly mapping Abstract Syntax Trees rather than guessing via LLM.",
+      parameters: { type: "object", properties: { code: { type: "string" }, targetLanguage: { type: "string" } }, required: ["code", "targetLanguage"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "provision_sso_portal",
+      description: "Use the Aphura IAM Security Engine (Keycloak) to autonomously deploy enterprise-grade SSO, OAuth2, and 2FA authentication realms for an application.",
+      parameters: { type: "object", properties: { domain: { type: "string" }, authType: { type: "string" } }, required: ["domain"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "extract_file_metadata",
+      description: "Use the Aphura Universal Extraction Engine (Apache Tika) to rip text and hidden metadata from over 1,000 obscure file formats (legacy Office docs, corrupted PDFs, audio headers).",
+      parameters: { type: "object", properties: { filePath: { type: "string" } }, required: ["filePath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "track_objects_in_video",
+      description: "Use the Aphura Computer Vision Engine (OpenCV) to analyze live video feeds, detect faces, track objects, and extract spatial coordinates.",
+      parameters: { type: "object", properties: { videoStreamUrl: { type: "string" }, targetObject: { type: "string" } }, required: ["videoStreamUrl", "targetObject"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_arrow_computation",
       description: "Use the Aphura Compute Engine (Apache Arrow) to execute mathematical operations or queries on massive tabular datasets up to 100x faster than standard Python Pandas by utilizing in-memory columnar formats.",
       parameters: { type: "object", properties: { dataset: { type: "string" }, query: { type: "string" } }, required: ["dataset", "query"] }
@@ -892,7 +932,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "execute_arrow_computation": {
+        case "provision_data_notebook": {
+          try {
+            const { ZeppelinService } = await import("../compute/zeppelin.service.js");
+            const res = await ZeppelinService.provisionNotebook(args.notebookName, args.languages || ["python", "sql"]);
+            return { output: `### Analytics Notebook Active\\n\\n[Access Zeppelin Interface](${res.url})` };
+          } catch (err) {
+            return { output: `Notebook failed: ${err.message}` };
+          }
+        }        case "transpile_code_ast": {
+          try {
+            const { SwcService } = await import("../ide/swc.service.js");
+            const res = await SwcService.transpileCode(args.code, args.targetLanguage);
+            return { output: `### AST Transpilation Result\\n\\n```${args.targetLanguage}\\n${res.code}\\n```` };
+          } catch (err) {
+            return { output: `Transpilation failed: ${err.message}` };
+          }
+        }        case "provision_sso_portal": {
+          try {
+            const { KeycloakService } = await import("../security/keycloak.service.js");
+            const res = await KeycloakService.provisionAuth(args.domain, args.authType);
+            return { output: `### Secure IAM Portal Deployed\\n\\nPortal URL: ${res.url}\\nStatus: ${res.status}` };
+          } catch (err) {
+            return { output: `IAM deployment failed: ${err.message}` };
+          }
+        }        case "extract_file_metadata": {
+          try {
+            const { TikaService } = await import("../rag/tika.service.js");
+            const res = await TikaService.extractContent(args.filePath);
+            return { output: `### Tika Extraction Complete\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Tika extraction failed: ${err.message}` };
+          }
+        }        case "track_objects_in_video": {
+          try {
+            const { OpenCVService } = await import("../vision/opencv.service.js");
+            const res = await OpenCVService.trackObjects(args.videoStreamUrl, args.targetObject);
+            return { output: `### OpenCV Analysis\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCV analysis failed: ${err.message}` };
+          }
+        }        case "execute_arrow_computation": {
           try {
             const { ArrowService } = await import("../compute/arrow.service.js");
             const res = await ArrowService.executeColumnarQuery(args.dataset, args.query);
