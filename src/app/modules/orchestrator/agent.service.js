@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizednet_uv4w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNet) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgepipeline_6n81_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgePipeline) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablelayer_kgqc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableLayer) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondlayer_j4r5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondLayer) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivepipeline_1ndt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictivePipeline) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriesfabric_xghu_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesFabric) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20972,6 +21012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizednet_uv4w_logic": {
+          try {
+            const { OpenDecentralizedNetService } = await import("../liberty/opendecentralizednet_uv4w.service.js");
+            const res = await OpenDecentralizedNetService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgepipeline_6n81_logic": {
+          try {
+            const { OpenEdgePipelineService } = await import("../liberty/openedgepipeline_6n81.service.js");
+            const res = await OpenEdgePipelineService.execute(args.target || "system");
+            return { output: `### OpenEdgePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablelayer_kgqc_logic": {
+          try {
+            const { OpenImmutableLayerService } = await import("../liberty/openimmutablelayer_kgqc.service.js");
+            const res = await OpenImmutableLayerService.execute(args.target || "system");
+            return { output: `### OpenImmutableLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondlayer_j4r5_logic": {
+          try {
+            const { OpenSubMillisecondLayerService } = await import("../liberty/opensub-millisecondlayer_j4r5.service.js");
+            const res = await OpenSubMillisecondLayerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivepipeline_1ndt_logic": {
+          try {
+            const { OpenPredictivePipelineService } = await import("../liberty/openpredictivepipeline_1ndt.service.js");
+            const res = await OpenPredictivePipelineService.execute(args.target || "system");
+            return { output: `### OpenPredictivePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictivePipeline failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriesfabric_xghu_logic": {
           try {
             const { OpenTimeSeriesFabricService } = await import("../liberty/opentime-seriesfabric_xghu.service.js");
