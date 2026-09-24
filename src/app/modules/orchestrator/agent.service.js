@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessfabric_xgzh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessFabric) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedsync_am1u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedSync) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialchain_kqsw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialChain) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelvault_7m9a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelVault) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventengine_khs0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventEngine) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedcompiler_wtau_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCompiler) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2812,6 +2852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessfabric_xgzh_logic": {
+          try {
+            const { OpenHeadlessFabricService } = await import("../liberty/openheadlessfabric_xgzh.service.js");
+            const res = await OpenHeadlessFabricService.execute(args.target || "system");
+            return { output: `### OpenHeadlessFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedsync_am1u_logic": {
+          try {
+            const { OpenDistributedSyncService } = await import("../liberty/opendistributedsync_am1u.service.js");
+            const res = await OpenDistributedSyncService.execute(args.target || "system");
+            return { output: `### OpenDistributedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialchain_kqsw_logic": {
+          try {
+            const { OpenFinancialChainService } = await import("../liberty/openfinancialchain_kqsw.service.js");
+            const res = await OpenFinancialChainService.execute(args.target || "system");
+            return { output: `### OpenFinancialChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelvault_7m9a_logic": {
+          try {
+            const { OpenMicroKernelVaultService } = await import("../liberty/openmicro-kernelvault_7m9a.service.js");
+            const res = await OpenMicroKernelVaultService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventengine_khs0_logic": {
+          try {
+            const { OpenEventEngineService } = await import("../liberty/openeventengine_khs0.service.js");
+            const res = await OpenEventEngineService.execute(args.target || "system");
+            return { output: `### OpenEventEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventEngine failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedcompiler_wtau_logic": {
           try {
             const { OpenDecentralizedCompilerService } = await import("../liberty/opendecentralizedcompiler_wtau.service.js");
