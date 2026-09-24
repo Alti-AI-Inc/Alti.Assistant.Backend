@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelplane_zxkj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelPlane) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarefabric_x3xp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareFabric) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphcontroller_hse7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphController) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgesync_0zgj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSync) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustcluster_o7e4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustCluster) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlesssync_yc00_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessSync) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6812,6 +6852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelplane_zxkj_logic": {
+          try {
+            const { OpenMicroKernelPlaneService } = await import("../liberty/openmicro-kernelplane_zxkj.service.js");
+            const res = await OpenMicroKernelPlaneService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarefabric_x3xp_logic": {
+          try {
+            const { OpenHardwareFabricService } = await import("../liberty/openhardwarefabric_x3xp.service.js");
+            const res = await OpenHardwareFabricService.execute(args.target || "system");
+            return { output: `### OpenHardwareFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphcontroller_hse7_logic": {
+          try {
+            const { OpenGraphControllerService } = await import("../liberty/opengraphcontroller_hse7.service.js");
+            const res = await OpenGraphControllerService.execute(args.target || "system");
+            return { output: `### OpenGraphController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphController failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgesync_0zgj_logic": {
+          try {
+            const { OpenEdgeSyncService } = await import("../liberty/openedgesync_0zgj.service.js");
+            const res = await OpenEdgeSyncService.execute(args.target || "system");
+            return { output: `### OpenEdgeSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustcluster_o7e4_logic": {
+          try {
+            const { OpenZeroTrustClusterService } = await import("../liberty/openzero-trustcluster_o7e4.service.js");
+            const res = await OpenZeroTrustClusterService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlesssync_yc00_logic": {
           try {
             const { OpenServerlessSyncService } = await import("../liberty/openserverlesssync_yc00.service.js");
