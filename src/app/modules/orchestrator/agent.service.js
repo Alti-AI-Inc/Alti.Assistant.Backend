@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgeproxy_yjmh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeProxy) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondstream_hrgr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondStream) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterchain_7e5z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterChain) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorchain_eksh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorChain) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryproxy_z3w8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryProxy) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancednet_kr17_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNet) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19892,6 +19932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgeproxy_yjmh_logic": {
+          try {
+            const { OpenZeroKnowledgeProxyService } = await import("../liberty/openzero-knowledgeproxy_yjmh.service.js");
+            const res = await OpenZeroKnowledgeProxyService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondstream_hrgr_logic": {
+          try {
+            const { OpenSubMillisecondStreamService } = await import("../liberty/opensub-millisecondstream_hrgr.service.js");
+            const res = await OpenSubMillisecondStreamService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterchain_7e5z_logic": {
+          try {
+            const { OpenCrossClusterChainService } = await import("../liberty/opencross-clusterchain_7e5z.service.js");
+            const res = await OpenCrossClusterChainService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorchain_eksh_logic": {
+          try {
+            const { OpenVectorChainService } = await import("../liberty/openvectorchain_eksh.service.js");
+            const res = await OpenVectorChainService.execute(args.target || "system");
+            return { output: `### OpenVectorChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryproxy_z3w8_logic": {
+          try {
+            const { OpenInMemoryProxyService } = await import("../liberty/openin-memoryproxy_z3w8.service.js");
+            const res = await OpenInMemoryProxyService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancednet_kr17_logic": {
           try {
             const { OpenAdvancedNetService } = await import("../liberty/openadvancednet_kr17.service.js");
