@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelvault_r8f6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelVault) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedring_9e2y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedRing) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisematrix_90it_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseMatrix) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiclayer_44fd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicLayer) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendcluster_tqnx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCluster) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizednet_uv4w_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNet) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21012,6 +21052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelvault_r8f6_logic": {
+          try {
+            const { OpenMicroKernelVaultService } = await import("../liberty/openmicro-kernelvault_r8f6.service.js");
+            const res = await OpenMicroKernelVaultService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedring_9e2y_logic": {
+          try {
+            const { OpenAutomatedRingService } = await import("../liberty/openautomatedring_9e2y.service.js");
+            const res = await OpenAutomatedRingService.execute(args.target || "system");
+            return { output: `### OpenAutomatedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisematrix_90it_logic": {
+          try {
+            const { OpenEnterpriseMatrixService } = await import("../liberty/openenterprisematrix_90it.service.js");
+            const res = await OpenEnterpriseMatrixService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiclayer_44fd_logic": {
+          try {
+            const { OpenNeuromorphicLayerService } = await import("../liberty/openneuromorphiclayer_44fd.service.js");
+            const res = await OpenNeuromorphicLayerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendcluster_tqnx_logic": {
+          try {
+            const { OpenMicroFrontendClusterService } = await import("../liberty/openmicro-frontendcluster_tqnx.service.js");
+            const res = await OpenMicroFrontendClusterService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCluster failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizednet_uv4w_logic": {
           try {
             const { OpenDecentralizedNetService } = await import("../liberty/opendecentralizednet_uv4w.service.js");
