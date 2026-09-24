@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpumesh_n7w9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUMesh) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedpipeline_hdmp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedPipeline) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseswarm_6771_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseSwarm) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelrouter_dty7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelRouter) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivecore_910c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveCore) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgecontroller_09f6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeController) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21372,6 +21412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpumesh_n7w9_logic": {
+          try {
+            const { OpenGPUMeshService } = await import("../liberty/opengpumesh_n7w9.service.js");
+            const res = await OpenGPUMeshService.execute(args.target || "system");
+            return { output: `### OpenGPUMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedpipeline_hdmp_logic": {
+          try {
+            const { OpenDecentralizedPipelineService } = await import("../liberty/opendecentralizedpipeline_hdmp.service.js");
+            const res = await OpenDecentralizedPipelineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseswarm_6771_logic": {
+          try {
+            const { OpenEnterpriseSwarmService } = await import("../liberty/openenterpriseswarm_6771.service.js");
+            const res = await OpenEnterpriseSwarmService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelrouter_dty7_logic": {
+          try {
+            const { OpenMicroKernelRouterService } = await import("../liberty/openmicro-kernelrouter_dty7.service.js");
+            const res = await OpenMicroKernelRouterService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivecore_910c_logic": {
+          try {
+            const { OpenPredictiveCoreService } = await import("../liberty/openpredictivecore_910c.service.js");
+            const res = await OpenPredictiveCoreService.execute(args.target || "system");
+            return { output: `### OpenPredictiveCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveCore failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgecontroller_09f6_logic": {
           try {
             const { OpenZeroKnowledgeControllerService } = await import("../liberty/openzero-knowledgecontroller_09f6.service.js");
