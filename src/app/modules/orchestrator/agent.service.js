@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openin-memorybroker_36h9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryBroker) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustproxy_ttvs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustProxy) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablegrid_7bug_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableGrid) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticproxy_dqws_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticProxy) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisenet_rpl7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNet) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedring_w25s_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedRing) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19492,6 +19532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openin-memorybroker_36h9_logic": {
+          try {
+            const { OpenInMemoryBrokerService } = await import("../liberty/openin-memorybroker_36h9.service.js");
+            const res = await OpenInMemoryBrokerService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustproxy_ttvs_logic": {
+          try {
+            const { OpenZeroTrustProxyService } = await import("../liberty/openzero-trustproxy_ttvs.service.js");
+            const res = await OpenZeroTrustProxyService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablegrid_7bug_logic": {
+          try {
+            const { OpenImmutableGridService } = await import("../liberty/openimmutablegrid_7bug.service.js");
+            const res = await OpenImmutableGridService.execute(args.target || "system");
+            return { output: `### OpenImmutableGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticproxy_dqws_logic": {
+          try {
+            const { OpenStaticProxyService } = await import("../liberty/openstaticproxy_dqws.service.js");
+            const res = await OpenStaticProxyService.execute(args.target || "system");
+            return { output: `### OpenStaticProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisenet_rpl7_logic": {
+          try {
+            const { OpenEnterpriseNetService } = await import("../liberty/openenterprisenet_rpl7.service.js");
+            const res = await OpenEnterpriseNetService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNet failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedring_w25s_logic": {
           try {
             const { OpenDistributedRingService } = await import("../liberty/opendistributedring_w25s.service.js");
