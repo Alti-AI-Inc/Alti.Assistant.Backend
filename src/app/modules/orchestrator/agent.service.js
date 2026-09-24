@@ -208,6 +208,14 @@ const tools = [
   {
     type: 'function',
     function: {
+      name: 'cloud_code_interpreter',
+      description: 'Executes Python or Node.js code securely in a Liberty Center One air-gapped Zun container. Use this for heavy data analysis, math, or backend scripting when the user is on Mobile/Web.',
+      parameters: { type: 'object', properties: { code: { type: 'string' }, language: { type: 'string', enum: ['python', 'node'] } }, required: ['code'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'get_weather',
       description: 'Get real-time weather forecasts for a specific location.',
       parameters: { type: 'object', properties: { location: { type: 'string' } }, required: ['location'] }
@@ -801,6 +809,19 @@ export const AgentService = {
             return { output: 'Action successfully dispatched to local desktop app.', references: [] };
           } catch (err) {
             return { output: `Desktop link failed: ${err.message}. Make sure the Desktop App is running and connected.`, references: [] };
+          }
+        }
+        case 'cloud_code_interpreter': {
+          try {
+            const { default: OpenStackService } = await import('../../services/openstack.service.js');
+            // Execute on Liberty Center One bare-metal via Zun Container Sandbox
+            const result = await OpenStackService.executeAirGappedCode(args.code, args.language || 'python', false);
+            return { 
+              output: `Code execution initiated in Zun Sandbox ${result.containerId}. Status: ${result.status}`, 
+              references: [{ title: 'Code Interpreter', url: 'liberty-center-one://zun-sandbox', snippet: 'Isolated compute container', source: 'Liberty Center One' }]
+            };
+          } catch (err) {
+            return { output: `Cloud code execution failed: ${err.message}`, references: [] };
           }
         }
         case 'get_weather': {

@@ -285,6 +285,30 @@ export const OpenStackService = {
     } catch (error) {
       logger.error(`[OpenStack Octavia] Load Balancer routing failed: ${error.message}`);
     }
+  },
+  /**
+   * OpenStack Zaqar (Messaging v2)
+   * High-throughput queuing and push notifications (Mobile/WebSockets).
+   */
+  async dispatchPushNotification(queueName, messages) {
+    if (!process.env.OS_USERNAME) return null;
+    logger.info(`[OpenStack Zaqar] Dispatching push notification to ${queueName}`);
+    
+    try {
+      const auth = await this.getAuthToken();
+      const zaqarService = auth.catalog.find(s => s.type === 'messaging');
+      const zaqarEndpoint = zaqarService.endpoints.find(e => e.interface === 'public').url;
+
+      const response = await axios.post(`${zaqarEndpoint}/v2/queues/${queueName}/messages`, {
+        messages: messages.map(msg => ({ body: msg, ttl: 3600 }))
+      }, {
+        headers: { 'X-Auth-Token': auth.token, 'Client-ID': 'aphura-mobile-gateway' }
+      });
+
+      return response.data;
+    } catch (error) {
+      logger.error(`[OpenStack Zaqar] Push notification failed: ${error.message}`);
+    }
   }
 };
 
