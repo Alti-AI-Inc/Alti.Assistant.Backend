@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhigh-frequencysync_rt4u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencySync) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablenode_whj4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableNode) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustnet_7dfe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustNet) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondledger_yvjm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondLedger) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticengine_lcy3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticEngine) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlesscore_53df_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCore) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16772,6 +16812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhigh-frequencysync_rt4u_logic": {
+          try {
+            const { OpenHighFrequencySyncService } = await import("../liberty/openhigh-frequencysync_rt4u.service.js");
+            const res = await OpenHighFrequencySyncService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencySync failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablenode_whj4_logic": {
+          try {
+            const { OpenImmutableNodeService } = await import("../liberty/openimmutablenode_whj4.service.js");
+            const res = await OpenImmutableNodeService.execute(args.target || "system");
+            return { output: `### OpenImmutableNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustnet_7dfe_logic": {
+          try {
+            const { OpenZeroTrustNetService } = await import("../liberty/openzero-trustnet_7dfe.service.js");
+            const res = await OpenZeroTrustNetService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondledger_yvjm_logic": {
+          try {
+            const { OpenSubMillisecondLedgerService } = await import("../liberty/opensub-millisecondledger_yvjm.service.js");
+            const res = await OpenSubMillisecondLedgerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticengine_lcy3_logic": {
+          try {
+            const { OpenStaticEngineService } = await import("../liberty/openstaticengine_lcy3.service.js");
+            const res = await OpenStaticEngineService.execute(args.target || "system");
+            return { output: `### OpenStaticEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlesscore_53df_logic": {
           try {
             const { OpenHeadlessCoreService } = await import("../liberty/openheadlesscore_53df.service.js");
