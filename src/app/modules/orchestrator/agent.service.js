@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedmesh_flgn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedMesh) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecore_4eh9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCore) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfcompiler_cybf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFCompiler) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticpipeline_pvri_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticPipeline) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatednet_wg0n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedNet) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfcontroller_tukz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFController) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7692,6 +7732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedmesh_flgn_logic": {
+          try {
+            const { OpenDistributedMeshService } = await import("../liberty/opendistributedmesh_flgn.service.js");
+            const res = await OpenDistributedMeshService.execute(args.target || "system");
+            return { output: `### OpenDistributedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecore_4eh9_logic": {
+          try {
+            const { OpenCloudNativeCoreService } = await import("../liberty/opencloud-nativecore_4eh9.service.js");
+            const res = await OpenCloudNativeCoreService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfcompiler_cybf_logic": {
+          try {
+            const { OpeneBPFCompilerService } = await import("../liberty/openebpfcompiler_cybf.service.js");
+            const res = await OpeneBPFCompilerService.execute(args.target || "system");
+            return { output: `### OpeneBPFCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticpipeline_pvri_logic": {
+          try {
+            const { OpenSemanticPipelineService } = await import("../liberty/opensemanticpipeline_pvri.service.js");
+            const res = await OpenSemanticPipelineService.execute(args.target || "system");
+            return { output: `### OpenSemanticPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatednet_wg0n_logic": {
+          try {
+            const { OpenAutomatedNetService } = await import("../liberty/openautomatednet_wg0n.service.js");
+            const res = await OpenAutomatedNetService.execute(args.target || "system");
+            return { output: `### OpenAutomatedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedNet failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfcontroller_tukz_logic": {
           try {
             const { OpeneBPFControllerService } = await import("../liberty/openebpfcontroller_tukz.service.js");
