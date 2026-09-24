@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepmatrix_mpu0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepMatrix) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogfabric_f5p8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogFabric) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendchain_y6kb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendChain) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeengine_42uo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeEngine) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuplane_3se2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUPlane) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriesnode_3k54_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNode) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14772,6 +14812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepmatrix_mpu0_logic": {
+          try {
+            const { OpenDeepMatrixService } = await import("../liberty/opendeepmatrix_mpu0.service.js");
+            const res = await OpenDeepMatrixService.execute(args.target || "system");
+            return { output: `### OpenDeepMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogfabric_f5p8_logic": {
+          try {
+            const { OpenLogFabricService } = await import("../liberty/openlogfabric_f5p8.service.js");
+            const res = await OpenLogFabricService.execute(args.target || "system");
+            return { output: `### OpenLogFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendchain_y6kb_logic": {
+          try {
+            const { OpenMicroFrontendChainService } = await import("../liberty/openmicro-frontendchain_y6kb.service.js");
+            const res = await OpenMicroFrontendChainService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeengine_42uo_logic": {
+          try {
+            const { OpenEdgeEngineService } = await import("../liberty/openedgeengine_42uo.service.js");
+            const res = await OpenEdgeEngineService.execute(args.target || "system");
+            return { output: `### OpenEdgeEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuplane_3se2_logic": {
+          try {
+            const { OpenGPUPlaneService } = await import("../liberty/opengpuplane_3se2.service.js");
+            const res = await OpenGPUPlaneService.execute(args.target || "system");
+            return { output: `### OpenGPUPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUPlane failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriesnode_3k54_logic": {
           try {
             const { OpenTimeSeriesNodeService } = await import("../liberty/opentime-seriesnode_3k54.service.js");
