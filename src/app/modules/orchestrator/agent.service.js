@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarycontroller_ipkn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryController) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryvault_hn7u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryVault) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustcompiler_u3gm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustCompiler) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticvortex_xi9l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticVortex) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablepipeline_uzdn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutablePipeline) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticcluster_alo4_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticCluster) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10252,6 +10292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarycontroller_ipkn_logic": {
+          try {
+            const { OpenPlanetaryControllerService } = await import("../liberty/openplanetarycontroller_ipkn.service.js");
+            const res = await OpenPlanetaryControllerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryController failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryvault_hn7u_logic": {
+          try {
+            const { OpenInMemoryVaultService } = await import("../liberty/openin-memoryvault_hn7u.service.js");
+            const res = await OpenInMemoryVaultService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustcompiler_u3gm_logic": {
+          try {
+            const { OpenZeroTrustCompilerService } = await import("../liberty/openzero-trustcompiler_u3gm.service.js");
+            const res = await OpenZeroTrustCompilerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticvortex_xi9l_logic": {
+          try {
+            const { OpenSemanticVortexService } = await import("../liberty/opensemanticvortex_xi9l.service.js");
+            const res = await OpenSemanticVortexService.execute(args.target || "system");
+            return { output: `### OpenSemanticVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablepipeline_uzdn_logic": {
+          try {
+            const { OpenImmutablePipelineService } = await import("../liberty/openimmutablepipeline_uzdn.service.js");
+            const res = await OpenImmutablePipelineService.execute(args.target || "system");
+            return { output: `### OpenImmutablePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutablePipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticcluster_alo4_logic": {
           try {
             const { OpenStaticClusterService } = await import("../liberty/openstaticcluster_alo4.service.js");
