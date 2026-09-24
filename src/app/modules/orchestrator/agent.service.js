@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessnet_ihq8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessNet) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openloggraph_azyw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogGraph) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpupipeline_rpwm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUPipeline) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgebroker_pwgl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeBroker) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicoracle_iz81_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicOracle) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativecore_d9ro_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCore) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8252,6 +8292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessnet_ihq8_logic": {
+          try {
+            const { OpenServerlessNetService } = await import("../liberty/openserverlessnet_ihq8.service.js");
+            const res = await OpenServerlessNetService.execute(args.target || "system");
+            return { output: `### OpenServerlessNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openloggraph_azyw_logic": {
+          try {
+            const { OpenLogGraphService } = await import("../liberty/openloggraph_azyw.service.js");
+            const res = await OpenLogGraphService.execute(args.target || "system");
+            return { output: `### OpenLogGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpupipeline_rpwm_logic": {
+          try {
+            const { OpenGPUPipelineService } = await import("../liberty/opengpupipeline_rpwm.service.js");
+            const res = await OpenGPUPipelineService.execute(args.target || "system");
+            return { output: `### OpenGPUPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgebroker_pwgl_logic": {
+          try {
+            const { OpenEdgeBrokerService } = await import("../liberty/openedgebroker_pwgl.service.js");
+            const res = await OpenEdgeBrokerService.execute(args.target || "system");
+            return { output: `### OpenEdgeBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicoracle_iz81_logic": {
+          try {
+            const { OpenNeuromorphicOracleService } = await import("../liberty/openneuromorphicoracle_iz81.service.js");
+            const res = await OpenNeuromorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicOracle failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativecore_d9ro_logic": {
           try {
             const { OpenCloudNativeCoreService } = await import("../liberty/opencloud-nativecore_d9ro.service.js");
