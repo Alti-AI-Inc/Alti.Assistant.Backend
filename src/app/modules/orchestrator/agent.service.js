@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedengine_w449_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedEngine) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpugrid_3xc2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUGrid) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatavault_outx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataVault) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialmesh_ywpb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialMesh) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicproxy_g1a0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicProxy) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengraphrouter_r2em_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGraphRouter) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6372,6 +6412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedengine_w449_logic": {
+          try {
+            const { OpenDecentralizedEngineService } = await import("../liberty/opendecentralizedengine_w449.service.js");
+            const res = await OpenDecentralizedEngineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpugrid_3xc2_logic": {
+          try {
+            const { OpenGPUGridService } = await import("../liberty/opengpugrid_3xc2.service.js");
+            const res = await OpenGPUGridService.execute(args.target || "system");
+            return { output: `### OpenGPUGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatavault_outx_logic": {
+          try {
+            const { OpenDataVaultService } = await import("../liberty/opendatavault_outx.service.js");
+            const res = await OpenDataVaultService.execute(args.target || "system");
+            return { output: `### OpenDataVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialmesh_ywpb_logic": {
+          try {
+            const { OpenFinancialMeshService } = await import("../liberty/openfinancialmesh_ywpb.service.js");
+            const res = await OpenFinancialMeshService.execute(args.target || "system");
+            return { output: `### OpenFinancialMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicproxy_g1a0_logic": {
+          try {
+            const { OpenHomomorphicProxyService } = await import("../liberty/openhomomorphicproxy_g1a0.service.js");
+            const res = await OpenHomomorphicProxyService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicProxy failed: ${err.message}` };
+          }
+        }
         case "execute_opengraphrouter_r2em_logic": {
           try {
             const { OpenGraphRouterService } = await import("../liberty/opengraphrouter_r2em.service.js");
