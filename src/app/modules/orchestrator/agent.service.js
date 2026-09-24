@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedring_ssx9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedRing) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyplane_xnf1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyPlane) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpulayer_ivau_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPULayer) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencychain_e2xg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyChain) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedmesh_qibs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedMesh) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterswarm_xgp9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterSwarm) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21092,6 +21132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedring_ssx9_logic": {
+          try {
+            const { OpenFederatedRingService } = await import("../liberty/openfederatedring_ssx9.service.js");
+            const res = await OpenFederatedRingService.execute(args.target || "system");
+            return { output: `### OpenFederatedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyplane_xnf1_logic": {
+          try {
+            const { OpenMultiPartyPlaneService } = await import("../liberty/openmulti-partyplane_xnf1.service.js");
+            const res = await OpenMultiPartyPlaneService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpulayer_ivau_logic": {
+          try {
+            const { OpenGPULayerService } = await import("../liberty/opengpulayer_ivau.service.js");
+            const res = await OpenGPULayerService.execute(args.target || "system");
+            return { output: `### OpenGPULayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPULayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencychain_e2xg_logic": {
+          try {
+            const { OpenHighFrequencyChainService } = await import("../liberty/openhigh-frequencychain_e2xg.service.js");
+            const res = await OpenHighFrequencyChainService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedmesh_qibs_logic": {
+          try {
+            const { OpenAdvancedMeshService } = await import("../liberty/openadvancedmesh_qibs.service.js");
+            const res = await OpenAdvancedMeshService.execute(args.target || "system");
+            return { output: `### OpenAdvancedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedMesh failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterswarm_xgp9_logic": {
           try {
             const { OpenCrossClusterSwarmService } = await import("../liberty/opencross-clusterswarm_xgp9.service.js");
