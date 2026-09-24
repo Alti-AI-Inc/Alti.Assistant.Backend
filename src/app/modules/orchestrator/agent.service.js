@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventproxy_twnj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventProxy) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfnet_wezj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFNet) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyrouter_0ekn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyRouter) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgraph_u4pk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisegrid_mpi3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGrid) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustvault_66fx_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustVault) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13212,6 +13252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventproxy_twnj_logic": {
+          try {
+            const { OpenEventProxyService } = await import("../liberty/openeventproxy_twnj.service.js");
+            const res = await OpenEventProxyService.execute(args.target || "system");
+            return { output: `### OpenEventProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfnet_wezj_logic": {
+          try {
+            const { OpeneBPFNetService } = await import("../liberty/openebpfnet_wezj.service.js");
+            const res = await OpeneBPFNetService.execute(args.target || "system");
+            return { output: `### OpeneBPFNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyrouter_0ekn_logic": {
+          try {
+            const { OpenHighFrequencyRouterService } = await import("../liberty/openhigh-frequencyrouter_0ekn.service.js");
+            const res = await OpenHighFrequencyRouterService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgraph_u4pk_logic": {
+          try {
+            const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_u4pk.service.js");
+            const res = await OpenDecentralizedGraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisegrid_mpi3_logic": {
+          try {
+            const { OpenEnterpriseGridService } = await import("../liberty/openenterprisegrid_mpi3.service.js");
+            const res = await OpenEnterpriseGridService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustvault_66fx_logic": {
           try {
             const { OpenZeroTrustVaultService } = await import("../liberty/openzero-trustvault_66fx.service.js");
