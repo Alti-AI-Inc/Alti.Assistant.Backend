@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondoracle_3pa1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondOracle) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogcompiler_viqa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogCompiler) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencynexus_ad5q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyNexus) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalgrid_974d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalGrid) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorring_71a0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorRing) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivegraph_erbx_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveGraph) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20572,6 +20612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondoracle_3pa1_logic": {
+          try {
+            const { OpenSubMillisecondOracleService } = await import("../liberty/opensub-millisecondoracle_3pa1.service.js");
+            const res = await OpenSubMillisecondOracleService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogcompiler_viqa_logic": {
+          try {
+            const { OpenLogCompilerService } = await import("../liberty/openlogcompiler_viqa.service.js");
+            const res = await OpenLogCompilerService.execute(args.target || "system");
+            return { output: `### OpenLogCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencynexus_ad5q_logic": {
+          try {
+            const { OpenHighFrequencyNexusService } = await import("../liberty/openhigh-frequencynexus_ad5q.service.js");
+            const res = await OpenHighFrequencyNexusService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalgrid_974d_logic": {
+          try {
+            const { OpenHyperDimensionalGridService } = await import("../liberty/openhyper-dimensionalgrid_974d.service.js");
+            const res = await OpenHyperDimensionalGridService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorring_71a0_logic": {
+          try {
+            const { OpenVectorRingService } = await import("../liberty/openvectorring_71a0.service.js");
+            const res = await OpenVectorRingService.execute(args.target || "system");
+            return { output: `### OpenVectorRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorRing failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivegraph_erbx_logic": {
           try {
             const { OpenPredictiveGraphService } = await import("../liberty/openpredictivegraph_erbx.service.js");
