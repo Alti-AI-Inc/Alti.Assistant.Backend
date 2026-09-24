@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterlayer_du72_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLayer) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialgrid_ti8t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialGrid) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosvortex_gj9c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosVortex) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondcore_qziw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondCore) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecompiler_4krt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCompiler) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticbroker_v9yf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticBroker) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16372,6 +16412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterlayer_du72_logic": {
+          try {
+            const { OpenCrossClusterLayerService } = await import("../liberty/opencross-clusterlayer_du72.service.js");
+            const res = await OpenCrossClusterLayerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialgrid_ti8t_logic": {
+          try {
+            const { OpenFinancialGridService } = await import("../liberty/openfinancialgrid_ti8t.service.js");
+            const res = await OpenFinancialGridService.execute(args.target || "system");
+            return { output: `### OpenFinancialGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosvortex_gj9c_logic": {
+          try {
+            const { OpenChaosVortexService } = await import("../liberty/openchaosvortex_gj9c.service.js");
+            const res = await OpenChaosVortexService.execute(args.target || "system");
+            return { output: `### OpenChaosVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondcore_qziw_logic": {
+          try {
+            const { OpenSubMillisecondCoreService } = await import("../liberty/opensub-millisecondcore_qziw.service.js");
+            const res = await OpenSubMillisecondCoreService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecompiler_4krt_logic": {
+          try {
+            const { OpenCloudNativeCompilerService } = await import("../liberty/opencloud-nativecompiler_4krt.service.js");
+            const res = await OpenCloudNativeCompilerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticbroker_v9yf_logic": {
           try {
             const { OpenStaticBrokerService } = await import("../liberty/openstaticbroker_v9yf.service.js");
