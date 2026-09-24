@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openin-memoryrouter_iafs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryRouter) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednode_jp71_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNode) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfpipeline_frhn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFPipeline) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcontroller_9phb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedController) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepnode_innv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepNode) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectorproxy_52jd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorProxy) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15572,6 +15612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openin-memoryrouter_iafs_logic": {
+          try {
+            const { OpenInMemoryRouterService } = await import("../liberty/openin-memoryrouter_iafs.service.js");
+            const res = await OpenInMemoryRouterService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednode_jp71_logic": {
+          try {
+            const { OpenDecentralizedNodeService } = await import("../liberty/opendecentralizednode_jp71.service.js");
+            const res = await OpenDecentralizedNodeService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfpipeline_frhn_logic": {
+          try {
+            const { OpeneBPFPipelineService } = await import("../liberty/openebpfpipeline_frhn.service.js");
+            const res = await OpeneBPFPipelineService.execute(args.target || "system");
+            return { output: `### OpeneBPFPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcontroller_9phb_logic": {
+          try {
+            const { OpenAdvancedControllerService } = await import("../liberty/openadvancedcontroller_9phb.service.js");
+            const res = await OpenAdvancedControllerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedController failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepnode_innv_logic": {
+          try {
+            const { OpenDeepNodeService } = await import("../liberty/opendeepnode_innv.service.js");
+            const res = await OpenDeepNodeService.execute(args.target || "system");
+            return { output: `### OpenDeepNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepNode failed: ${err.message}` };
+          }
+        }
         case "execute_openvectorproxy_52jd_logic": {
           try {
             const { OpenVectorProxyService } = await import("../liberty/openvectorproxy_52jd.service.js");
