@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepmatrix_76mi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepMatrix) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedsync_8gs6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedSync) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriescontroller_t4s9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesController) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativemesh_1a6o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeMesh) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomateddaemon_kymo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedDaemon) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentfabric_61av_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentFabric) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6252,6 +6292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepmatrix_76mi_logic": {
+          try {
+            const { OpenDeepMatrixService } = await import("../liberty/opendeepmatrix_76mi.service.js");
+            const res = await OpenDeepMatrixService.execute(args.target || "system");
+            return { output: `### OpenDeepMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedsync_8gs6_logic": {
+          try {
+            const { OpenAdvancedSyncService } = await import("../liberty/openadvancedsync_8gs6.service.js");
+            const res = await OpenAdvancedSyncService.execute(args.target || "system");
+            return { output: `### OpenAdvancedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriescontroller_t4s9_logic": {
+          try {
+            const { OpenTimeSeriesControllerService } = await import("../liberty/opentime-seriescontroller_t4s9.service.js");
+            const res = await OpenTimeSeriesControllerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesController failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativemesh_1a6o_logic": {
+          try {
+            const { OpenCloudNativeMeshService } = await import("../liberty/opencloud-nativemesh_1a6o.service.js");
+            const res = await OpenCloudNativeMeshService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomateddaemon_kymo_logic": {
+          try {
+            const { OpenAutomatedDaemonService } = await import("../liberty/openautomateddaemon_kymo.service.js");
+            const res = await OpenAutomatedDaemonService.execute(args.target || "system");
+            return { output: `### OpenAutomatedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedDaemon failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentfabric_61av_logic": {
           try {
             const { OpenPersistentFabricService } = await import("../liberty/openpersistentfabric_61av.service.js");
