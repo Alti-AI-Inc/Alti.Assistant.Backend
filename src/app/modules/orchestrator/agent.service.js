@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumledger_86qy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumLedger) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalmesh_3wk1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalMesh) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedgrid_ed0z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedGrid) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalring_qk9e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalRing) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedsync_cjcf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedSync) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialcontroller_lyu9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialController) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11092,6 +11132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumledger_86qy_logic": {
+          try {
+            const { OpenQuantumLedgerService } = await import("../liberty/openquantumledger_86qy.service.js");
+            const res = await OpenQuantumLedgerService.execute(args.target || "system");
+            return { output: `### OpenQuantumLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalmesh_3wk1_logic": {
+          try {
+            const { OpenHyperDimensionalMeshService } = await import("../liberty/openhyper-dimensionalmesh_3wk1.service.js");
+            const res = await OpenHyperDimensionalMeshService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedgrid_ed0z_logic": {
+          try {
+            const { OpenDistributedGridService } = await import("../liberty/opendistributedgrid_ed0z.service.js");
+            const res = await OpenDistributedGridService.execute(args.target || "system");
+            return { output: `### OpenDistributedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalring_qk9e_logic": {
+          try {
+            const { OpenHyperDimensionalRingService } = await import("../liberty/openhyper-dimensionalring_qk9e.service.js");
+            const res = await OpenHyperDimensionalRingService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedsync_cjcf_logic": {
+          try {
+            const { OpenAutomatedSyncService } = await import("../liberty/openautomatedsync_cjcf.service.js");
+            const res = await OpenAutomatedSyncService.execute(args.target || "system");
+            return { output: `### OpenAutomatedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedSync failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialcontroller_lyu9_logic": {
           try {
             const { OpenFinancialControllerService } = await import("../liberty/openfinancialcontroller_lyu9.service.js");
