@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventcore_jwaa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventCore) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumfabric_9jk9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumFabric) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgerouter_244t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeRouter) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativesync_5du1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeSync) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesslayer_w64f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessLayer) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlessrouter_kcfq_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessRouter) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10412,6 +10452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventcore_jwaa_logic": {
+          try {
+            const { OpenEventCoreService } = await import("../liberty/openeventcore_jwaa.service.js");
+            const res = await OpenEventCoreService.execute(args.target || "system");
+            return { output: `### OpenEventCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumfabric_9jk9_logic": {
+          try {
+            const { OpenQuantumFabricService } = await import("../liberty/openquantumfabric_9jk9.service.js");
+            const res = await OpenQuantumFabricService.execute(args.target || "system");
+            return { output: `### OpenQuantumFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgerouter_244t_logic": {
+          try {
+            const { OpenEdgeRouterService } = await import("../liberty/openedgerouter_244t.service.js");
+            const res = await OpenEdgeRouterService.execute(args.target || "system");
+            return { output: `### OpenEdgeRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativesync_5du1_logic": {
+          try {
+            const { OpenCloudNativeSyncService } = await import("../liberty/opencloud-nativesync_5du1.service.js");
+            const res = await OpenCloudNativeSyncService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesslayer_w64f_logic": {
+          try {
+            const { OpenHeadlessLayerService } = await import("../liberty/openheadlesslayer_w64f.service.js");
+            const res = await OpenHeadlessLayerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlessrouter_kcfq_logic": {
           try {
             const { OpenHeadlessRouterService } = await import("../liberty/openheadlessrouter_kcfq.service.js");
