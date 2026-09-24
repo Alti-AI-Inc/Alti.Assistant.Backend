@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedledger_logic",
+      description: "Use the Aphura Engine (OpenDistributedLedger) to Autonomously deploy Distributed Caching architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyledger_logic",
+      description: "Use the Aphura Engine (OpenHigh-FrequencyLedger) to Autonomously deploy High-Frequency Trading architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivevortex_logic",
+      description: "Use the Aphura Engine (OpenPredictiveVortex) to Autonomously deploy Predictive ML Telemetry architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatamatrix_logic",
+      description: "Use the Aphura Engine (OpenDataMatrix) to Autonomously deploy Data Lineage architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencysync_logic",
+      description: "Use the Aphura Engine (OpenHigh-FrequencySync) to Autonomously deploy High-Frequency Trading architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriesmesh_logic",
       description: "Use the Aphura Engine (OpenTime-SeriesMesh) to Autonomously deploy Time-Series Analytics architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1772,6 +1812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedledger_logic": {
+          try {
+            const { OpendistributedledgerService } = await import("../enterprise/opendistributedledger.service.js");
+            const res = await OpendistributedledgerService.execute(args.target || "system");
+            return { output: `### OpenDistributedLedger Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyledger_logic": {
+          try {
+            const { Openhigh-frequencyledgerService } = await import("../enterprise/openhigh-frequencyledger.service.js");
+            const res = await Openhigh-frequencyledgerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyLedger Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivevortex_logic": {
+          try {
+            const { OpenpredictivevortexService } = await import("../enterprise/openpredictivevortex.service.js");
+            const res = await OpenpredictivevortexService.execute(args.target || "system");
+            return { output: `### OpenPredictiveVortex Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatamatrix_logic": {
+          try {
+            const { OpendatamatrixService } = await import("../enterprise/opendatamatrix.service.js");
+            const res = await OpendatamatrixService.execute(args.target || "system");
+            return { output: `### OpenDataMatrix Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencysync_logic": {
+          try {
+            const { Openhigh-frequencysyncService } = await import("../enterprise/openhigh-frequencysync.service.js");
+            const res = await Openhigh-frequencysyncService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencySync Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencySync failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriesmesh_logic": {
           try {
             const { Opentime-seriesmeshService } = await import("../enterprise/opentime-seriesmesh.service.js");
