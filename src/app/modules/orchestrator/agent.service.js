@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicnode_9a0u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNode) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativeledger_ojoa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeLedger) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessgrid_lxha_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessGrid) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractmatrix_dymc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractMatrix) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfchain_rlgt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFChain) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpumesh_n7w9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUMesh) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21412,6 +21452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicnode_9a0u_logic": {
+          try {
+            const { OpenHomomorphicNodeService } = await import("../liberty/openhomomorphicnode_9a0u.service.js");
+            const res = await OpenHomomorphicNodeService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativeledger_ojoa_logic": {
+          try {
+            const { OpenCloudNativeLedgerService } = await import("../liberty/opencloud-nativeledger_ojoa.service.js");
+            const res = await OpenCloudNativeLedgerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessgrid_lxha_logic": {
+          try {
+            const { OpenHeadlessGridService } = await import("../liberty/openheadlessgrid_lxha.service.js");
+            const res = await OpenHeadlessGridService.execute(args.target || "system");
+            return { output: `### OpenHeadlessGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractmatrix_dymc_logic": {
+          try {
+            const { OpenAbstractMatrixService } = await import("../liberty/openabstractmatrix_dymc.service.js");
+            const res = await OpenAbstractMatrixService.execute(args.target || "system");
+            return { output: `### OpenAbstractMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfchain_rlgt_logic": {
+          try {
+            const { OpeneBPFChainService } = await import("../liberty/openebpfchain_rlgt.service.js");
+            const res = await OpeneBPFChainService.execute(args.target || "system");
+            return { output: `### OpeneBPFChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFChain failed: ${err.message}` };
+          }
+        }
         case "execute_opengpumesh_n7w9_logic": {
           try {
             const { OpenGPUMeshService } = await import("../liberty/opengpumesh_n7w9.service.js");
