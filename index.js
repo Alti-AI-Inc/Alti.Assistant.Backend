@@ -591,6 +591,8 @@ const server = app.listen(port, '0.0.0.0', async () => {
   try {
     const { DesktopGateway } = await import('./src/app/modules/desktop/desktop.gateway.js');
     DesktopGateway.initialize(server);
+    const { VoiceGateway } = await import("./src/app/modules/voice/voice.gateway.js");
+    VoiceGateway.initialize(server);
   } catch (err) {
     logger.error(`Failed to initialize Desktop Gateway: ${err.message}`);
   }
