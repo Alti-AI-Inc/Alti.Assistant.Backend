@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetaryvortex_dtdb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryVortex) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusternode_cpo9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterNode) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantummatrix_la13_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumMatrix) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryoracle_altu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryOracle) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedcompiler_eonb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedCompiler) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumledger_86qy_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumLedger) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11132,6 +11172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetaryvortex_dtdb_logic": {
+          try {
+            const { OpenPlanetaryVortexService } = await import("../liberty/openplanetaryvortex_dtdb.service.js");
+            const res = await OpenPlanetaryVortexService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusternode_cpo9_logic": {
+          try {
+            const { OpenCrossClusterNodeService } = await import("../liberty/opencross-clusternode_cpo9.service.js");
+            const res = await OpenCrossClusterNodeService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantummatrix_la13_logic": {
+          try {
+            const { OpenQuantumMatrixService } = await import("../liberty/openquantummatrix_la13.service.js");
+            const res = await OpenQuantumMatrixService.execute(args.target || "system");
+            return { output: `### OpenQuantumMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryoracle_altu_logic": {
+          try {
+            const { OpenInMemoryOracleService } = await import("../liberty/openin-memoryoracle_altu.service.js");
+            const res = await OpenInMemoryOracleService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedcompiler_eonb_logic": {
+          try {
+            const { OpenDistributedCompilerService } = await import("../liberty/opendistributedcompiler_eonb.service.js");
+            const res = await OpenDistributedCompilerService.execute(args.target || "system");
+            return { output: `### OpenDistributedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumledger_86qy_logic": {
           try {
             const { OpenQuantumLedgerService } = await import("../liberty/openquantumledger_86qy.service.js");
