@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpbroker_v485_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPBroker) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticstream_bwg8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticStream) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutabledaemon_ztai_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableDaemon) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicnode_kq5r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicNode) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessnexus_pqwq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNexus) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendcompiler_xkuh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCompiler) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10932,6 +10972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpbroker_v485_logic": {
+          try {
+            const { OpenBGPBrokerService } = await import("../liberty/openbgpbroker_v485.service.js");
+            const res = await OpenBGPBrokerService.execute(args.target || "system");
+            return { output: `### OpenBGPBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticstream_bwg8_logic": {
+          try {
+            const { OpenSemanticStreamService } = await import("../liberty/opensemanticstream_bwg8.service.js");
+            const res = await OpenSemanticStreamService.execute(args.target || "system");
+            return { output: `### OpenSemanticStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutabledaemon_ztai_logic": {
+          try {
+            const { OpenImmutableDaemonService } = await import("../liberty/openimmutabledaemon_ztai.service.js");
+            const res = await OpenImmutableDaemonService.execute(args.target || "system");
+            return { output: `### OpenImmutableDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicnode_kq5r_logic": {
+          try {
+            const { OpenNeuromorphicNodeService } = await import("../liberty/openneuromorphicnode_kq5r.service.js");
+            const res = await OpenNeuromorphicNodeService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessnexus_pqwq_logic": {
+          try {
+            const { OpenHeadlessNexusService } = await import("../liberty/openheadlessnexus_pqwq.service.js");
+            const res = await OpenHeadlessNexusService.execute(args.target || "system");
+            return { output: `### OpenHeadlessNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendcompiler_xkuh_logic": {
           try {
             const { OpenMicroFrontendCompilerService } = await import("../liberty/openmicro-frontendcompiler_xkuh.service.js");
