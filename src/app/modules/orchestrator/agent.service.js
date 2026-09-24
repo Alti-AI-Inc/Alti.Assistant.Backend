@@ -39,6 +39,38 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "test_api_endpoint",
+      description: "Use the Aphura API Engine (Hoppscotch) to autonomously probe, execute, and validate REST or GraphQL endpoints.",
+      parameters: { type: "object", properties: { endpointUrl: { type: "string" }, method: { type: "string" } }, required: ["endpointUrl"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "debug_production_outage",
+      description: "Use the Aphura APM Engine (SigNoz) to ingest live server telemetry and automatically diagnose the root cause of a production outage.",
+      parameters: { type: "object", properties: { serviceName: { type: "string" } }, required: ["serviceName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_in_microvm",
+      description: "Use the Aphura Firecracker Engine to safely execute dangerous or untrusted code inside an isolated MicroVM.",
+      parameters: { type: "object", properties: { dangerousCode: { type: "string" } }, required: ["dangerousCode"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deploy_cloud_infrastructure",
+      description: "Use the Aphura DevOps Engine (Pulumi) to autonomously write and deploy Infrastructure-as-Code to AWS, GCP, or Azure.",
+      parameters: { type: "object", properties: { cloudProvider: { type: "string" }, architectureDesc: { type: "string" } }, required: ["cloudProvider", "architectureDesc"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "generate_browser_trace",
       description: "If a standard web interaction fails (e.g., CAPTCHA, hidden element), use the Aphura Browser Tracer to dump the full DOM, network requests, and visual timeline so you can self-correct.",
       parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] }
@@ -740,7 +772,39 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "generate_browser_trace": {
+        case "test_api_endpoint": {
+          try {
+            const { HoppscotchService } = await import("../devops/hoppscotch.service.js");
+            const res = await HoppscotchService.testEndpoint(args.endpointUrl, args.method);
+            return { output: `### API Validation Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `API test failed: ${err.message}` };
+          }
+        }        case "debug_production_outage": {
+          try {
+            const { SigNozService } = await import("../devops/signoz.service.js");
+            const res = await SigNozService.debugOutage(args.serviceName);
+            return { output: `### Live APM Diagnosis\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `APM diagnosis failed: ${err.message}` };
+          }
+        }        case "execute_in_microvm": {
+          try {
+            const { FirecrackerService } = await import("../devops/firecracker.service.js");
+            const res = await FirecrackerService.executeSafely(args.dangerousCode);
+            return { output: `### MicroVM Execution\\n\\n${res.log}` };
+          } catch (err) {
+            return { output: `Execution failed: ${err.message}` };
+          }
+        }        case "deploy_cloud_infrastructure": {
+          try {
+            const { PulumiService } = await import("../devops/pulumi.service.js");
+            const res = await PulumiService.deployInfrastructure(args.cloudProvider, args.architectureDesc);
+            return { output: `### Cloud Deployment Plan\\n\\n```text\\n${res.log}\\n```` };
+          } catch (err) {
+            return { output: `Deployment failed: ${err.message}` };
+          }
+        }        case "generate_browser_trace": {
           try {
             const { BrowserService } = await import("../browser/browser.service.js");
             const res = await BrowserService.generateTrace(args.url);
