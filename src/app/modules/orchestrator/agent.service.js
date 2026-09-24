@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfpipeline_ti40_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFPipeline) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorlayer_wczz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorLayer) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesnexus_l6he_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNexus) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustlayer_zjze_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustLayer) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentgrid_dp3d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentGrid) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partyproxy_u0if_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyProxy) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19372,6 +19412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfpipeline_ti40_logic": {
+          try {
+            const { OpeneBPFPipelineService } = await import("../liberty/openebpfpipeline_ti40.service.js");
+            const res = await OpeneBPFPipelineService.execute(args.target || "system");
+            return { output: `### OpeneBPFPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorlayer_wczz_logic": {
+          try {
+            const { OpenVectorLayerService } = await import("../liberty/openvectorlayer_wczz.service.js");
+            const res = await OpenVectorLayerService.execute(args.target || "system");
+            return { output: `### OpenVectorLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesnexus_l6he_logic": {
+          try {
+            const { OpenTimeSeriesNexusService } = await import("../liberty/opentime-seriesnexus_l6he.service.js");
+            const res = await OpenTimeSeriesNexusService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustlayer_zjze_logic": {
+          try {
+            const { OpenZeroTrustLayerService } = await import("../liberty/openzero-trustlayer_zjze.service.js");
+            const res = await OpenZeroTrustLayerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentgrid_dp3d_logic": {
+          try {
+            const { OpenPersistentGridService } = await import("../liberty/openpersistentgrid_dp3d.service.js");
+            const res = await OpenPersistentGridService.execute(args.target || "system");
+            return { output: `### OpenPersistentGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partyproxy_u0if_logic": {
           try {
             const { OpenMultiPartyProxyService } = await import("../liberty/openmulti-partyproxy_u0if.service.js");
