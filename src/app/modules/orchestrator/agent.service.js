@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterdaemon_03i9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterDaemon) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicfabric_jm38_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicFabric) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenet_oiw4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNet) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfnode_moq0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFNode) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogpipeline_g5b9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogPipeline) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openabstractswarm_fmpv_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAbstractSwarm) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17412,6 +17452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterdaemon_03i9_logic": {
+          try {
+            const { OpenCrossClusterDaemonService } = await import("../liberty/opencross-clusterdaemon_03i9.service.js");
+            const res = await OpenCrossClusterDaemonService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicfabric_jm38_logic": {
+          try {
+            const { OpenNeuromorphicFabricService } = await import("../liberty/openneuromorphicfabric_jm38.service.js");
+            const res = await OpenNeuromorphicFabricService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenet_oiw4_logic": {
+          try {
+            const { OpenCloudNativeNetService } = await import("../liberty/opencloud-nativenet_oiw4.service.js");
+            const res = await OpenCloudNativeNetService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfnode_moq0_logic": {
+          try {
+            const { OpeneBPFNodeService } = await import("../liberty/openebpfnode_moq0.service.js");
+            const res = await OpeneBPFNodeService.execute(args.target || "system");
+            return { output: `### OpeneBPFNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogpipeline_g5b9_logic": {
+          try {
+            const { OpenLogPipelineService } = await import("../liberty/openlogpipeline_g5b9.service.js");
+            const res = await OpenLogPipelineService.execute(args.target || "system");
+            return { output: `### OpenLogPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openabstractswarm_fmpv_logic": {
           try {
             const { OpenAbstractSwarmService } = await import("../liberty/openabstractswarm_fmpv.service.js");
