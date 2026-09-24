@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticbroker_v9yf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticBroker) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatasync_64gz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataSync) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgenode_scii_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeNode) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarelayer_4aki_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareLayer) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedpipeline_decw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedPipeline) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancedlayer_x0rg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedLayer) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16332,6 +16372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticbroker_v9yf_logic": {
+          try {
+            const { OpenStaticBrokerService } = await import("../liberty/openstaticbroker_v9yf.service.js");
+            const res = await OpenStaticBrokerService.execute(args.target || "system");
+            return { output: `### OpenStaticBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatasync_64gz_logic": {
+          try {
+            const { OpenDataSyncService } = await import("../liberty/opendatasync_64gz.service.js");
+            const res = await OpenDataSyncService.execute(args.target || "system");
+            return { output: `### OpenDataSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgenode_scii_logic": {
+          try {
+            const { OpenEdgeNodeService } = await import("../liberty/openedgenode_scii.service.js");
+            const res = await OpenEdgeNodeService.execute(args.target || "system");
+            return { output: `### OpenEdgeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarelayer_4aki_logic": {
+          try {
+            const { OpenHardwareLayerService } = await import("../liberty/openhardwarelayer_4aki.service.js");
+            const res = await OpenHardwareLayerService.execute(args.target || "system");
+            return { output: `### OpenHardwareLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedpipeline_decw_logic": {
+          try {
+            const { OpenFederatedPipelineService } = await import("../liberty/openfederatedpipeline_decw.service.js");
+            const res = await OpenFederatedPipelineService.execute(args.target || "system");
+            return { output: `### OpenFederatedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancedlayer_x0rg_logic": {
           try {
             const { OpenAdvancedLayerService } = await import("../liberty/openadvancedlayer_x0rg.service.js");
