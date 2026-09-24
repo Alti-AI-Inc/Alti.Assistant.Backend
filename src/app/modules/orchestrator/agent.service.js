@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialcluster_f7wa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialCluster) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustervortex_ke4e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterVortex) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesfabric_84t9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesFabric) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialgrid_zjce_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialGrid) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicmesh_ryqa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicMesh) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventengine_l6u5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventEngine) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11212,6 +11252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialcluster_f7wa_logic": {
+          try {
+            const { OpenFinancialClusterService } = await import("../liberty/openfinancialcluster_f7wa.service.js");
+            const res = await OpenFinancialClusterService.execute(args.target || "system");
+            return { output: `### OpenFinancialCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustervortex_ke4e_logic": {
+          try {
+            const { OpenCrossClusterVortexService } = await import("../liberty/opencross-clustervortex_ke4e.service.js");
+            const res = await OpenCrossClusterVortexService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesfabric_84t9_logic": {
+          try {
+            const { OpenTimeSeriesFabricService } = await import("../liberty/opentime-seriesfabric_84t9.service.js");
+            const res = await OpenTimeSeriesFabricService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialgrid_zjce_logic": {
+          try {
+            const { OpenFinancialGridService } = await import("../liberty/openfinancialgrid_zjce.service.js");
+            const res = await OpenFinancialGridService.execute(args.target || "system");
+            return { output: `### OpenFinancialGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicmesh_ryqa_logic": {
+          try {
+            const { OpenNeuromorphicMeshService } = await import("../liberty/openneuromorphicmesh_ryqa.service.js");
+            const res = await OpenNeuromorphicMeshService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openeventengine_l6u5_logic": {
           try {
             const { OpenEventEngineService } = await import("../liberty/openeventengine_l6u5.service.js");
