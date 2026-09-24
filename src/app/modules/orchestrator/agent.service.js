@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterfabric_3imp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterFabric) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustercore_6kfr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterCore) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorvault_uj36_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorVault) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractproxy_1ips_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractProxy) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlognet_e459_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogNet) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwareledger_gzmb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareLedger) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14252,6 +14292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterfabric_3imp_logic": {
+          try {
+            const { OpenCrossClusterFabricService } = await import("../liberty/opencross-clusterfabric_3imp.service.js");
+            const res = await OpenCrossClusterFabricService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustercore_6kfr_logic": {
+          try {
+            const { OpenCrossClusterCoreService } = await import("../liberty/opencross-clustercore_6kfr.service.js");
+            const res = await OpenCrossClusterCoreService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorvault_uj36_logic": {
+          try {
+            const { OpenVectorVaultService } = await import("../liberty/openvectorvault_uj36.service.js");
+            const res = await OpenVectorVaultService.execute(args.target || "system");
+            return { output: `### OpenVectorVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractproxy_1ips_logic": {
+          try {
+            const { OpenAbstractProxyService } = await import("../liberty/openabstractproxy_1ips.service.js");
+            const res = await OpenAbstractProxyService.execute(args.target || "system");
+            return { output: `### OpenAbstractProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openlognet_e459_logic": {
+          try {
+            const { OpenLogNetService } = await import("../liberty/openlognet_e459.service.js");
+            const res = await OpenLogNetService.execute(args.target || "system");
+            return { output: `### OpenLogNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogNet failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwareledger_gzmb_logic": {
           try {
             const { OpenHardwareLedgerService } = await import("../liberty/openhardwareledger_gzmb.service.js");
