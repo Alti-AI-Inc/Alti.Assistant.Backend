@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedengine_hz8g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedEngine) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarygraph_9o9t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryGraph) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeledger_6yse_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeLedger) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustplane_8wg2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustPlane) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicengine_fgf6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicEngine) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessrouter_rz7q_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessRouter) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4652,6 +4692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedengine_hz8g_logic": {
+          try {
+            const { OpenAdvancedEngineService } = await import("../liberty/openadvancedengine_hz8g.service.js");
+            const res = await OpenAdvancedEngineService.execute(args.target || "system");
+            return { output: `### OpenAdvancedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarygraph_9o9t_logic": {
+          try {
+            const { OpenPlanetaryGraphService } = await import("../liberty/openplanetarygraph_9o9t.service.js");
+            const res = await OpenPlanetaryGraphService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeledger_6yse_logic": {
+          try {
+            const { OpenEdgeLedgerService } = await import("../liberty/openedgeledger_6yse.service.js");
+            const res = await OpenEdgeLedgerService.execute(args.target || "system");
+            return { output: `### OpenEdgeLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustplane_8wg2_logic": {
+          try {
+            const { OpenZeroTrustPlaneService } = await import("../liberty/openzero-trustplane_8wg2.service.js");
+            const res = await OpenZeroTrustPlaneService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicengine_fgf6_logic": {
+          try {
+            const { OpenHomomorphicEngineService } = await import("../liberty/openhomomorphicengine_fgf6.service.js");
+            const res = await OpenHomomorphicEngineService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessrouter_rz7q_logic": {
           try {
             const { OpenServerlessRouterService } = await import("../liberty/openserverlessrouter_rz7q.service.js");
