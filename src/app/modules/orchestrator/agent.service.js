@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "generate_interactive_diagram",
+      description: "Use the Aphura Diagram Engine (Excalidraw/Mermaid) to generate a rich, interactive visual architecture map or flowchart instead of just outputting text.",
+      parameters: { type: "object", properties: { description: { type: "string" }, type: { type: "string", enum: ["architecture", "flowchart", "sequence"] } }, required: ["description"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "validate_code_lsp",
       description: "Use the Aphura LSP Bridge to statically analyze, lint, and type-check code in the background to ensure it is 100% error-free before outputting.",
       parameters: { type: "object", properties: { code: { type: "string" }, language: { type: "string" } }, required: ["code", "language"] }
@@ -708,7 +716,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "validate_code_lsp": {
+        case "generate_interactive_diagram": {
+          try {
+            const { DiagramService } = await import("../ui/diagram.service.js");
+            const res = await DiagramService.generateDiagram(args.description, args.type);
+            return { output: `### Interactive Diagram\\n\\n```mermaid\\n${res.markdown}\\n```` };
+          } catch (err) {
+            return { output: `Diagram generation failed: ${err.message}` };
+          }
+        }        case "validate_code_lsp": {
           try {
             const { LSPService } = await import("../ide/lsp.service.js");
             const res = await LSPService.validateCode(args.code, args.language);
