@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentswarm_us1s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentSwarm) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictiveswarm_tw7r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveSwarm) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalnexus_vvbh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalNexus) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticcore_ki5l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticCore) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumring_5ngl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumRing) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriesoracle_477w_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesOracle) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14012,6 +14052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentswarm_us1s_logic": {
+          try {
+            const { OpenPersistentSwarmService } = await import("../liberty/openpersistentswarm_us1s.service.js");
+            const res = await OpenPersistentSwarmService.execute(args.target || "system");
+            return { output: `### OpenPersistentSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictiveswarm_tw7r_logic": {
+          try {
+            const { OpenPredictiveSwarmService } = await import("../liberty/openpredictiveswarm_tw7r.service.js");
+            const res = await OpenPredictiveSwarmService.execute(args.target || "system");
+            return { output: `### OpenPredictiveSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalnexus_vvbh_logic": {
+          try {
+            const { OpenHyperDimensionalNexusService } = await import("../liberty/openhyper-dimensionalnexus_vvbh.service.js");
+            const res = await OpenHyperDimensionalNexusService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticcore_ki5l_logic": {
+          try {
+            const { OpenSemanticCoreService } = await import("../liberty/opensemanticcore_ki5l.service.js");
+            const res = await OpenSemanticCoreService.execute(args.target || "system");
+            return { output: `### OpenSemanticCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumring_5ngl_logic": {
+          try {
+            const { OpenQuantumRingService } = await import("../liberty/openquantumring_5ngl.service.js");
+            const res = await OpenQuantumRingService.execute(args.target || "system");
+            return { output: `### OpenQuantumRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumRing failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriesoracle_477w_logic": {
           try {
             const { OpenTimeSeriesOracleService } = await import("../liberty/opentime-seriesoracle_477w.service.js");
