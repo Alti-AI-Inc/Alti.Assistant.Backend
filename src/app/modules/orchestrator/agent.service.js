@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedplane_y5r8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedPlane) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepchain_nkab_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepChain) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorlayer_i42f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorLayer) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisegrid_hkea_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGrid) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticstream_gpqn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticStream) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancedvault_dcsp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedVault) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13372,6 +13412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedplane_y5r8_logic": {
+          try {
+            const { OpenAutomatedPlaneService } = await import("../liberty/openautomatedplane_y5r8.service.js");
+            const res = await OpenAutomatedPlaneService.execute(args.target || "system");
+            return { output: `### OpenAutomatedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepchain_nkab_logic": {
+          try {
+            const { OpenDeepChainService } = await import("../liberty/opendeepchain_nkab.service.js");
+            const res = await OpenDeepChainService.execute(args.target || "system");
+            return { output: `### OpenDeepChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorlayer_i42f_logic": {
+          try {
+            const { OpenVectorLayerService } = await import("../liberty/openvectorlayer_i42f.service.js");
+            const res = await OpenVectorLayerService.execute(args.target || "system");
+            return { output: `### OpenVectorLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisegrid_hkea_logic": {
+          try {
+            const { OpenEnterpriseGridService } = await import("../liberty/openenterprisegrid_hkea.service.js");
+            const res = await OpenEnterpriseGridService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticstream_gpqn_logic": {
+          try {
+            const { OpenSemanticStreamService } = await import("../liberty/opensemanticstream_gpqn.service.js");
+            const res = await OpenSemanticStreamService.execute(args.target || "system");
+            return { output: `### OpenSemanticStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticStream failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancedvault_dcsp_logic": {
           try {
             const { OpenAdvancedVaultService } = await import("../liberty/openadvancedvault_dcsp.service.js");
