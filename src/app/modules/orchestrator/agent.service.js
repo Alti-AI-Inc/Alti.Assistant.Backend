@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterfabric_i0jf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterFabric) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partybroker_0vpz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyBroker) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpplane_w355_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPPlane) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticchain_97lh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticChain) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecluster_xi6x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCluster) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventcompiler_fymy_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventCompiler) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18652,6 +18692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterfabric_i0jf_logic": {
+          try {
+            const { OpenCrossClusterFabricService } = await import("../liberty/opencross-clusterfabric_i0jf.service.js");
+            const res = await OpenCrossClusterFabricService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partybroker_0vpz_logic": {
+          try {
+            const { OpenMultiPartyBrokerService } = await import("../liberty/openmulti-partybroker_0vpz.service.js");
+            const res = await OpenMultiPartyBrokerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpplane_w355_logic": {
+          try {
+            const { OpenBGPPlaneService } = await import("../liberty/openbgpplane_w355.service.js");
+            const res = await OpenBGPPlaneService.execute(args.target || "system");
+            return { output: `### OpenBGPPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticchain_97lh_logic": {
+          try {
+            const { OpenStaticChainService } = await import("../liberty/openstaticchain_97lh.service.js");
+            const res = await OpenStaticChainService.execute(args.target || "system");
+            return { output: `### OpenStaticChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecluster_xi6x_logic": {
+          try {
+            const { OpenZeroKnowledgeClusterService } = await import("../liberty/openzero-knowledgecluster_xi6x.service.js");
+            const res = await OpenZeroKnowledgeClusterService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openeventcompiler_fymy_logic": {
           try {
             const { OpenEventCompilerService } = await import("../liberty/openeventcompiler_fymy.service.js");
