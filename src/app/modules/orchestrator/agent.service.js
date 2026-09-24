@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphiccontroller_logic",
+      description: "Use the Aphura Engine (OpenHomomorphicController) to Autonomously deploy Homomorphic Encryption architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencysync_logic",
+      description: "Use the Aphura Engine (OpenHigh-FrequencySync) to Autonomously deploy High-Frequency Trading architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesgrid_logic",
+      description: "Use the Aphura Engine (OpenTime-SeriesGrid) to Autonomously deploy Time-Series Analytics architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialplane_logic",
+      description: "Use the Aphura Engine (OpenFinancialPlane) to Autonomously deploy Financial Ledger State architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustplane_logic",
+      description: "Use the Aphura Engine (OpenZero-TrustPlane) to Autonomously deploy Zero-Trust Security architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlessmatrix_logic",
       description: "Use the Aphura Engine (OpenHeadlessMatrix) to Autonomously deploy Headless CMS Routing architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2292,6 +2332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphiccontroller_logic": {
+          try {
+            const { OpenhomomorphiccontrollerService } = await import("../enterprise/openhomomorphiccontroller.service.js");
+            const res = await OpenhomomorphiccontrollerService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicController Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencysync_logic": {
+          try {
+            const { Openhigh-frequencysyncService } = await import("../enterprise/openhigh-frequencysync.service.js");
+            const res = await Openhigh-frequencysyncService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencySync Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencySync failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesgrid_logic": {
+          try {
+            const { Opentime-seriesgridService } = await import("../enterprise/opentime-seriesgrid.service.js");
+            const res = await Opentime-seriesgridService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesGrid Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialplane_logic": {
+          try {
+            const { OpenfinancialplaneService } = await import("../enterprise/openfinancialplane.service.js");
+            const res = await OpenfinancialplaneService.execute(args.target || "system");
+            return { output: `### OpenFinancialPlane Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustplane_logic": {
+          try {
+            const { Openzero-trustplaneService } = await import("../enterprise/openzero-trustplane.service.js");
+            const res = await Openzero-trustplaneService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustPlane Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlessmatrix_logic": {
           try {
             const { OpenheadlessmatrixService } = await import("../enterprise/openheadlessmatrix.service.js");
