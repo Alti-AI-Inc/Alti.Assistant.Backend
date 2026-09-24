@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clustergrid_f9tg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterGrid) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscluster_i9oz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCluster) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedfabric_7vl8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedFabric) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosengine_3etk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosEngine) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalnet_tcfs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalNet) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablerouter_wl11_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableRouter) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15812,6 +15852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clustergrid_f9tg_logic": {
+          try {
+            const { OpenCrossClusterGridService } = await import("../liberty/opencross-clustergrid_f9tg.service.js");
+            const res = await OpenCrossClusterGridService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscluster_i9oz_logic": {
+          try {
+            const { OpenHeadlessClusterService } = await import("../liberty/openheadlesscluster_i9oz.service.js");
+            const res = await OpenHeadlessClusterService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedfabric_7vl8_logic": {
+          try {
+            const { OpenDecentralizedFabricService } = await import("../liberty/opendecentralizedfabric_7vl8.service.js");
+            const res = await OpenDecentralizedFabricService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosengine_3etk_logic": {
+          try {
+            const { OpenChaosEngineService } = await import("../liberty/openchaosengine_3etk.service.js");
+            const res = await OpenChaosEngineService.execute(args.target || "system");
+            return { output: `### OpenChaosEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalnet_tcfs_logic": {
+          try {
+            const { OpenHyperDimensionalNetService } = await import("../liberty/openhyper-dimensionalnet_tcfs.service.js");
+            const res = await OpenHyperDimensionalNetService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalNet failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablerouter_wl11_logic": {
           try {
             const { OpenImmutableRouterService } = await import("../liberty/openimmutablerouter_wl11.service.js");
