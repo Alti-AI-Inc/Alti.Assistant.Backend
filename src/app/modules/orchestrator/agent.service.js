@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesproxy_26gs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesProxy) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgefabric_zi4f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeFabric) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivevault_2ksl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveVault) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorynode_kjz9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryNode) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpvault_sx4i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPVault) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutableoracle_jqry_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableOracle) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15692,6 +15732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesproxy_26gs_logic": {
+          try {
+            const { OpenTimeSeriesProxyService } = await import("../liberty/opentime-seriesproxy_26gs.service.js");
+            const res = await OpenTimeSeriesProxyService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgefabric_zi4f_logic": {
+          try {
+            const { OpenEdgeFabricService } = await import("../liberty/openedgefabric_zi4f.service.js");
+            const res = await OpenEdgeFabricService.execute(args.target || "system");
+            return { output: `### OpenEdgeFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivevault_2ksl_logic": {
+          try {
+            const { OpenPredictiveVaultService } = await import("../liberty/openpredictivevault_2ksl.service.js");
+            const res = await OpenPredictiveVaultService.execute(args.target || "system");
+            return { output: `### OpenPredictiveVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorynode_kjz9_logic": {
+          try {
+            const { OpenInMemoryNodeService } = await import("../liberty/openin-memorynode_kjz9.service.js");
+            const res = await OpenInMemoryNodeService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpvault_sx4i_logic": {
+          try {
+            const { OpenBGPVaultService } = await import("../liberty/openbgpvault_sx4i.service.js");
+            const res = await OpenBGPVaultService.execute(args.target || "system");
+            return { output: `### OpenBGPVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPVault failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutableoracle_jqry_logic": {
           try {
             const { OpenImmutableOracleService } = await import("../liberty/openimmutableoracle_jqry.service.js");
