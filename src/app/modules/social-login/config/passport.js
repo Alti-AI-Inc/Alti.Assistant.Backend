@@ -27,6 +27,8 @@ let GoogleStrategy,
 // The checks now use process.env, which has been populated by resolveAllSecrets.
 // Using dynamic import() so a crash inside a strategy file doesn't propagate.
 
+import './saml.strategy.js';
+
 if (isReal(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)) {
   GoogleStrategy = (await import('./strategies/google.js')).default;
 }

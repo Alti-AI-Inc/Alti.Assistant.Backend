@@ -9,6 +9,7 @@ import newSubscriptionRoutes from '../modules/subscription/subscription.routes.j
 import { adminRoutes } from '../modules/admin/admin.route.js';
 import { notificationRoutes } from '../modules/notification/notification.route.js';
 import { socialLoginRotes } from '../modules/social-login/social-login.route.js';
+import { samlRoutes } from '../modules/social-login/saml.route.js';
 import { supportRoutes } from '../modules/support/support.route.js';
 
 import { stripeRoutes } from '../modules/stripe/stripe.route.js';
@@ -98,6 +99,10 @@ const moduleRoutes = [
   {
     path: '/auth-social',
     route: socialLoginRotes,
+  },
+  {
+    path: '/auth-saml',
+    route: samlRoutes,
   },
   {
     path: '/support',
