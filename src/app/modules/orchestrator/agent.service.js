@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedrouter_9kd2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedRouter) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelfabric_o2g9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelFabric) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentvortex_7rsd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentVortex) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscompiler_sxec_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCompiler) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticpipeline_fggs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticPipeline) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriesnet_zvfz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNet) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8372,6 +8412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedrouter_9kd2_logic": {
+          try {
+            const { OpenAdvancedRouterService } = await import("../liberty/openadvancedrouter_9kd2.service.js");
+            const res = await OpenAdvancedRouterService.execute(args.target || "system");
+            return { output: `### OpenAdvancedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelfabric_o2g9_logic": {
+          try {
+            const { OpenMicroKernelFabricService } = await import("../liberty/openmicro-kernelfabric_o2g9.service.js");
+            const res = await OpenMicroKernelFabricService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentvortex_7rsd_logic": {
+          try {
+            const { OpenPersistentVortexService } = await import("../liberty/openpersistentvortex_7rsd.service.js");
+            const res = await OpenPersistentVortexService.execute(args.target || "system");
+            return { output: `### OpenPersistentVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscompiler_sxec_logic": {
+          try {
+            const { OpenChaosCompilerService } = await import("../liberty/openchaoscompiler_sxec.service.js");
+            const res = await OpenChaosCompilerService.execute(args.target || "system");
+            return { output: `### OpenChaosCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticpipeline_fggs_logic": {
+          try {
+            const { OpenStaticPipelineService } = await import("../liberty/openstaticpipeline_fggs.service.js");
+            const res = await OpenStaticPipelineService.execute(args.target || "system");
+            return { output: `### OpenStaticPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriesnet_zvfz_logic": {
           try {
             const { OpenTimeSeriesNetService } = await import("../liberty/opentime-seriesnet_zvfz.service.js");
