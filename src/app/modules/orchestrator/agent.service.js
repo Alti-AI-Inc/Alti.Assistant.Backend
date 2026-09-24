@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "spin_up_binder_env",
+      description: "Use the Aphura Cloud Notebook Engine (BinderHub) to autonomously convert any GitHub repository into a live, executable Jupyter environment running in the browser.",
+      parameters: { type: "object", properties: { repoUrl: { type: "string" } }, required: ["repoUrl"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_distributed_ray_job",
+      description: "Use the Aphura Distributed Compute Engine (Ray) to autonomously parallelize massive Python tasks across thousands of cloud CPU cores for hyper-fast execution.",
+      parameters: { type: "object", properties: { jobName: { type: "string" }, cores: { type: "number" } }, required: ["jobName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "track_model_mlflow",
+      description: "Use the Aphura MLOps Engine (MLflow) to autonomously track, version control, and deploy specialized machine learning models and fine-tuning adapters.",
+      parameters: { type: "object", properties: { modelName: { type: "string" }, metrics: { type: "object" } }, required: ["modelName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deploy_airflow_dag",
+      description: "Use the Aphura Pipeline Engine (Apache Airflow) to autonomously author and deploy massive, cron-based workflows and ETL DAGs that run continuously in the background.",
+      parameters: { type: "object", properties: { dagName: { type: "string" }, cronSchedule: { type: "string" } }, required: ["dagName", "cronSchedule"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_plotly_chart",
+      description: "Use the Aphura Data Visualization Engine (Plotly) to autonomously compile and render complex, interactive 2D and 3D data visualizations directly in the UI.",
+      parameters: { type: "object", properties: { dataset: { type: "string" }, chartType: { type: "string" } }, required: ["dataset", "chartType"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_node_rpc",
       description: "Use the Aphura Low-Level Node Engine (JSON-RPC) to execute raw byte-level commands directly against Ethereum or Bitcoin nodes.",
       parameters: { type: "object", properties: { nodeUrl: { type: "string" }, method: { type: "string" }, params: { type: "array", items: { type: "string" } } }, required: ["nodeUrl", "method"] }
@@ -1052,7 +1092,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "execute_node_rpc": {
+        case "spin_up_binder_env": {
+          try {
+            const { BinderHubService } = await import("../compute/binderhub.service.js");
+            const res = await BinderHubService.spinUpEnvironment(args.repoUrl);
+            return { output: `### Live Binder Environment\\n\\n[Open Executable Repo](${res.url})` };
+          } catch (err) {
+            return { output: `Binder execution failed: ${err.message}` };
+          }
+        }        case "execute_distributed_ray_job": {
+          try {
+            const { RayService } = await import("../compute/ray.service.js");
+            const res = await RayService.executeDistributedJob(args.jobName, args.cores);
+            return { output: `### Ray Compute Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Ray execution failed: ${err.message}` };
+          }
+        }        case "track_model_mlflow": {
+          try {
+            const { MLflowService } = await import("../ai/mlflow.service.js");
+            const res = await MLflowService.logModelTraining(args.modelName, args.metrics || {});
+            return { output: `### MLflow Tracking Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `MLflow tracking failed: ${err.message}` };
+          }
+        }        case "deploy_airflow_dag": {
+          try {
+            const { AirflowService } = await import("../devops/airflow.service.js");
+            const res = await AirflowService.deployDAG(args.dagName, args.cronSchedule);
+            return { output: `### Airflow DAG Deployed\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `DAG deployment failed: ${err.message}` };
+          }
+        }        case "generate_plotly_chart": {
+          try {
+            const { PlotlyService } = await import("../data/plotly.service.js");
+            const res = await PlotlyService.generateChart(args.dataset, args.chartType);
+            return { output: res.markdown };
+          } catch (err) {
+            return { output: `Plotly chart failed: ${err.message}` };
+          }
+        }        case "execute_node_rpc": {
           try {
             const { RpcService } = await import("../web3/rpc.service.js");
             const res = await RpcService.executeNodeCall(args.nodeUrl, args.method, args.params);
