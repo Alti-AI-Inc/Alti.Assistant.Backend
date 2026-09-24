@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessnet_5dzb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNet) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumpipeline_uqpq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumPipeline) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryvortex_pgiq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryVortex) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyvortex_4xq1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyVortex) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalpipeline_9ly3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalPipeline) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvanceddaemon_nhd4_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedDaemon) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16532,6 +16572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessnet_5dzb_logic": {
+          try {
+            const { OpenHeadlessNetService } = await import("../liberty/openheadlessnet_5dzb.service.js");
+            const res = await OpenHeadlessNetService.execute(args.target || "system");
+            return { output: `### OpenHeadlessNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumpipeline_uqpq_logic": {
+          try {
+            const { OpenQuantumPipelineService } = await import("../liberty/openquantumpipeline_uqpq.service.js");
+            const res = await OpenQuantumPipelineService.execute(args.target || "system");
+            return { output: `### OpenQuantumPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryvortex_pgiq_logic": {
+          try {
+            const { OpenInMemoryVortexService } = await import("../liberty/openin-memoryvortex_pgiq.service.js");
+            const res = await OpenInMemoryVortexService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyvortex_4xq1_logic": {
+          try {
+            const { OpenHighFrequencyVortexService } = await import("../liberty/openhigh-frequencyvortex_4xq1.service.js");
+            const res = await OpenHighFrequencyVortexService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalpipeline_9ly3_logic": {
+          try {
+            const { OpenHyperDimensionalPipelineService } = await import("../liberty/openhyper-dimensionalpipeline_9ly3.service.js");
+            const res = await OpenHyperDimensionalPipelineService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openadvanceddaemon_nhd4_logic": {
           try {
             const { OpenAdvancedDaemonService } = await import("../liberty/openadvanceddaemon_nhd4.service.js");
