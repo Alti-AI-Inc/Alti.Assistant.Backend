@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisedaemon_lzzw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseDaemon) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosnode_o7pk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNode) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedcompiler_vrkt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedCompiler) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedvault_oxw2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedVault) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfpipeline_41nb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFPipeline) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionallayer_ihcn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalLayer) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5772,6 +5812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisedaemon_lzzw_logic": {
+          try {
+            const { OpenEnterpriseDaemonService } = await import("../liberty/openenterprisedaemon_lzzw.service.js");
+            const res = await OpenEnterpriseDaemonService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosnode_o7pk_logic": {
+          try {
+            const { OpenChaosNodeService } = await import("../liberty/openchaosnode_o7pk.service.js");
+            const res = await OpenChaosNodeService.execute(args.target || "system");
+            return { output: `### OpenChaosNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedcompiler_vrkt_logic": {
+          try {
+            const { OpenDistributedCompilerService } = await import("../liberty/opendistributedcompiler_vrkt.service.js");
+            const res = await OpenDistributedCompilerService.execute(args.target || "system");
+            return { output: `### OpenDistributedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedvault_oxw2_logic": {
+          try {
+            const { OpenAutomatedVaultService } = await import("../liberty/openautomatedvault_oxw2.service.js");
+            const res = await OpenAutomatedVaultService.execute(args.target || "system");
+            return { output: `### OpenAutomatedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfpipeline_41nb_logic": {
+          try {
+            const { OpeneBPFPipelineService } = await import("../liberty/openebpfpipeline_41nb.service.js");
+            const res = await OpeneBPFPipelineService.execute(args.target || "system");
+            return { output: `### OpeneBPFPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionallayer_ihcn_logic": {
           try {
             const { OpenHyperDimensionalLayerService } = await import("../liberty/openhyper-dimensionallayer_ihcn.service.js");
