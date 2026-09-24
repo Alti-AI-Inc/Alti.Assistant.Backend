@@ -30,19 +30,22 @@ const deleteSession = async (sessionId) => {
 };
 
 const listToolkits = async (options = {}) => {
-  return await composioClient.app.list(options);
+  return await composioClient.apps.list(options);
 };
 
 const getToolkit = async (slug) => {
-  return await composioClient.app.get(slug);
+  return await composioClient.apps.get(slug);
 };
 
 const listTools = async (options = {}) => {
-  return await composioClient.action.list(options);
+  return await composioClient.actions.list(options);
 };
 
 const executeTool = async (toolSlug, params, sessionId) => {
-  return await composioClient.action.execute(toolSlug, params);
+  if (!composioClient) {
+    return { success: false, error: 'Composio integration is not initialized (missing or placeholder COMPOSIO_API_KEY)' };
+  }
+  return await composioClient.actions.execute(toolSlug, params);
 };
 
 const searchTools = async (sessionId, query) => {
@@ -71,11 +74,11 @@ const revokeConnection = async (nanoid) => {
 };
 
 const listTriggerTypes = async () => {
-  return await composioClient.trigger.list();
+  return await composioClient.triggers.list();
 };
 
 const subscribeTrigger = async (slug, triggerConfig) => {
-  return await composioClient.trigger.subscribe(slug, triggerConfig);
+  return await composioClient.triggers.subscribe(slug, triggerConfig);
 };
 
 const listActiveTriggers = async () => {
@@ -84,7 +87,7 @@ const listActiveTriggers = async () => {
 };
 
 const deleteTrigger = async (triggerId) => {
-  return await composioClient.trigger.delete(triggerId);
+  return await composioClient.triggers.delete(triggerId);
 };
 
 const getMCPUrl = async (userId) => {

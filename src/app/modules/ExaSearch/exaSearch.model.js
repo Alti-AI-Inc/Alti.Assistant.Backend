@@ -96,6 +96,11 @@ const exaSearchSchema = new Schema(
       index: true,
     },
     errorMessage: { type: String },
+    answer: { type: String },
+    followUps: {
+      type: [String],
+      default: [],
+    },
     isFavorite: {
       type: Boolean,
       default: false,

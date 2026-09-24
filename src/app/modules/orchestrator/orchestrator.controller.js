@@ -61,6 +61,14 @@ const streamOrchestrate = catchAsync(async (req, res) => {
     res.setHeader('X-Confidence', String(orchestrationResult.classification.confidence));
     res.flushHeaders();
 
+    // Abort upstream inference on client disconnect
+    const abortController = new AbortController();
+    let clientDisconnected = false;
+    req.on('close', () => {
+      clientDisconnected = true;
+      abortController.abort();
+    });
+
     // Send classification metadata first
     res.write(`data: ${JSON.stringify({
       type: 'classification',
@@ -70,12 +78,15 @@ const streamOrchestrate = catchAsync(async (req, res) => {
 
     try {
       for await (const chunk of orchestrationResult.stream) {
+        if (clientDisconnected) break;
         const delta = chunk.choices?.[0]?.delta?.content;
         if (delta) {
           res.write(`data: ${JSON.stringify({ type: 'content', content: delta })}\n\n`);
         }
       }
-      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      if (!clientDisconnected) {
+        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      }
     } catch (err) {
       logger.error(`[Orchestrator Stream] Error: ${err.message}`);
       res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);

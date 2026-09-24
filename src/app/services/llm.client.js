@@ -21,9 +21,11 @@ const llmClient = new Together({
 // client.chat.completions.create()
 
 export async function llmChat(messages, options = {}) {
+  const primaryModel = options.model || config.llm?.model || 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo';
+  const fallbackModel = config.llm?.lightModel || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
   try {
     const response = await llmClient.chat.completions.create({
-      model: options.model || config.llm?.model || 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+      model: primaryModel,
       messages,
       temperature: options.temperature ?? config.llm?.temperature ?? 0.7,
       max_tokens: options.maxTokens ?? undefined,
@@ -35,6 +37,18 @@ export async function llmChat(messages, options = {}) {
     });
     return response;
   } catch (error) {
+    // Auto-fallback to lighter model on rate limit or overload
+    if (error instanceof Together.APIError && [429, 503].includes(error.status) && primaryModel !== fallbackModel) {
+      console.warn(`Together ${error.status} on ${primaryModel}, falling back to ${fallbackModel}`);
+      const response = await llmClient.chat.completions.create({
+        model: fallbackModel,
+        messages,
+        temperature: options.temperature ?? config.llm?.temperature ?? 0.7,
+        max_tokens: options.maxTokens ?? undefined,
+        response_format: options.responseFormat ?? undefined,
+      });
+      return response;
+    }
     if (error instanceof Together.APIError) {
       console.error(`Together Chat ${error.status} ${error.name}:`, error.message);
     }
@@ -46,9 +60,11 @@ export async function llmChat(messages, options = {}) {
 // client.chat.completions.create({ stream: true })
 
 export async function llmStream(messages, options = {}) {
+  const primaryModel = options.model || config.llm?.model || 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo';
+  const fallbackModel = config.llm?.lightModel || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
   try {
     const stream = await llmClient.chat.completions.create({
-      model: options.model || config.llm?.model || 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+      model: primaryModel,
       messages,
       temperature: options.temperature ?? config.llm?.temperature ?? 0.7,
       stream: true,
@@ -56,6 +72,16 @@ export async function llmStream(messages, options = {}) {
     });
     return stream;
   } catch (error) {
+    if (error instanceof Together.APIError && [429, 503].includes(error.status) && primaryModel !== fallbackModel) {
+      console.warn(`Together Stream ${error.status} on ${primaryModel}, falling back to ${fallbackModel}`);
+      return await llmClient.chat.completions.create({
+        model: fallbackModel,
+        messages,
+        temperature: options.temperature ?? config.llm?.temperature ?? 0.7,
+        stream: true,
+        max_tokens: options.maxTokens ?? undefined,
+      });
+    }
     if (error instanceof Together.APIError) {
       console.error(`Together Stream ${error.status}:`, error.message);
     }
@@ -67,9 +93,11 @@ export async function llmStream(messages, options = {}) {
 // client.chat.completions.create({ tools })
 
 export async function llmToolCall(messages, tools, options = {}) {
+  const primaryModel = options.model || config.llm?.model || 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo';
+  const fallbackModel = config.llm?.lightModel || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
   try {
     const req = {
-      model: options.model || config.llm?.model || 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+      model: primaryModel,
       messages,
       temperature: options.temperature ?? config.llm?.temperature ?? 0.7,
     };
@@ -80,6 +108,19 @@ export async function llmToolCall(messages, tools, options = {}) {
     const response = await llmClient.chat.completions.create(req);
     return response;
   } catch (error) {
+    if (error instanceof Together.APIError && [429, 503].includes(error.status) && primaryModel !== fallbackModel) {
+      console.warn(`Together ToolCall ${error.status} on ${primaryModel}, falling back to ${fallbackModel}`);
+      const req = {
+        model: fallbackModel,
+        messages,
+        temperature: options.temperature ?? config.llm?.temperature ?? 0.7,
+      };
+      if (tools && tools.length > 0) {
+        req.tools = tools.map(t => ({ type: 'function', function: t }));
+        req.tool_choice = options.toolChoice || 'auto';
+      }
+      return await llmClient.chat.completions.create(req);
+    }
     if (error instanceof Together.APIError) {
       console.error(`Together ToolCall ${error.status}:`, error.message);
     }

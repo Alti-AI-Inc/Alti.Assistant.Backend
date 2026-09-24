@@ -32,6 +32,7 @@ import { CommunityIntegrationsService } from '../langchain/langchain.community.s
 import { TemporalService } from '../temporal/temporal.service.js';
 import { LibertyService } from '../liberty/liberty.service.js';
 import { MapboxService } from '../mapbox/mapbox.service.js';
+import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -500,10 +501,13 @@ export const AgentService = {
   /**
    * Executes a tool based on the LLM's function call.
    */
-  async executeTool(name, args) {
+  async executeTool(name, args, userId) {
+    let customMetadata = null;
+    const startTime = Date.now();
     try {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
-      switch (name) {
+      const executeInternal = async () => {
+        switch (name) {
         case 'execute_edge_command': {
           const res = await OpenClawService.queueEdgeCommand(args.machineId, args.command, args.payload);
           return {
@@ -519,14 +523,18 @@ export const AgentService = {
           };
         }
         case 'web_search': {
-          const res = await ExaSearchService.searchDirectly(args.query, { numResults: args.numResults || 3 });
+          const res = await ExaSearchService.searchDirectly(args.query, { numResults: args.numResults || 5 });
           const results = res?.results || [];
           return {
-            output: results.map(r => `Title: ${r.title}\nURL: ${r.url}\nSummary: ${r.summary || r.text?.slice(0, 300)}`).join('\n\n'),
+            output: results.map((r, i) => {
+              const highlights = Array.isArray(r.highlights) && r.highlights.length ? `\nKey Highlights:\n- ${r.highlights.join('\n- ')}` : '';
+              const textSnippet = r.text ? `\nExcerpt: ${r.text.slice(0, 1000)}` : (r.summary ? `\nSummary: ${r.summary}` : '');
+              return `[${i + 1}] Title: ${r.title}\nURL: ${r.url}\nDate: ${r.publishedDate || 'Recent'}${highlights}${textSnippet}`;
+            }).join('\n\n---\n\n'),
             references: results.map(r => ({
-              title: r.title,
+              title: r.title || 'Web Result',
               url: r.url,
-              snippet: r.summary || r.text?.slice(0, 150),
+              snippet: (Array.isArray(r.highlights) && r.highlights[0]) || r.summary || (r.text ? r.text.slice(0, 250) : ''),
               source: 'Exa Neural Search'
             }))
           };
@@ -549,7 +557,8 @@ export const AgentService = {
 
           return {
             output: "Generated an image based on the prompt: " + args.prompt,
-            references: [{ type: 'image', url: imageUrl }]
+            references: [{ type: 'image', url: imageUrl }],
+            customMetadata
           };
 
         case 'search_sec_filings':
@@ -576,7 +585,8 @@ export const AgentService = {
 
           return {
             output: secSummary,
-            references: [{ type: 'sec', url: `https://www.sec.gov/edgar/browse/?CIK=${secData.cik}` }]
+            references: [{ type: 'sec', url: `https://www.sec.gov/edgar/browse/?CIK=${secData.cik}` }],
+            customMetadata
           };
 
         case 'get_census_data': {
@@ -766,8 +776,12 @@ export const AgentService = {
           }
         }
         case 'trigger_app_action': {
-          const res = await ComposioService.executeTool(args.tool_slug, args.params, 'system-session');
-          return { output: JSON.stringify(res), references: [] };
+          try {
+            const res = await ComposioService.executeTool(args.tool_slug, args.params, 'system-session');
+            return { output: JSON.stringify(res), references: [] };
+          } catch (err) {
+            return { output: `Composio action failed: ${err.message}`, references: [] };
+          }
         }
         case 'get_weather': {
           const wx = await VisualCrossingService.getForecast(args.location);
@@ -1009,7 +1023,7 @@ export const AgentService = {
           }
         }
 
-        // ── LangGraph: Deep Research Swarm ──────────────────────────────────
+        // ── LangGraph: Deep Research Swarm (Exa-Powered) ────────────────────
         case 'deep_research': {
           try {
             const result = await LangGraphService.runResearchSwarm({
@@ -1017,14 +1031,16 @@ export const AgentService = {
               perspectives: args.perspectives || 3,
             });
             customMetadata = { domain: 'deep_research', query: args.query, perspectives: result.perspectives?.length || 0 };
+            // Use real Exa web references if available, fall back to perspective-based refs
+            const realRefs = result.references && result.references.length > 0
+              ? result.references
+              : (result.perspectives || []).flatMap(p => (p.sources || []).length > 0
+                ? p.sources
+                : [{ title: p.angle, url: 'local://langgraph-swarm', snippet: (p.findings || '').slice(0, 200), source: 'LangGraph Research Swarm' }]
+              );
             return {
               output: `Research Synthesis:\n${result.synthesis}\n\nPerspectives Investigated: ${result.perspectives?.length || 0}`,
-              references: (result.perspectives || []).map(p => ({
-                title: p.angle,
-                url: 'local://langgraph-swarm',
-                snippet: (p.findings || '').slice(0, 200),
-                source: 'LangGraph Research Swarm'
-              }))
+              references: realRefs
             };
           } catch (error) {
             return { output: `Deep research failed: ${error.message}`, references: [] };
@@ -1053,16 +1069,41 @@ export const AgentService = {
           }
         }
 
-        // ── LangChain: QA with Citations ────────────────────────────────────
+        // ── LangChain: QA with Citations (auto-fetches web docs if none provided) ──
         case 'langchain_qa': {
           try {
+            let documents = args.documents || [];
+            let webRefs = [];
+
+            // If no documents provided, auto-search web for source docs
+            if (documents.length === 0) {
+              try {
+                const exaRes = await ExaSearchService.searchDirectly(args.query, {
+                  numResults: 5,
+                  contents: { text: { maxCharacters: 2000 } },
+                });
+                const exaResults = exaRes?.results || [];
+                documents = exaResults.map(r => `[${r.title}] (${r.url})\n${r.text || r.summary || ''}`);
+                webRefs = exaResults.map(r => ({
+                  title: r.title || 'Web Source',
+                  url: r.url,
+                  snippet: (r.text || r.summary || '').slice(0, 200),
+                  source: 'Exa Neural Search',
+                }));
+              } catch (err) {
+                logger.warn(`[langchain_qa] Exa auto-fetch failed: ${err.message}`);
+              }
+            }
+
             const result = await LangChainService.runQAChain({
               query: args.query,
-              documents: args.documents || [],
+              documents,
             });
             return {
               output: result.answer,
-              references: [{ title: 'QA Chain Result', url: 'local://langchain', snippet: result.answer.slice(0, 200), source: 'LangChain QA Chain' }]
+              references: webRefs.length > 0
+                ? webRefs
+                : [{ title: 'QA Chain Result', url: 'local://langchain', snippet: result.answer.slice(0, 200), source: 'LangChain QA Chain' }]
             };
           } catch (error) {
             return { output: `QA chain failed: ${error.message}`, references: [] };
@@ -1348,9 +1389,26 @@ export const AgentService = {
 
         default:
           return { output: `Error: Tool ${name} not recognized.`, references: [] };
+        }
+      };
+
+      const res = await executeInternal();
+      if (res && typeof res === 'object') {
+        if (!res.customMetadata && customMetadata) {
+          res.customMetadata = customMetadata;
+        }
       }
+      // Fire-and-forget tool usage metering
+      if (userId) {
+        recordToolUsage(userId, name, Date.now() - startTime, true).catch(() => {});
+      }
+      return res;
     } catch (error) {
       logger.error(`[AgentService] Tool ${name} failed: ${error.message}`);
+      // Record failed tool execution
+      if (userId) {
+        recordToolUsage(userId, name, Date.now() - startTime, false).catch(() => {});
+      }
       return { output: `Tool execution failed: ${error.message}`, references: [] };
     }
   },
@@ -1372,8 +1430,13 @@ export const AgentService = {
       loopCount++;
       logger.info(`[AgentService] Starting loop ${loopCount}...`);
       
-      // Call LLM
-      const response = await llmToolCall(messages, tools, options);
+      // Use fast 8B model for tool selection (simple classification task)
+      // Reserve full model for final synthesis where quality matters
+      const toolCallOptions = {
+        ...options,
+        model: config.llm?.lightModel || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+      };
+      const response = await llmToolCall(messages, tools, toolCallOptions);
       const responseMessage = response.choices[0]?.message;
 
       if (!responseMessage) {
@@ -1418,17 +1481,22 @@ export const AgentService = {
           });
         }
       } else {
-        // No tool calls means the agent is ready to stream the final answer.
-        // We will discard the text it just generated and re-run as a stream for UI UX.
-        // Or we can just yield the text if we don't care about streaming character-by-character.
-        // But users love the typewriter effect. We'll run llmStream to generate the final response.
-        
-        logger.info(`[AgentService] Loop finished, streaming final answer...`);
-        const stream = await llmStream(messages, options);
-        for await (const chunk of stream) {
-          const text = chunk.choices?.[0]?.delta?.content;
-          if (text) {
-            yield { type: 'text', content: text };
+        // No tool calls means the agent is ready with the answer.
+        // Deliver the already-generated answer immediately to avoid 2x latency penalty
+        if (responseMessage.content) {
+          logger.info(`[AgentService] Delivering synthesized answer (${responseMessage.content.length} chars)...`);
+          const words = responseMessage.content.split(/(\s+)/);
+          for (let i = 0; i < words.length; i += 4) {
+            yield { type: 'text', content: words.slice(i, i + 4).join('') };
+          }
+        } else {
+          logger.info(`[AgentService] Empty content, streaming via llmStream...`);
+          const stream = await llmStream(messages, options);
+          for await (const chunk of stream) {
+            const text = chunk.choices?.[0]?.delta?.content;
+            if (text) {
+              yield { type: 'text', content: text };
+            }
           }
         }
         break;
@@ -1452,9 +1520,11 @@ export const AgentService = {
     const allReferences = [];
 
     try {
+      // Use fast 8B model for tool selection, full model for final synthesis
+      const lightModel = config.llm?.lightModel || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
       while (stepCount < maxSteps) {
         stepCount++;
-        const response = await llmToolCall(messages, tools, { model, temperature });
+        const response = await llmToolCall(messages, tools, { model: lightModel, temperature });
         const toolCalls = response.choices?.[0]?.message?.tool_calls;
         
         if (!toolCalls || toolCalls.length === 0) break;

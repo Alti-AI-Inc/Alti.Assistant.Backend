@@ -86,6 +86,13 @@ const RECOMMENDED_ENV = {
   SMTP_PASSWORD: 'OTP email delivery',
   // Search
   EXA_API_KEY: 'Exa search integration',
+  // AI
+  TOGETHER_API_KEY: 'Together AI inference (LLM, images, audio)',
+  // Integrations
+  COMPOSIO_API_KEY: 'Composio agentic tool execution (Gmail, Slack, GitHub, etc.)',
+  // Liberty Center One
+  OPENSTACK_USERNAME: 'Liberty Center One OpenStack compute',
+  OPENSTACK_PASSWORD: 'Liberty Center One OpenStack authentication',
 };
 
 const hasDbUrl = Boolean(
@@ -367,6 +374,28 @@ app.get('/api/user', (req, res) => {
 });
 
 // Global API rate limiting for DDoS and abuse protection
+// ── Health Check Endpoints (before rate limiter — must be fast & unrestricted) ─
+app.get('/health', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbStatus = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+  res.json({
+    status: dbState === 1 ? 'healthy' : 'degraded',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    version: config.appVersion || '2.0.0',
+    database: dbStatus[dbState] || 'unknown',
+    memory: {
+      rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
+      heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+    },
+  });
+});
+app.get('/liveness', (_req, res) => res.status(200).send('OK'));
+app.get('/readiness', (_req, res) => {
+  if (mongoose.connection.readyState === 1) return res.status(200).send('READY');
+  res.status(503).send('NOT_READY');
+});
+
 app.use('/api/', globalApiLimiter);
 
 // Specialized rate limiting for high-cost AI inference routes

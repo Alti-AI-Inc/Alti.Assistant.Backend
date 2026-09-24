@@ -54,17 +54,44 @@ Respond with exactly one agent name or FINISH.`),
       return { nextAgent: agents.includes(next) ? next : 'FINISH' };
     });
 
+    // Lazy-load Exa for researcher agent
+    let searchDirectly;
+    try {
+      const exaMod = await import('../ExaSearch/exaSearch.service.js');
+      searchDirectly = exaMod.ExaSearchService.searchDirectly;
+    } catch (err) {
+      logger.warn(`[LangGraph Supervisor] Exa import failed: ${err.message}`);
+    }
+
     // Specialist agent nodes
     for (const agentName of agents) {
       workflow.addNode(agentName, async (state) => {
         const rolePrompts = {
-          researcher: 'You are an expert researcher. Find facts, data, and evidence for the goal.',
+          researcher: 'You are an expert researcher. Use ONLY the provided web sources to find facts, data, and evidence. Cite sources with [1], [2] etc.',
           analyst: 'You are a data analyst. Analyze the information and extract insights, patterns, and statistics.',
-          writer: 'You are a professional writer. Synthesize all research and analysis into a polished final response.',
+          writer: 'You are a professional writer. Synthesize all research and analysis into a polished final response. Preserve all source citations.',
         };
+
+        let webContext = '';
+        // Researcher gets real web search
+        if (agentName === 'researcher' && searchDirectly) {
+          try {
+            const exaRes = await searchDirectly(state.goal, {
+              numResults: 5,
+              contents: { text: { maxCharacters: 1200 }, highlights: { numSentences: 2, highlightsPerUrl: 2 } },
+            });
+            const exaResults = exaRes?.results || [];
+            webContext = '\n\nWEB SOURCES:\n' + exaResults.map((r, i) =>
+              `[${i + 1}] ${r.title}\n${r.url}\n${r.text?.slice(0, 600) || r.summary || ''}`
+            ).join('\n\n');
+          } catch (err) {
+            logger.warn(`[LangGraph Supervisor] Exa search failed for researcher: ${err.message}`);
+          }
+        }
+
         const response = await llm.invoke([
           new SystemMessage(rolePrompts[agentName]),
-          new HumanMessage(`Goal: ${state.goal}\nContext: ${state.context}\nPrior work: ${JSON.stringify(state.results)}`),
+          new HumanMessage(`Goal: ${state.goal}\nContext: ${state.context}\nPrior work: ${JSON.stringify(state.results)}${webContext}`),
         ]);
         return { results: { [agentName]: response.content } };
       });
@@ -91,14 +118,24 @@ Respond with exactly one agent name or FINISH.`),
     };
   },
 
-  // ─── 2. PARALLEL RESEARCH SWARM ──────────────────────────────────────────
+  // ─── 2. PARALLEL RESEARCH SWARM (REAL WEB SEARCH) ─────────────────────────
   async runResearchSwarm({ query, perspectives = 3 }) {
     const llm = getLLM(0.3);
+
+    // Lazy-load Exa for real web search
+    let searchDirectly;
+    try {
+      const exaMod = await import('../ExaSearch/exaSearch.service.js');
+      searchDirectly = exaMod.ExaSearchService.searchDirectly;
+    } catch (err) {
+      logger.warn(`[LangGraph] Exa import failed, falling back to LLM-only: ${err.message}`);
+    }
 
     const SwarmState = Annotation.Root({
       query: Annotation({ reducer: (x, y) => y ?? x, default: () => query }),
       perspectives: Annotation({ reducer: (x, y) => y ?? x, default: () => perspectives }),
       research: Annotation({ reducer: (x, y) => [...x, ...y], default: () => [] }),
+      allReferences: Annotation({ reducer: (x, y) => [...x, ...y], default: () => [] }),
       synthesis: Annotation({ reducer: (x, y) => y ?? x, default: () => '' }),
     });
 
@@ -107,32 +144,60 @@ Respond with exactly one agent name or FINISH.`),
     // Fan-out: generate multiple research perspectives
     workflow.addNode('dispatcher', async (state) => {
       const response = await llm.invoke([
-        new SystemMessage(`Generate exactly ${state.perspectives} distinct research angles for investigating this query. Return each angle on a new line.`),
+        new SystemMessage(`Generate exactly ${state.perspectives} distinct, specific search queries for investigating this topic. Each query should target a different angle. Return each query on a new line. No numbering, no explanation.`),
         new HumanMessage(state.query),
       ]);
       const angles = response.content.split('\n').filter(l => l.trim()).slice(0, state.perspectives);
-      return { research: angles.map(a => ({ angle: a, findings: '' })) };
+      return { research: angles.map(a => ({ angle: a, findings: '', sources: [] })) };
     });
 
-    // Research each angle
+    // Research each angle WITH REAL WEB SEARCH
     workflow.addNode('researcher', async (state) => {
       const results = [];
+      const refs = [];
       for (const item of state.research) {
         if (item.findings) { results.push(item); continue; }
+
+        let webContext = '';
+        let sources = [];
+
+        // Real Exa web search per perspective
+        if (searchDirectly) {
+          try {
+            const exaRes = await searchDirectly(item.angle, {
+              numResults: 4,
+              contents: { text: { maxCharacters: 1200 }, highlights: { numSentences: 2, highlightsPerUrl: 2 } },
+            });
+            const exaResults = exaRes?.results || [];
+            sources = exaResults.map(r => ({
+              title: r.title || 'Web Source',
+              url: r.url,
+              snippet: r.summary || r.text?.slice(0, 200) || '',
+              source: 'Exa Neural Search',
+            }));
+            webContext = exaResults.map((r, i) => 
+              `[${i + 1}] ${r.title}\n${r.url}\n${r.text?.slice(0, 600) || r.summary || ''}`
+            ).join('\n\n');
+            refs.push(...sources);
+          } catch (err) {
+            logger.warn(`[LangGraph] Exa search failed for angle "${item.angle}": ${err.message}`);
+          }
+        }
+
         const response = await llm.invoke([
-          new SystemMessage('You are an expert researcher. Investigate the given angle thoroughly.'),
-          new HumanMessage(`Original query: ${state.query}\nResearch angle: ${item.angle}`),
+          new SystemMessage('You are an expert researcher. Use ONLY the provided web sources to write your findings. Cite sources with [1], [2] etc. If no sources are provided, state what you know but flag it as unverified.'),
+          new HumanMessage(`Original query: ${state.query}\nResearch angle: ${item.angle}\n\nWEB SOURCES:\n${webContext || 'No web sources available.'}`),
         ]);
-        results.push({ angle: item.angle, findings: response.content });
+        results.push({ angle: item.angle, findings: response.content, sources });
       }
-      return { research: results };
+      return { research: results, allReferences: refs };
     });
 
     // Synthesize all findings
     workflow.addNode('synthesizer', async (state) => {
       const allFindings = state.research.map(r => `### ${r.angle}\n${r.findings}`).join('\n\n');
       const response = await llm.invoke([
-        new SystemMessage('You are a synthesis expert. Combine all research findings into a comprehensive, well-structured answer.'),
+        new SystemMessage('You are a synthesis expert. Combine all research findings into a comprehensive, well-structured answer. Preserve all citations. Lead with the direct answer.'),
         new HumanMessage(`Query: ${state.query}\n\nResearch Findings:\n${allFindings}`),
       ]);
       return { synthesis: response.content };
@@ -150,7 +215,8 @@ Respond with exactly one agent name or FINISH.`),
       query,
       perspectives: finalState.research,
       synthesis: finalState.synthesis,
-      framework: 'LangGraph Research Swarm',
+      references: finalState.allReferences || [],
+      framework: 'LangGraph Research Swarm (Exa-Powered)',
     };
   },
 

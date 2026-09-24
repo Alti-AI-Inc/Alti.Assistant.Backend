@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import * as ctrl from './together-cli.controller.js';
+import auth from '../../middlewares/auth/auth.js';
+import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 
 const router = Router();
+
+// ─── AUTH: All Together CLI routes require ADMIN role ────────────────
+router.use(auth(ENUM_USER_ROLE.ADMIN));
 
 // ─── MODELS ─────────────────────────────────────────────────────────
 router.get('/models', ctrl.listModels);

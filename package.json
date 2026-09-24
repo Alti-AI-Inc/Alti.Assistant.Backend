@@ -16,7 +16,8 @@
     "seed:stripe": "node scripts/seed-stripe-products.js",
     "daemons": "node scripts/daemons/supervisor.js",
     "deploy": "./deploy.sh start",
-    "deploy:update": "./deploy.sh update"
+    "deploy:update": "./deploy.sh update",
+    "deploy:edge": "cd cloudflare && npx wrangler deploy"
   },
   "keywords": [],
   "author": "Shohidul-Jaman-Anik",

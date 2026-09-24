@@ -59,6 +59,8 @@ router.post(
 router.post(
   '/query',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(SearchValidation.directQueryZodSchema),
+  checkWebSearchLimit,
   SearchController.searchDirectly
 );
 
@@ -66,6 +68,7 @@ router.post(
 router.post(
   '/stream',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  checkWebSearchLimit,
   (await import('../orchestrator/sovereignRouter.controller.js')).default.routePrompt
 );
 

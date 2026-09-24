@@ -46,6 +46,7 @@ export const SovereignRouterController = {
         sessionId,
         userId,
         userContext,
+        req,
         res,
       });
     }

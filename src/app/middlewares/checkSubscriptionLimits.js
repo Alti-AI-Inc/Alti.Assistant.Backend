@@ -41,8 +41,8 @@ export const checkWebSearchLimit = async (req, res, next) => {
 
     next();
   } catch (error) {
-    logger.error('Error checking web search limit:', error);
-    next();
+    logger.error('Error checking limit:', error);
+    next(new ApiError(httpStatus.SERVICE_UNAVAILABLE, 'Unable to verify usage limits. Please try again.'));
   }
 };
 
@@ -88,7 +88,7 @@ export const checkDeepResearchLimit = async (req, res, next) => {
     next();
   } catch (error) {
     logger.error('Error in checkDeepResearchLimit middleware:', error);
-    next();
+    next(new ApiError(httpStatus.SERVICE_UNAVAILABLE, 'Unable to verify usage limits. Please try again.'));
   }
 };
 
@@ -134,7 +134,7 @@ export const checkMonitorLimit = async (req, res, next) => {
     next();
   } catch (error) {
     logger.error('Error in checkMonitorLimit middleware:', error);
-    next();
+    next(new ApiError(httpStatus.SERVICE_UNAVAILABLE, 'Unable to verify usage limits. Please try again.'));
   }
 };
 

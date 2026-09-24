@@ -67,9 +67,17 @@ const contextZodSchema = z.object({
   }).passthrough(),
 });
 
+const directQueryZodSchema = z.object({
+  body: z.object({
+    query: z.string({ required_error: 'Query is required' }).trim().min(1).max(2000),
+    numResults: z.number().int().min(1).max(20).optional(),
+  }).passthrough(),
+});
+
 export const SearchValidation = {
   createSearchZodSchema,
   updateSearchZodSchema,
   findSimilarZodSchema,
   contextZodSchema,
+  directQueryZodSchema,
 };

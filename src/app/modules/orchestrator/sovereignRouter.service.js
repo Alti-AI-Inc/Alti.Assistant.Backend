@@ -6,6 +6,7 @@ import UserModel from '../auth/auth.model.js';
 import { IntentClassifier, ROUTE_TYPES } from './classifier.js';
 import AgentService from './agent.service.js';
 import { MemoryService } from '../../services/memory.service.js';
+import { verifyCitations } from './groundingVerifier.js';
 
 // ─── Telemetry ─────────────────────────────────────────────────────────────────
 const TELEMETRY_BUFFER_SIZE = 500;
@@ -199,12 +200,13 @@ LIVE DATA RETRIEVED FROM PLATFORM:
 ${dataContext ? dataContext : 'No external data required for brief conversational greeting.'}
 ${sourcesBlock}
 OUTPUT FORMAT DIRECTIVES:
-1. Executive Lead: Direct answer in the first sentence. No filler ("Sure!", "Based on...").
-2. Structured Tables: Use GitHub-flavored Markdown tables for numerical/comparative data.
-3. In-Line Citations: Every factual claim gets [1], [2] referencing verified sources.
-4. Bold Highlights: Bold crucial metrics, entities, and conclusions.
-5. Sources Bibliography: End EVERY factual response with ### Sources section.
-6. Zero Tangents: No "Related Questions", no follow-up suggestions. End cleanly.`;
+1. Executive Lead: Direct answer in the very first sentence. ZERO preamble, pleasantries, or meta-filler.
+2. Grounding Enforcement: If external data is insufficient to answer, state "Insufficient data to answer." Do not guess.
+3. Structured Tables: Use GitHub-flavored Markdown tables for numerical/comparative data.
+4. In-Line Citations: Every factual claim gets [1], [2] referencing verified sources.
+5. Bold Highlights: Bold crucial metrics, entities, and conclusions.
+6. Sources Bibliography: End EVERY factual response with ### Sources section.
+7. Zero Tangents: No "Related Questions", no follow-up suggestions. End cleanly.`;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -215,7 +217,7 @@ OUTPUT FORMAT DIRECTIVES:
    * Main unified prompt handler for SSE streaming (primary frontend prompt box target).
    * Upgraded to use the ultimate Agentic ReAct Tool Calling Loop.
    */
-  async handlePromptStream({ prompt, sessionId, userId, userContext, res }) {
+  async handlePromptStream({ prompt, sessionId, userId, userContext, req, res }) {
     const pipelineStart = Date.now();
 
     // Set up SSE headers immediately
@@ -227,6 +229,12 @@ OUTPUT FORMAT DIRECTIVES:
     const convId = sessionId || `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     res.write(`data: ${JSON.stringify({ type: 'connected', conversationId: convId })}\n\n`);
+
+    // Abort upstream inference on client disconnect
+    let clientDisconnected = false;
+    req.on('close', () => {
+      clientDisconnected = true;
+    });
 
     const conversationHistory = await this.loadConversationContext(userId, convId);
     
@@ -268,6 +276,7 @@ OUTPUT FORMAT DIRECTIVES:
       });
 
       for await (const chunk of stream) {
+        if (clientDisconnected) break;
         if (chunk.type === 'text') {
           fullReply += chunk.content;
           res.write(`data: ${JSON.stringify(chunk)}\n\n`);
@@ -282,6 +291,14 @@ OUTPUT FORMAT DIRECTIVES:
             citations: allReferences,
             conversationId: convId
           })}\n\n`);
+        }
+      }
+
+      // ── Post-stream Citation Grounding ────────────────────────────────
+      if (fullReply && allReferences.length > 0) {
+        const { groundingReport } = verifyCitations(fullReply, allReferences);
+        if (groundingReport.ungrounded > 0) {
+          res.write(`data: ${JSON.stringify({ type: 'grounding_report', groundingRate: groundingReport.groundingRate, ungrounded: groundingReport.ungrounded, total: groundingReport.total })}\n\n`);
         }
       }
 
@@ -362,8 +379,13 @@ OUTPUT FORMAT DIRECTIVES:
       temperature: 0.2,
     });
 
-    const reply = result.reply;
+    const rawReply = result.reply;
     const references = result.references || [];
+
+    // ── Citation Grounding Verification ──────────────────────────────────
+    const { verifiedText, groundingReport } = verifyCitations(rawReply, references, { stripUngrounded: true });
+    const reply = verifiedText;
+
     const totalTime = ((Date.now() - pipelineStart) / 1000).toFixed(2);
 
     // Telemetry

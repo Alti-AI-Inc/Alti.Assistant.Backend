@@ -34,7 +34,8 @@ async function getKeystoneToken() {
   const authUrl = config.openstack?.authUrl;
 
   if (!username || !password) {
-    return 'mock-openstack-token';
+    logger.warn('[Liberty Center One] OPENSTACK_USERNAME / OPENSTACK_PASSWORD not set — running in MOCK MODE. Set credentials in .env to connect to real infrastructure.');
+    return '__MOCK_OPENSTACK_TOKEN__';
   }
 
   try {
@@ -700,6 +701,52 @@ export const LibertyService = {
       },
       updatedAt: new Date().toISOString(),
     };
+  },
+
+  /**
+   * Universal query dispatcher for agent tool calls.
+   */
+  async query(action, params = {}) {
+    const act = (action || '').toLowerCase().trim();
+    switch (act) {
+      case 'status':
+      case 'platform_status':
+        return this.getPlatformStatus();
+      case 'instances':
+      case 'list_instances':
+        return this.listInstances();
+      case 'buckets':
+      case 'list_buckets':
+      case 'storage':
+        return this.listBuckets();
+      case 'volumes':
+      case 'list_volumes':
+        return this.listVolumes();
+      case 'networks':
+      case 'list_networks':
+        return this.listNetworks();
+      case 'secrets':
+      case 'list_secrets':
+        return this.listSecrets();
+      case 'images':
+      case 'list_images':
+        return this.listImages();
+      case 'loadbalancers':
+      case 'list_loadbalancers':
+        return this.listLoadBalancers();
+      case 'stacks':
+      case 'list_stacks':
+        return this.listStacks();
+      case 'analytics':
+      default:
+        const status = await this.getPlatformStatus();
+        return {
+          action,
+          params,
+          platform: status,
+          message: `Liberty Center One execution completed for action: ${action}`,
+        };
+    }
   },
 
   /**
