@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancednet_kr17_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNet) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcluster_6mns_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedCluster) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractrouter_c5ol_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractRouter) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcluster_vu98_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedCluster) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumvortex_581j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumVortex) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clustermatrix_li3z_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterMatrix) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19852,6 +19892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancednet_kr17_logic": {
+          try {
+            const { OpenAdvancedNetService } = await import("../liberty/openadvancednet_kr17.service.js");
+            const res = await OpenAdvancedNetService.execute(args.target || "system");
+            return { output: `### OpenAdvancedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcluster_6mns_logic": {
+          try {
+            const { OpenAdvancedClusterService } = await import("../liberty/openadvancedcluster_6mns.service.js");
+            const res = await OpenAdvancedClusterService.execute(args.target || "system");
+            return { output: `### OpenAdvancedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractrouter_c5ol_logic": {
+          try {
+            const { OpenAbstractRouterService } = await import("../liberty/openabstractrouter_c5ol.service.js");
+            const res = await OpenAbstractRouterService.execute(args.target || "system");
+            return { output: `### OpenAbstractRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcluster_vu98_logic": {
+          try {
+            const { OpenAdvancedClusterService } = await import("../liberty/openadvancedcluster_vu98.service.js");
+            const res = await OpenAdvancedClusterService.execute(args.target || "system");
+            return { output: `### OpenAdvancedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumvortex_581j_logic": {
+          try {
+            const { OpenQuantumVortexService } = await import("../liberty/openquantumvortex_581j.service.js");
+            const res = await OpenQuantumVortexService.execute(args.target || "system");
+            return { output: `### OpenQuantumVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumVortex failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clustermatrix_li3z_logic": {
           try {
             const { OpenCrossClusterMatrixService } = await import("../liberty/opencross-clustermatrix_li3z.service.js");
