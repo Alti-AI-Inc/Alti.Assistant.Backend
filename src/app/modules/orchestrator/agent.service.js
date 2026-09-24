@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterfabric_imu4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterFabric) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphvault_sc8x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphVault) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablegraph_smuy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableGraph) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticproxy_i3sr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticProxy) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlognode_s36f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogNode) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicgraph_o2e7_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicGraph) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3532,6 +3572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterfabric_imu4_logic": {
+          try {
+            const { OpenCrossClusterFabricService } = await import("../liberty/opencross-clusterfabric_imu4.service.js");
+            const res = await OpenCrossClusterFabricService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphvault_sc8x_logic": {
+          try {
+            const { OpenGraphVaultService } = await import("../liberty/opengraphvault_sc8x.service.js");
+            const res = await OpenGraphVaultService.execute(args.target || "system");
+            return { output: `### OpenGraphVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablegraph_smuy_logic": {
+          try {
+            const { OpenImmutableGraphService } = await import("../liberty/openimmutablegraph_smuy.service.js");
+            const res = await OpenImmutableGraphService.execute(args.target || "system");
+            return { output: `### OpenImmutableGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticproxy_i3sr_logic": {
+          try {
+            const { OpenStaticProxyService } = await import("../liberty/openstaticproxy_i3sr.service.js");
+            const res = await OpenStaticProxyService.execute(args.target || "system");
+            return { output: `### OpenStaticProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openlognode_s36f_logic": {
+          try {
+            const { OpenLogNodeService } = await import("../liberty/openlognode_s36f.service.js");
+            const res = await OpenLogNodeService.execute(args.target || "system");
+            return { output: `### OpenLogNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogNode failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicgraph_o2e7_logic": {
           try {
             const { OpenHomomorphicGraphService } = await import("../liberty/openhomomorphicgraph_o2e7.service.js");
