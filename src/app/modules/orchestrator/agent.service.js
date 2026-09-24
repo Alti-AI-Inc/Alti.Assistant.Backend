@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepstream_9rrd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepStream) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentring_tpta_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentRing) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatamatrix_0kf6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataMatrix) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalcontroller_i9s4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalController) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisecompiler_541e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseCompiler) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterfabric_imu4_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterFabric) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3572,6 +3612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepstream_9rrd_logic": {
+          try {
+            const { OpenDeepStreamService } = await import("../liberty/opendeepstream_9rrd.service.js");
+            const res = await OpenDeepStreamService.execute(args.target || "system");
+            return { output: `### OpenDeepStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentring_tpta_logic": {
+          try {
+            const { OpenPersistentRingService } = await import("../liberty/openpersistentring_tpta.service.js");
+            const res = await OpenPersistentRingService.execute(args.target || "system");
+            return { output: `### OpenPersistentRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatamatrix_0kf6_logic": {
+          try {
+            const { OpenDataMatrixService } = await import("../liberty/opendatamatrix_0kf6.service.js");
+            const res = await OpenDataMatrixService.execute(args.target || "system");
+            return { output: `### OpenDataMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalcontroller_i9s4_logic": {
+          try {
+            const { OpenHyperDimensionalControllerService } = await import("../liberty/openhyper-dimensionalcontroller_i9s4.service.js");
+            const res = await OpenHyperDimensionalControllerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalController failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisecompiler_541e_logic": {
+          try {
+            const { OpenEnterpriseCompilerService } = await import("../liberty/openenterprisecompiler_541e.service.js");
+            const res = await OpenEnterpriseCompilerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterfabric_imu4_logic": {
           try {
             const { OpenCrossClusterFabricService } = await import("../liberty/opencross-clusterfabric_imu4.service.js");
