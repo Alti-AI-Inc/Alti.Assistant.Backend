@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederateddaemon_kd22_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedDaemon) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedmesh_8i2m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedMesh) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcluster_79dg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPCluster) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisecontroller_cdzj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseController) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondproxy_v9la_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondProxy) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepmatrix_mpu0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepMatrix) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14812,6 +14852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederateddaemon_kd22_logic": {
+          try {
+            const { OpenFederatedDaemonService } = await import("../liberty/openfederateddaemon_kd22.service.js");
+            const res = await OpenFederatedDaemonService.execute(args.target || "system");
+            return { output: `### OpenFederatedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedmesh_8i2m_logic": {
+          try {
+            const { OpenDecentralizedMeshService } = await import("../liberty/opendecentralizedmesh_8i2m.service.js");
+            const res = await OpenDecentralizedMeshService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcluster_79dg_logic": {
+          try {
+            const { OpenBGPClusterService } = await import("../liberty/openbgpcluster_79dg.service.js");
+            const res = await OpenBGPClusterService.execute(args.target || "system");
+            return { output: `### OpenBGPCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisecontroller_cdzj_logic": {
+          try {
+            const { OpenEnterpriseControllerService } = await import("../liberty/openenterprisecontroller_cdzj.service.js");
+            const res = await OpenEnterpriseControllerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseController failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondproxy_v9la_logic": {
+          try {
+            const { OpenSubMillisecondProxyService } = await import("../liberty/opensub-millisecondproxy_v9la.service.js");
+            const res = await OpenSubMillisecondProxyService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondProxy failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepmatrix_mpu0_logic": {
           try {
             const { OpenDeepMatrixService } = await import("../liberty/opendeepmatrix_mpu0.service.js");
