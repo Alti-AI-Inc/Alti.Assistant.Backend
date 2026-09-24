@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhigh-frequencyvortex_dtx1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyVortex) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfnexus_hnqi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFNexus) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosmatrix_w5fv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosMatrix) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedmesh_2yu4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedMesh) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractmatrix_3lkw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractMatrix) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriescluster_h9e5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCluster) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4372,6 +4412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhigh-frequencyvortex_dtx1_logic": {
+          try {
+            const { OpenHighFrequencyVortexService } = await import("../liberty/openhigh-frequencyvortex_dtx1.service.js");
+            const res = await OpenHighFrequencyVortexService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfnexus_hnqi_logic": {
+          try {
+            const { OpeneBPFNexusService } = await import("../liberty/openebpfnexus_hnqi.service.js");
+            const res = await OpeneBPFNexusService.execute(args.target || "system");
+            return { output: `### OpeneBPFNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosmatrix_w5fv_logic": {
+          try {
+            const { OpenChaosMatrixService } = await import("../liberty/openchaosmatrix_w5fv.service.js");
+            const res = await OpenChaosMatrixService.execute(args.target || "system");
+            return { output: `### OpenChaosMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedmesh_2yu4_logic": {
+          try {
+            const { OpenAdvancedMeshService } = await import("../liberty/openadvancedmesh_2yu4.service.js");
+            const res = await OpenAdvancedMeshService.execute(args.target || "system");
+            return { output: `### OpenAdvancedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractmatrix_3lkw_logic": {
+          try {
+            const { OpenAbstractMatrixService } = await import("../liberty/openabstractmatrix_3lkw.service.js");
+            const res = await OpenAbstractMatrixService.execute(args.target || "system");
+            return { output: `### OpenAbstractMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriescluster_h9e5_logic": {
           try {
             const { OpenTimeSeriesClusterService } = await import("../liberty/opentime-seriescluster_h9e5.service.js");
