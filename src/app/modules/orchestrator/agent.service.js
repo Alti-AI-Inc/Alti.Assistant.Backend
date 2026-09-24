@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partybroker_3dql_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyBroker) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicvortex_i1c8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicVortex) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendcluster_9ti4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCluster) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessfabric_uuxs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessFabric) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedsync_h1gz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSync) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedpipeline_dvz1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedPipeline) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19772,6 +19812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partybroker_3dql_logic": {
+          try {
+            const { OpenMultiPartyBrokerService } = await import("../liberty/openmulti-partybroker_3dql.service.js");
+            const res = await OpenMultiPartyBrokerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicvortex_i1c8_logic": {
+          try {
+            const { OpenNeuromorphicVortexService } = await import("../liberty/openneuromorphicvortex_i1c8.service.js");
+            const res = await OpenNeuromorphicVortexService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendcluster_9ti4_logic": {
+          try {
+            const { OpenMicroFrontendClusterService } = await import("../liberty/openmicro-frontendcluster_9ti4.service.js");
+            const res = await OpenMicroFrontendClusterService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessfabric_uuxs_logic": {
+          try {
+            const { OpenServerlessFabricService } = await import("../liberty/openserverlessfabric_uuxs.service.js");
+            const res = await OpenServerlessFabricService.execute(args.target || "system");
+            return { output: `### OpenServerlessFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedsync_h1gz_logic": {
+          try {
+            const { OpenDecentralizedSyncService } = await import("../liberty/opendecentralizedsync_h1gz.service.js");
+            const res = await OpenDecentralizedSyncService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedSync failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedpipeline_dvz1_logic": {
           try {
             const { OpenDecentralizedPipelineService } = await import("../liberty/opendecentralizedpipeline_dvz1.service.js");
