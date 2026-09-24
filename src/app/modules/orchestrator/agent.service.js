@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partycontroller_fadk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyController) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycluster_5rc3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyCluster) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventchain_5cl7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventChain) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepcontroller_ibvq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepController) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticengine_9h51_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticEngine) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlessstream_8t1g_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessStream) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8132,6 +8172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partycontroller_fadk_logic": {
+          try {
+            const { OpenMultiPartyControllerService } = await import("../liberty/openmulti-partycontroller_fadk.service.js");
+            const res = await OpenMultiPartyControllerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycluster_5rc3_logic": {
+          try {
+            const { OpenHighFrequencyClusterService } = await import("../liberty/openhigh-frequencycluster_5rc3.service.js");
+            const res = await OpenHighFrequencyClusterService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventchain_5cl7_logic": {
+          try {
+            const { OpenEventChainService } = await import("../liberty/openeventchain_5cl7.service.js");
+            const res = await OpenEventChainService.execute(args.target || "system");
+            return { output: `### OpenEventChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepcontroller_ibvq_logic": {
+          try {
+            const { OpenDeepControllerService } = await import("../liberty/opendeepcontroller_ibvq.service.js");
+            const res = await OpenDeepControllerService.execute(args.target || "system");
+            return { output: `### OpenDeepController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepController failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticengine_9h51_logic": {
+          try {
+            const { OpenSemanticEngineService } = await import("../liberty/opensemanticengine_9h51.service.js");
+            const res = await OpenSemanticEngineService.execute(args.target || "system");
+            return { output: `### OpenSemanticEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlessstream_8t1g_logic": {
           try {
             const { OpenHeadlessStreamService } = await import("../liberty/openheadlessstream_8t1g.service.js");
