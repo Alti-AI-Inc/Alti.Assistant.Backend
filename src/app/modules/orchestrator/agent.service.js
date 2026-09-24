@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendcore_wfak_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCore) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgenet_rjwn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeNet) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessoracle_a3rk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessOracle) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarybroker_93pz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryBroker) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partysync_c5aa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartySync) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwareoracle_pp79_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareOracle) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7372,6 +7412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendcore_wfak_logic": {
+          try {
+            const { OpenMicroFrontendCoreService } = await import("../liberty/openmicro-frontendcore_wfak.service.js");
+            const res = await OpenMicroFrontendCoreService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgenet_rjwn_logic": {
+          try {
+            const { OpenZeroKnowledgeNetService } = await import("../liberty/openzero-knowledgenet_rjwn.service.js");
+            const res = await OpenZeroKnowledgeNetService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessoracle_a3rk_logic": {
+          try {
+            const { OpenServerlessOracleService } = await import("../liberty/openserverlessoracle_a3rk.service.js");
+            const res = await OpenServerlessOracleService.execute(args.target || "system");
+            return { output: `### OpenServerlessOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarybroker_93pz_logic": {
+          try {
+            const { OpenPlanetaryBrokerService } = await import("../liberty/openplanetarybroker_93pz.service.js");
+            const res = await OpenPlanetaryBrokerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partysync_c5aa_logic": {
+          try {
+            const { OpenMultiPartySyncService } = await import("../liberty/openmulti-partysync_c5aa.service.js");
+            const res = await OpenMultiPartySyncService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartySync failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwareoracle_pp79_logic": {
           try {
             const { OpenHardwareOracleService } = await import("../liberty/openhardwareoracle_pp79.service.js");
