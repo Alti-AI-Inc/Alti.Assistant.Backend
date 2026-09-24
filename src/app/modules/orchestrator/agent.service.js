@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendatanexus_wotm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataNexus) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgplayer_h3ew_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPLayer) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelledger_mta2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelLedger) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessnode_jy44_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNode) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedmatrix_9bbd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedMatrix) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlesscompiler_rg7t_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessCompiler) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12652,6 +12692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendatanexus_wotm_logic": {
+          try {
+            const { OpenDataNexusService } = await import("../liberty/opendatanexus_wotm.service.js");
+            const res = await OpenDataNexusService.execute(args.target || "system");
+            return { output: `### OpenDataNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgplayer_h3ew_logic": {
+          try {
+            const { OpenBGPLayerService } = await import("../liberty/openbgplayer_h3ew.service.js");
+            const res = await OpenBGPLayerService.execute(args.target || "system");
+            return { output: `### OpenBGPLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelledger_mta2_logic": {
+          try {
+            const { OpenMicroKernelLedgerService } = await import("../liberty/openmicro-kernelledger_mta2.service.js");
+            const res = await OpenMicroKernelLedgerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessnode_jy44_logic": {
+          try {
+            const { OpenHeadlessNodeService } = await import("../liberty/openheadlessnode_jy44.service.js");
+            const res = await OpenHeadlessNodeService.execute(args.target || "system");
+            return { output: `### OpenHeadlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedmatrix_9bbd_logic": {
+          try {
+            const { OpenFederatedMatrixService } = await import("../liberty/openfederatedmatrix_9bbd.service.js");
+            const res = await OpenFederatedMatrixService.execute(args.target || "system");
+            return { output: `### OpenFederatedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlesscompiler_rg7t_logic": {
           try {
             const { OpenServerlessCompilerService } = await import("../liberty/openserverlesscompiler_rg7t.service.js");
