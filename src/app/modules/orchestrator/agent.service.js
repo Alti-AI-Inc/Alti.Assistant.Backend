@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesnode_jx13_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNode) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosdaemon_ywx3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosDaemon) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalengine_stn9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalEngine) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialgrid_o2e1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialGrid) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatacontroller_lt3v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataController) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedpipeline_ctr0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedPipeline) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16092,6 +16132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesnode_jx13_logic": {
+          try {
+            const { OpenTimeSeriesNodeService } = await import("../liberty/opentime-seriesnode_jx13.service.js");
+            const res = await OpenTimeSeriesNodeService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosdaemon_ywx3_logic": {
+          try {
+            const { OpenChaosDaemonService } = await import("../liberty/openchaosdaemon_ywx3.service.js");
+            const res = await OpenChaosDaemonService.execute(args.target || "system");
+            return { output: `### OpenChaosDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalengine_stn9_logic": {
+          try {
+            const { OpenHyperDimensionalEngineService } = await import("../liberty/openhyper-dimensionalengine_stn9.service.js");
+            const res = await OpenHyperDimensionalEngineService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialgrid_o2e1_logic": {
+          try {
+            const { OpenFinancialGridService } = await import("../liberty/openfinancialgrid_o2e1.service.js");
+            const res = await OpenFinancialGridService.execute(args.target || "system");
+            return { output: `### OpenFinancialGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatacontroller_lt3v_logic": {
+          try {
+            const { OpenDataControllerService } = await import("../liberty/opendatacontroller_lt3v.service.js");
+            const res = await OpenDataControllerService.execute(args.target || "system");
+            return { output: `### OpenDataController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataController failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedpipeline_ctr0_logic": {
           try {
             const { OpenFederatedPipelineService } = await import("../liberty/openfederatedpipeline_ctr0.service.js");
