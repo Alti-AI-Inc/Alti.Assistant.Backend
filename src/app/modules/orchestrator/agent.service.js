@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessnexus_9ouu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessNexus) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalbroker_tlxp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalBroker) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedfabric_vdgh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedFabric) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedcontroller_9ufm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedController) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventswarm_y6js_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventSwarm) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedlayer_no6a_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLayer) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16212,6 +16252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessnexus_9ouu_logic": {
+          try {
+            const { OpenServerlessNexusService } = await import("../liberty/openserverlessnexus_9ouu.service.js");
+            const res = await OpenServerlessNexusService.execute(args.target || "system");
+            return { output: `### OpenServerlessNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalbroker_tlxp_logic": {
+          try {
+            const { OpenHyperDimensionalBrokerService } = await import("../liberty/openhyper-dimensionalbroker_tlxp.service.js");
+            const res = await OpenHyperDimensionalBrokerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedfabric_vdgh_logic": {
+          try {
+            const { OpenAdvancedFabricService } = await import("../liberty/openadvancedfabric_vdgh.service.js");
+            const res = await OpenAdvancedFabricService.execute(args.target || "system");
+            return { output: `### OpenAdvancedFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedcontroller_9ufm_logic": {
+          try {
+            const { OpenDistributedControllerService } = await import("../liberty/opendistributedcontroller_9ufm.service.js");
+            const res = await OpenDistributedControllerService.execute(args.target || "system");
+            return { output: `### OpenDistributedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedController failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventswarm_y6js_logic": {
+          try {
+            const { OpenEventSwarmService } = await import("../liberty/openeventswarm_y6js.service.js");
+            const res = await OpenEventSwarmService.execute(args.target || "system");
+            return { output: `### OpenEventSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedlayer_no6a_logic": {
           try {
             const { OpenDecentralizedLayerService } = await import("../liberty/opendecentralizedlayer_no6a.service.js");
