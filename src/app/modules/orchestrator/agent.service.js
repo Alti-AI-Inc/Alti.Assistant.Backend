@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_ninja_build",
+      description: "Use the Aphura Engine (Ninja Build) to Orchestrate the compilation of massive C/C++ architectures at blistering speeds via maximum CPU parallelization.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "analyze_clang_ast",
+      description: "Use the Aphura Engine (Clang) to Execute deep static analysis on massive C/C++ codebases to find memory leaks before execution.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_emscripten_wasm",
+      description: "Use the Aphura Engine (Emscripten) to Autonomously compile legacy C/C++ architectures into WebAssembly for native browser execution.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "parse_treesitter_ast",
+      description: "Use the Aphura Engine (Tree-sitter) to Instantly generate ASTs for any programming language to execute deep, context-aware code refactoring.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_llvm_language",
+      description: "Use the Aphura Engine (LLVM) to Autonomously invent, define, and compile entirely new programming languages from scratch.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "enforce_network_security_policy",
       description: "Use the Aphura Network Security Engine (Calico) to autonomously deploy complex eBPF data planes and BGP routing protocols, dictating exact Zero-Trust communication rules across massive Kubernetes clusters.",
       parameters: { type: "object", properties: { policyYaml: { type: "string" } }, required: ["policyYaml"] }
@@ -1412,6 +1452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_ninja_build": {
+          try {
+            const { NinjaService } = await import("../devops/ninja.service.js");
+            const res = await NinjaService.execute(args.target || "system");
+            return { output: `### Ninja Build Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Ninja Build failed: ${err.message}` };
+          }
+        }
+        case "analyze_clang_ast": {
+          try {
+            const { ClangService } = await import("../ide/clang.service.js");
+            const res = await ClangService.execute(args.target || "system");
+            return { output: `### Clang Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Clang failed: ${err.message}` };
+          }
+        }
+        case "compile_emscripten_wasm": {
+          try {
+            const { EmscriptenService } = await import("../ide/emscripten.service.js");
+            const res = await EmscriptenService.execute(args.target || "system");
+            return { output: `### Emscripten Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Emscripten failed: ${err.message}` };
+          }
+        }
+        case "parse_treesitter_ast": {
+          try {
+            const { TreesitterService } = await import("../ide/treesitter.service.js");
+            const res = await TreesitterService.execute(args.target || "system");
+            return { output: `### Tree-sitter Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Tree-sitter failed: ${err.message}` };
+          }
+        }
+        case "compile_llvm_language": {
+          try {
+            const { LlvmService } = await import("../ide/llvm.service.js");
+            const res = await LlvmService.execute(args.target || "system");
+            return { output: `### LLVM Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `LLVM failed: ${err.message}` };
+          }
+        }
         case "enforce_network_security_policy": {
           try {
             const { CalicoService } = await import("../security/calico.service.js");
