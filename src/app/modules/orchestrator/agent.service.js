@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendproxy_8bw1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendProxy) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondlayer_znzj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondLayer) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedvortex_sbl0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedVortex) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscluster_11a1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCluster) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscompiler_2or6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCompiler) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisesync_4owf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseSync) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14572,6 +14612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendproxy_8bw1_logic": {
+          try {
+            const { OpenMicroFrontendProxyService } = await import("../liberty/openmicro-frontendproxy_8bw1.service.js");
+            const res = await OpenMicroFrontendProxyService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondlayer_znzj_logic": {
+          try {
+            const { OpenSubMillisecondLayerService } = await import("../liberty/opensub-millisecondlayer_znzj.service.js");
+            const res = await OpenSubMillisecondLayerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedvortex_sbl0_logic": {
+          try {
+            const { OpenAutomatedVortexService } = await import("../liberty/openautomatedvortex_sbl0.service.js");
+            const res = await OpenAutomatedVortexService.execute(args.target || "system");
+            return { output: `### OpenAutomatedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscluster_11a1_logic": {
+          try {
+            const { OpenChaosClusterService } = await import("../liberty/openchaoscluster_11a1.service.js");
+            const res = await OpenChaosClusterService.execute(args.target || "system");
+            return { output: `### OpenChaosCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscompiler_2or6_logic": {
+          try {
+            const { OpenChaosCompilerService } = await import("../liberty/openchaoscompiler_2or6.service.js");
+            const res = await OpenChaosCompilerService.execute(args.target || "system");
+            return { output: `### OpenChaosCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisesync_4owf_logic": {
           try {
             const { OpenEnterpriseSyncService } = await import("../liberty/openenterprisesync_4owf.service.js");
