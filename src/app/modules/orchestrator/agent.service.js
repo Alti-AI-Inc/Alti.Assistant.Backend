@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosnexus_fztj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNexus) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenexus_oe8i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNexus) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivemesh_9m19_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveMesh) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriescore_4io6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCore) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepcontroller_vsf6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepController) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openneuromorphicnexus_ru5h_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicNexus) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3172,6 +3212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosnexus_fztj_logic": {
+          try {
+            const { OpenChaosNexusService } = await import("../liberty/openchaosnexus_fztj.service.js");
+            const res = await OpenChaosNexusService.execute(args.target || "system");
+            return { output: `### OpenChaosNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenexus_oe8i_logic": {
+          try {
+            const { OpenCloudNativeNexusService } = await import("../liberty/opencloud-nativenexus_oe8i.service.js");
+            const res = await OpenCloudNativeNexusService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivemesh_9m19_logic": {
+          try {
+            const { OpenPredictiveMeshService } = await import("../liberty/openpredictivemesh_9m19.service.js");
+            const res = await OpenPredictiveMeshService.execute(args.target || "system");
+            return { output: `### OpenPredictiveMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriescore_4io6_logic": {
+          try {
+            const { OpenTimeSeriesCoreService } = await import("../liberty/opentime-seriescore_4io6.service.js");
+            const res = await OpenTimeSeriesCoreService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepcontroller_vsf6_logic": {
+          try {
+            const { OpenDeepControllerService } = await import("../liberty/opendeepcontroller_vsf6.service.js");
+            const res = await OpenDeepControllerService.execute(args.target || "system");
+            return { output: `### OpenDeepController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepController failed: ${err.message}` };
+          }
+        }
         case "execute_openneuromorphicnexus_ru5h_logic": {
           try {
             const { OpenNeuromorphicNexusService } = await import("../liberty/openneuromorphicnexus_ru5h.service.js");
