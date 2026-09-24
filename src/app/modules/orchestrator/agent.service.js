@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosgrid_dpug_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosGrid) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractring_n6t3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractRing) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialledger_xau3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialLedger) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarynode_g1id_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNode) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectornexus_ttak_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorNexus) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialoracle_7uav_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialOracle) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11292,6 +11332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosgrid_dpug_logic": {
+          try {
+            const { OpenChaosGridService } = await import("../liberty/openchaosgrid_dpug.service.js");
+            const res = await OpenChaosGridService.execute(args.target || "system");
+            return { output: `### OpenChaosGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractring_n6t3_logic": {
+          try {
+            const { OpenAbstractRingService } = await import("../liberty/openabstractring_n6t3.service.js");
+            const res = await OpenAbstractRingService.execute(args.target || "system");
+            return { output: `### OpenAbstractRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialledger_xau3_logic": {
+          try {
+            const { OpenFinancialLedgerService } = await import("../liberty/openfinancialledger_xau3.service.js");
+            const res = await OpenFinancialLedgerService.execute(args.target || "system");
+            return { output: `### OpenFinancialLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarynode_g1id_logic": {
+          try {
+            const { OpenPlanetaryNodeService } = await import("../liberty/openplanetarynode_g1id.service.js");
+            const res = await OpenPlanetaryNodeService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectornexus_ttak_logic": {
+          try {
+            const { OpenVectorNexusService } = await import("../liberty/openvectornexus_ttak.service.js");
+            const res = await OpenVectorNexusService.execute(args.target || "system");
+            return { output: `### OpenVectorNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialoracle_7uav_logic": {
           try {
             const { OpenFinancialOracleService } = await import("../liberty/openfinancialoracle_7uav.service.js");
