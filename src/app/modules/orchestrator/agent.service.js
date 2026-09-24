@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedmesh_sl1k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedMesh) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendnexus_3wxl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNexus) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgefabric_quh8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeFabric) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencymatrix_zx8m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyMatrix) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseplane_6c5r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterprisePlane) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticfabric_6ut9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticFabric) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3852,6 +3892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedmesh_sl1k_logic": {
+          try {
+            const { OpenDistributedMeshService } = await import("../liberty/opendistributedmesh_sl1k.service.js");
+            const res = await OpenDistributedMeshService.execute(args.target || "system");
+            return { output: `### OpenDistributedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendnexus_3wxl_logic": {
+          try {
+            const { OpenMicroFrontendNexusService } = await import("../liberty/openmicro-frontendnexus_3wxl.service.js");
+            const res = await OpenMicroFrontendNexusService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgefabric_quh8_logic": {
+          try {
+            const { OpenEdgeFabricService } = await import("../liberty/openedgefabric_quh8.service.js");
+            const res = await OpenEdgeFabricService.execute(args.target || "system");
+            return { output: `### OpenEdgeFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencymatrix_zx8m_logic": {
+          try {
+            const { OpenHighFrequencyMatrixService } = await import("../liberty/openhigh-frequencymatrix_zx8m.service.js");
+            const res = await OpenHighFrequencyMatrixService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseplane_6c5r_logic": {
+          try {
+            const { OpenEnterprisePlaneService } = await import("../liberty/openenterpriseplane_6c5r.service.js");
+            const res = await OpenEnterprisePlaneService.execute(args.target || "system");
+            return { output: `### OpenEnterprisePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterprisePlane failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticfabric_6ut9_logic": {
           try {
             const { OpenSemanticFabricService } = await import("../liberty/opensemanticfabric_6ut9.service.js");
