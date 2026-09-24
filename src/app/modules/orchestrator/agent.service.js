@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedvortex_sdt4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedVortex) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednet_i9ma_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNet) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicnexus_ogvx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNexus) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedrouter_oyby_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedRouter) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicmesh_a8iv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMesh) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentproxy_itz7_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentProxy) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7492,6 +7532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedvortex_sdt4_logic": {
+          try {
+            const { OpenDistributedVortexService } = await import("../liberty/opendistributedvortex_sdt4.service.js");
+            const res = await OpenDistributedVortexService.execute(args.target || "system");
+            return { output: `### OpenDistributedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednet_i9ma_logic": {
+          try {
+            const { OpenDecentralizedNetService } = await import("../liberty/opendecentralizednet_i9ma.service.js");
+            const res = await OpenDecentralizedNetService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicnexus_ogvx_logic": {
+          try {
+            const { OpenHomomorphicNexusService } = await import("../liberty/openhomomorphicnexus_ogvx.service.js");
+            const res = await OpenHomomorphicNexusService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedrouter_oyby_logic": {
+          try {
+            const { OpenAutomatedRouterService } = await import("../liberty/openautomatedrouter_oyby.service.js");
+            const res = await OpenAutomatedRouterService.execute(args.target || "system");
+            return { output: `### OpenAutomatedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicmesh_a8iv_logic": {
+          try {
+            const { OpenHomomorphicMeshService } = await import("../liberty/openhomomorphicmesh_a8iv.service.js");
+            const res = await OpenHomomorphicMeshService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentproxy_itz7_logic": {
           try {
             const { OpenPersistentProxyService } = await import("../liberty/openpersistentproxy_itz7.service.js");
