@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumgrid_pm31_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumGrid) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessnode_exfu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessNode) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessproxy_c399_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessProxy) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeoracle_q3ft_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeOracle) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondmesh_1rm5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondMesh) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativestream_8nj4_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeStream) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15132,6 +15172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumgrid_pm31_logic": {
+          try {
+            const { OpenQuantumGridService } = await import("../liberty/openquantumgrid_pm31.service.js");
+            const res = await OpenQuantumGridService.execute(args.target || "system");
+            return { output: `### OpenQuantumGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessnode_exfu_logic": {
+          try {
+            const { OpenServerlessNodeService } = await import("../liberty/openserverlessnode_exfu.service.js");
+            const res = await OpenServerlessNodeService.execute(args.target || "system");
+            return { output: `### OpenServerlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessproxy_c399_logic": {
+          try {
+            const { OpenServerlessProxyService } = await import("../liberty/openserverlessproxy_c399.service.js");
+            const res = await OpenServerlessProxyService.execute(args.target || "system");
+            return { output: `### OpenServerlessProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeoracle_q3ft_logic": {
+          try {
+            const { OpenEdgeOracleService } = await import("../liberty/openedgeoracle_q3ft.service.js");
+            const res = await OpenEdgeOracleService.execute(args.target || "system");
+            return { output: `### OpenEdgeOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondmesh_1rm5_logic": {
+          try {
+            const { OpenSubMillisecondMeshService } = await import("../liberty/opensub-millisecondmesh_1rm5.service.js");
+            const res = await OpenSubMillisecondMeshService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondMesh failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativestream_8nj4_logic": {
           try {
             const { OpenCloudNativeStreamService } = await import("../liberty/opencloud-nativestream_8nj4.service.js");
