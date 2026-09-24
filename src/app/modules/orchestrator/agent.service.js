@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivecompiler_t34a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveCompiler) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumcontroller_bjgz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumController) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusternet_taqb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterNet) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticnexus_d3ck_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticNexus) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednexus_5gqy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNexus) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openneuromorphicmesh_fiy9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicMesh) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4972,6 +5012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivecompiler_t34a_logic": {
+          try {
+            const { OpenPredictiveCompilerService } = await import("../liberty/openpredictivecompiler_t34a.service.js");
+            const res = await OpenPredictiveCompilerService.execute(args.target || "system");
+            return { output: `### OpenPredictiveCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumcontroller_bjgz_logic": {
+          try {
+            const { OpenQuantumControllerService } = await import("../liberty/openquantumcontroller_bjgz.service.js");
+            const res = await OpenQuantumControllerService.execute(args.target || "system");
+            return { output: `### OpenQuantumController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumController failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusternet_taqb_logic": {
+          try {
+            const { OpenCrossClusterNetService } = await import("../liberty/opencross-clusternet_taqb.service.js");
+            const res = await OpenCrossClusterNetService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticnexus_d3ck_logic": {
+          try {
+            const { OpenSemanticNexusService } = await import("../liberty/opensemanticnexus_d3ck.service.js");
+            const res = await OpenSemanticNexusService.execute(args.target || "system");
+            return { output: `### OpenSemanticNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednexus_5gqy_logic": {
+          try {
+            const { OpenDecentralizedNexusService } = await import("../liberty/opendecentralizednexus_5gqy.service.js");
+            const res = await OpenDecentralizedNexusService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openneuromorphicmesh_fiy9_logic": {
           try {
             const { OpenNeuromorphicMeshService } = await import("../liberty/openneuromorphicmesh_fiy9.service.js");
