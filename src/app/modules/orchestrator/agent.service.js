@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessdaemon_fw37_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessDaemon) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticgraph_f9je_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticGraph) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesspipeline_v65a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessPipeline) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondchain_kzeb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondChain) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialplane_l0sy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialPlane) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondoracle_3pa1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondOracle) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20612,6 +20652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessdaemon_fw37_logic": {
+          try {
+            const { OpenHeadlessDaemonService } = await import("../liberty/openheadlessdaemon_fw37.service.js");
+            const res = await OpenHeadlessDaemonService.execute(args.target || "system");
+            return { output: `### OpenHeadlessDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticgraph_f9je_logic": {
+          try {
+            const { OpenSemanticGraphService } = await import("../liberty/opensemanticgraph_f9je.service.js");
+            const res = await OpenSemanticGraphService.execute(args.target || "system");
+            return { output: `### OpenSemanticGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesspipeline_v65a_logic": {
+          try {
+            const { OpenServerlessPipelineService } = await import("../liberty/openserverlesspipeline_v65a.service.js");
+            const res = await OpenServerlessPipelineService.execute(args.target || "system");
+            return { output: `### OpenServerlessPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondchain_kzeb_logic": {
+          try {
+            const { OpenSubMillisecondChainService } = await import("../liberty/opensub-millisecondchain_kzeb.service.js");
+            const res = await OpenSubMillisecondChainService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialplane_l0sy_logic": {
+          try {
+            const { OpenFinancialPlaneService } = await import("../liberty/openfinancialplane_l0sy.service.js");
+            const res = await OpenFinancialPlaneService.execute(args.target || "system");
+            return { output: `### OpenFinancialPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialPlane failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondoracle_3pa1_logic": {
           try {
             const { OpenSubMillisecondOracleService } = await import("../liberty/opensub-millisecondoracle_3pa1.service.js");
