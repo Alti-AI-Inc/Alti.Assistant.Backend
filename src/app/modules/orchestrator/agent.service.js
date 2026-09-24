@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentproxy_sol7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentProxy) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicdaemon_0pdv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicDaemon) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partystream_d416_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyStream) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticoracle_ugmb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticOracle) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionaloracle_uaxz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalOracle) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhigh-frequencyvortex_dtx1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyVortex) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4412,6 +4452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentproxy_sol7_logic": {
+          try {
+            const { OpenPersistentProxyService } = await import("../liberty/openpersistentproxy_sol7.service.js");
+            const res = await OpenPersistentProxyService.execute(args.target || "system");
+            return { output: `### OpenPersistentProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicdaemon_0pdv_logic": {
+          try {
+            const { OpenNeuromorphicDaemonService } = await import("../liberty/openneuromorphicdaemon_0pdv.service.js");
+            const res = await OpenNeuromorphicDaemonService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partystream_d416_logic": {
+          try {
+            const { OpenMultiPartyStreamService } = await import("../liberty/openmulti-partystream_d416.service.js");
+            const res = await OpenMultiPartyStreamService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticoracle_ugmb_logic": {
+          try {
+            const { OpenSemanticOracleService } = await import("../liberty/opensemanticoracle_ugmb.service.js");
+            const res = await OpenSemanticOracleService.execute(args.target || "system");
+            return { output: `### OpenSemanticOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionaloracle_uaxz_logic": {
+          try {
+            const { OpenHyperDimensionalOracleService } = await import("../liberty/openhyper-dimensionaloracle_uaxz.service.js");
+            const res = await OpenHyperDimensionalOracleService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openhigh-frequencyvortex_dtx1_logic": {
           try {
             const { OpenHighFrequencyVortexService } = await import("../liberty/openhigh-frequencyvortex_dtx1.service.js");
