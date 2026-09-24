@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativegraph_ofvb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeGraph) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfnet_qm47_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFNet) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogchain_f22k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogChain) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencychain_adi5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyChain) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendgrid_7azt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendGrid) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpswarm_3gis_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPSwarm) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6932,6 +6972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativegraph_ofvb_logic": {
+          try {
+            const { OpenCloudNativeGraphService } = await import("../liberty/opencloud-nativegraph_ofvb.service.js");
+            const res = await OpenCloudNativeGraphService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfnet_qm47_logic": {
+          try {
+            const { OpeneBPFNetService } = await import("../liberty/openebpfnet_qm47.service.js");
+            const res = await OpeneBPFNetService.execute(args.target || "system");
+            return { output: `### OpeneBPFNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogchain_f22k_logic": {
+          try {
+            const { OpenLogChainService } = await import("../liberty/openlogchain_f22k.service.js");
+            const res = await OpenLogChainService.execute(args.target || "system");
+            return { output: `### OpenLogChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencychain_adi5_logic": {
+          try {
+            const { OpenHighFrequencyChainService } = await import("../liberty/openhigh-frequencychain_adi5.service.js");
+            const res = await OpenHighFrequencyChainService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendgrid_7azt_logic": {
+          try {
+            const { OpenMicroFrontendGridService } = await import("../liberty/openmicro-frontendgrid_7azt.service.js");
+            const res = await OpenMicroFrontendGridService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openbgpswarm_3gis_logic": {
           try {
             const { OpenBGPSwarmService } = await import("../liberty/openbgpswarm_3gis.service.js");
