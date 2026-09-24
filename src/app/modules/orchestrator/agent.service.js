@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedstream_f3dw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedStream) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustercompiler_i97c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterCompiler) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedproxy_nn7i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedProxy) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriserouter_2dd2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseRouter) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesoracle_zkrp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesOracle) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivecluster_p6ty_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveCluster) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13132,6 +13172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedstream_f3dw_logic": {
+          try {
+            const { OpenFederatedStreamService } = await import("../liberty/openfederatedstream_f3dw.service.js");
+            const res = await OpenFederatedStreamService.execute(args.target || "system");
+            return { output: `### OpenFederatedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustercompiler_i97c_logic": {
+          try {
+            const { OpenCrossClusterCompilerService } = await import("../liberty/opencross-clustercompiler_i97c.service.js");
+            const res = await OpenCrossClusterCompilerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedproxy_nn7i_logic": {
+          try {
+            const { OpenDecentralizedProxyService } = await import("../liberty/opendecentralizedproxy_nn7i.service.js");
+            const res = await OpenDecentralizedProxyService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriserouter_2dd2_logic": {
+          try {
+            const { OpenEnterpriseRouterService } = await import("../liberty/openenterpriserouter_2dd2.service.js");
+            const res = await OpenEnterpriseRouterService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesoracle_zkrp_logic": {
+          try {
+            const { OpenTimeSeriesOracleService } = await import("../liberty/opentime-seriesoracle_zkrp.service.js");
+            const res = await OpenTimeSeriesOracleService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivecluster_p6ty_logic": {
           try {
             const { OpenPredictiveClusterService } = await import("../liberty/openpredictivecluster_p6ty.service.js");
