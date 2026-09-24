@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openabstractswarm_fmpv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractSwarm) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecore_n8jm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCore) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivevortex_lfcz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveVortex) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesbroker_8l29_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesBroker) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partypipeline_21ax_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyPipeline) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwarecontroller_swi1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareController) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17372,6 +17412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openabstractswarm_fmpv_logic": {
+          try {
+            const { OpenAbstractSwarmService } = await import("../liberty/openabstractswarm_fmpv.service.js");
+            const res = await OpenAbstractSwarmService.execute(args.target || "system");
+            return { output: `### OpenAbstractSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecore_n8jm_logic": {
+          try {
+            const { OpenZeroKnowledgeCoreService } = await import("../liberty/openzero-knowledgecore_n8jm.service.js");
+            const res = await OpenZeroKnowledgeCoreService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivevortex_lfcz_logic": {
+          try {
+            const { OpenPredictiveVortexService } = await import("../liberty/openpredictivevortex_lfcz.service.js");
+            const res = await OpenPredictiveVortexService.execute(args.target || "system");
+            return { output: `### OpenPredictiveVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesbroker_8l29_logic": {
+          try {
+            const { OpenTimeSeriesBrokerService } = await import("../liberty/opentime-seriesbroker_8l29.service.js");
+            const res = await OpenTimeSeriesBrokerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partypipeline_21ax_logic": {
+          try {
+            const { OpenMultiPartyPipelineService } = await import("../liberty/openmulti-partypipeline_21ax.service.js");
+            const res = await OpenMultiPartyPipelineService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwarecontroller_swi1_logic": {
           try {
             const { OpenHardwareControllerService } = await import("../liberty/openhardwarecontroller_swi1.service.js");
