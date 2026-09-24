@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticproxy_ka60_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticProxy) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederateddaemon_4c47_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedDaemon) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelnode_wq2q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNode) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatagraph_td3x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataGraph) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicvault_u0sd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicVault) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectordaemon_854s_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorDaemon) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14932,6 +14972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticproxy_ka60_logic": {
+          try {
+            const { OpenSemanticProxyService } = await import("../liberty/opensemanticproxy_ka60.service.js");
+            const res = await OpenSemanticProxyService.execute(args.target || "system");
+            return { output: `### OpenSemanticProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederateddaemon_4c47_logic": {
+          try {
+            const { OpenFederatedDaemonService } = await import("../liberty/openfederateddaemon_4c47.service.js");
+            const res = await OpenFederatedDaemonService.execute(args.target || "system");
+            return { output: `### OpenFederatedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelnode_wq2q_logic": {
+          try {
+            const { OpenMicroKernelNodeService } = await import("../liberty/openmicro-kernelnode_wq2q.service.js");
+            const res = await OpenMicroKernelNodeService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatagraph_td3x_logic": {
+          try {
+            const { OpenDataGraphService } = await import("../liberty/opendatagraph_td3x.service.js");
+            const res = await OpenDataGraphService.execute(args.target || "system");
+            return { output: `### OpenDataGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicvault_u0sd_logic": {
+          try {
+            const { OpenNeuromorphicVaultService } = await import("../liberty/openneuromorphicvault_u0sd.service.js");
+            const res = await OpenNeuromorphicVaultService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicVault failed: ${err.message}` };
+          }
+        }
         case "execute_openvectordaemon_854s_logic": {
           try {
             const { OpenVectorDaemonService } = await import("../liberty/openvectordaemon_854s.service.js");
