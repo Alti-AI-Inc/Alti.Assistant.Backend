@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgeplane_2giq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgePlane) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarynexus_skm0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNexus) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendlayer_i3mt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendLayer) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesledger_i30b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesLedger) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgecore_01nm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeCore) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributednode_zapj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedNode) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4532,6 +4572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgeplane_2giq_logic": {
+          try {
+            const { OpenZeroKnowledgePlaneService } = await import("../liberty/openzero-knowledgeplane_2giq.service.js");
+            const res = await OpenZeroKnowledgePlaneService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarynexus_skm0_logic": {
+          try {
+            const { OpenPlanetaryNexusService } = await import("../liberty/openplanetarynexus_skm0.service.js");
+            const res = await OpenPlanetaryNexusService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendlayer_i3mt_logic": {
+          try {
+            const { OpenMicroFrontendLayerService } = await import("../liberty/openmicro-frontendlayer_i3mt.service.js");
+            const res = await OpenMicroFrontendLayerService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesledger_i30b_logic": {
+          try {
+            const { OpenTimeSeriesLedgerService } = await import("../liberty/opentime-seriesledger_i30b.service.js");
+            const res = await OpenTimeSeriesLedgerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgecore_01nm_logic": {
+          try {
+            const { OpenEdgeCoreService } = await import("../liberty/openedgecore_01nm.service.js");
+            const res = await OpenEdgeCoreService.execute(args.target || "system");
+            return { output: `### OpenEdgeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeCore failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributednode_zapj_logic": {
           try {
             const { OpenDistributedNodeService } = await import("../liberty/opendistributednode_zapj.service.js");
