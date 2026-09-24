@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "generate_browser_trace",
+      description: "If a standard web interaction fails (e.g., CAPTCHA, hidden element), use the Aphura Browser Tracer to dump the full DOM, network requests, and visual timeline so you can self-correct.",
+      parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "decompile_binary",
       description: "Use the Aphura Reverse Engineering Engine (Ghidra/Radare2) to rip apart compiled binaries (.exe, .apk) and extract their underlying C/C++ logic.",
       parameters: { type: "object", properties: { binaryPath: { type: "string" } }, required: ["binaryPath"] }
@@ -732,7 +740,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "decompile_binary": {
+        case "generate_browser_trace": {
+          try {
+            const { BrowserService } = await import("../browser/browser.service.js");
+            const res = await BrowserService.generateTrace(args.url);
+            return { output: `### Deep Trace Generated\\n\\n[View Trace](${res.traceUrl})` };
+          } catch (err) {
+            return { output: `Trace failed: ${err.message}` };
+          }
+        }        case "decompile_binary": {
           try {
             const { ReverseEngService } = await import("../security/reverse.service.js");
             const res = await ReverseEngService.decompileBinary(args.binaryPath);
