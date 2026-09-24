@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativevortex_2lqq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVortex) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumstream_zzhx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumStream) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedfabric_03ed_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedFabric) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativegraph_4m6o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeGraph) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseoracle_twez_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseOracle) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengraphnet_5vgd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGraphNet) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9972,6 +10012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativevortex_2lqq_logic": {
+          try {
+            const { OpenCloudNativeVortexService } = await import("../liberty/opencloud-nativevortex_2lqq.service.js");
+            const res = await OpenCloudNativeVortexService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumstream_zzhx_logic": {
+          try {
+            const { OpenQuantumStreamService } = await import("../liberty/openquantumstream_zzhx.service.js");
+            const res = await OpenQuantumStreamService.execute(args.target || "system");
+            return { output: `### OpenQuantumStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedfabric_03ed_logic": {
+          try {
+            const { OpenDistributedFabricService } = await import("../liberty/opendistributedfabric_03ed.service.js");
+            const res = await OpenDistributedFabricService.execute(args.target || "system");
+            return { output: `### OpenDistributedFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativegraph_4m6o_logic": {
+          try {
+            const { OpenCloudNativeGraphService } = await import("../liberty/opencloud-nativegraph_4m6o.service.js");
+            const res = await OpenCloudNativeGraphService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseoracle_twez_logic": {
+          try {
+            const { OpenEnterpriseOracleService } = await import("../liberty/openenterpriseoracle_twez.service.js");
+            const res = await OpenEnterpriseOracleService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseOracle failed: ${err.message}` };
+          }
+        }
         case "execute_opengraphnet_5vgd_logic": {
           try {
             const { OpenGraphNetService } = await import("../liberty/opengraphnet_5vgd.service.js");
