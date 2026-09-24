@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriespipeline_inc3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesPipeline) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedchain_2aey_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedChain) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivevortex_ji73_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveVortex) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondmatrix_vee3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondMatrix) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentlayer_lvcc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentLayer) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedledger_shth_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedLedger) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13852,6 +13892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriespipeline_inc3_logic": {
+          try {
+            const { OpenTimeSeriesPipelineService } = await import("../liberty/opentime-seriespipeline_inc3.service.js");
+            const res = await OpenTimeSeriesPipelineService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedchain_2aey_logic": {
+          try {
+            const { OpenFederatedChainService } = await import("../liberty/openfederatedchain_2aey.service.js");
+            const res = await OpenFederatedChainService.execute(args.target || "system");
+            return { output: `### OpenFederatedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivevortex_ji73_logic": {
+          try {
+            const { OpenPredictiveVortexService } = await import("../liberty/openpredictivevortex_ji73.service.js");
+            const res = await OpenPredictiveVortexService.execute(args.target || "system");
+            return { output: `### OpenPredictiveVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondmatrix_vee3_logic": {
+          try {
+            const { OpenSubMillisecondMatrixService } = await import("../liberty/opensub-millisecondmatrix_vee3.service.js");
+            const res = await OpenSubMillisecondMatrixService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentlayer_lvcc_logic": {
+          try {
+            const { OpenPersistentLayerService } = await import("../liberty/openpersistentlayer_lvcc.service.js");
+            const res = await OpenPersistentLayerService.execute(args.target || "system");
+            return { output: `### OpenPersistentLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedledger_shth_logic": {
           try {
             const { OpenFederatedLedgerService } = await import("../liberty/openfederatedledger_shth.service.js");
