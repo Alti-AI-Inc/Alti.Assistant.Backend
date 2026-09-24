@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedvortex_ob3v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVortex) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedplane_booh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedPlane) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustmesh_ejwn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustMesh) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorvault_wbbq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorVault) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticproxy_puoz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticProxy) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepstream_9rrd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepStream) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3612,6 +3652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedvortex_ob3v_logic": {
+          try {
+            const { OpenDecentralizedVortexService } = await import("../liberty/opendecentralizedvortex_ob3v.service.js");
+            const res = await OpenDecentralizedVortexService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedplane_booh_logic": {
+          try {
+            const { OpenAutomatedPlaneService } = await import("../liberty/openautomatedplane_booh.service.js");
+            const res = await OpenAutomatedPlaneService.execute(args.target || "system");
+            return { output: `### OpenAutomatedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustmesh_ejwn_logic": {
+          try {
+            const { OpenZeroTrustMeshService } = await import("../liberty/openzero-trustmesh_ejwn.service.js");
+            const res = await OpenZeroTrustMeshService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorvault_wbbq_logic": {
+          try {
+            const { OpenVectorVaultService } = await import("../liberty/openvectorvault_wbbq.service.js");
+            const res = await OpenVectorVaultService.execute(args.target || "system");
+            return { output: `### OpenVectorVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticproxy_puoz_logic": {
+          try {
+            const { OpenSemanticProxyService } = await import("../liberty/opensemanticproxy_puoz.service.js");
+            const res = await OpenSemanticProxyService.execute(args.target || "system");
+            return { output: `### OpenSemanticProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticProxy failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepstream_9rrd_logic": {
           try {
             const { OpenDeepStreamService } = await import("../liberty/opendeepstream_9rrd.service.js");
