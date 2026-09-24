@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphiccore_yh0d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicCore) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessfabric_8tu5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessFabric) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuring_yw1q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPURing) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepbroker_3hvh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepBroker) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicplane_z4ci_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicPlane) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativecluster_jdp2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCluster) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13012,6 +13052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphiccore_yh0d_logic": {
+          try {
+            const { OpenHomomorphicCoreService } = await import("../liberty/openhomomorphiccore_yh0d.service.js");
+            const res = await OpenHomomorphicCoreService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessfabric_8tu5_logic": {
+          try {
+            const { OpenHeadlessFabricService } = await import("../liberty/openheadlessfabric_8tu5.service.js");
+            const res = await OpenHeadlessFabricService.execute(args.target || "system");
+            return { output: `### OpenHeadlessFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuring_yw1q_logic": {
+          try {
+            const { OpenGPURingService } = await import("../liberty/opengpuring_yw1q.service.js");
+            const res = await OpenGPURingService.execute(args.target || "system");
+            return { output: `### OpenGPURing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPURing failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepbroker_3hvh_logic": {
+          try {
+            const { OpenDeepBrokerService } = await import("../liberty/opendeepbroker_3hvh.service.js");
+            const res = await OpenDeepBrokerService.execute(args.target || "system");
+            return { output: `### OpenDeepBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicplane_z4ci_logic": {
+          try {
+            const { OpenNeuromorphicPlaneService } = await import("../liberty/openneuromorphicplane_z4ci.service.js");
+            const res = await OpenNeuromorphicPlaneService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicPlane failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativecluster_jdp2_logic": {
           try {
             const { OpenCloudNativeClusterService } = await import("../liberty/opencloud-nativecluster_jdp2.service.js");
