@@ -10543,3 +10543,68 @@ services:
       - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
       - LICENSE_VALIDATION="Apache 2.0"
     restart: always
+
+  engine-openmicro-kernelswarm_esnm:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENMICRO-KERNELSWARM
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always
+
+  engine-openpersistentring_iga7:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENPERSISTENTRING
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-openheadlessmatrix_bvhw:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENHEADLESSMATRIX
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always
+
+  engine-openvectordaemon_we0i:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENVECTORDAEMON
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-opensub-millisecondvortex_5ace:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENSUB-MILLISECONDVORTEX
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always

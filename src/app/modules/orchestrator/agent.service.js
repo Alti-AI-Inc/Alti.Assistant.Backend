@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondvortex_5ace_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondVortex) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectordaemon_we0i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorDaemon) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessmatrix_bvhw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessMatrix) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentring_iga7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentRing) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelswarm_esnm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelSwarm) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicmatrix_q7s5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMatrix) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7172,6 +7212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondvortex_5ace_logic": {
+          try {
+            const { OpenSubMillisecondVortexService } = await import("../liberty/opensub-millisecondvortex_5ace.service.js");
+            const res = await OpenSubMillisecondVortexService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectordaemon_we0i_logic": {
+          try {
+            const { OpenVectorDaemonService } = await import("../liberty/openvectordaemon_we0i.service.js");
+            const res = await OpenVectorDaemonService.execute(args.target || "system");
+            return { output: `### OpenVectorDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessmatrix_bvhw_logic": {
+          try {
+            const { OpenHeadlessMatrixService } = await import("../liberty/openheadlessmatrix_bvhw.service.js");
+            const res = await OpenHeadlessMatrixService.execute(args.target || "system");
+            return { output: `### OpenHeadlessMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentring_iga7_logic": {
+          try {
+            const { OpenPersistentRingService } = await import("../liberty/openpersistentring_iga7.service.js");
+            const res = await OpenPersistentRingService.execute(args.target || "system");
+            return { output: `### OpenPersistentRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelswarm_esnm_logic": {
+          try {
+            const { OpenMicroKernelSwarmService } = await import("../liberty/openmicro-kernelswarm_esnm.service.js");
+            const res = await OpenMicroKernelSwarmService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicmatrix_q7s5_logic": {
           try {
             const { OpenHomomorphicMatrixService } = await import("../liberty/openhomomorphicmatrix_q7s5.service.js");
