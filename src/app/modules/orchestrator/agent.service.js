@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticnexus_6xb7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticNexus) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorylayer_xp2s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryLayer) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryledger_iopy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryLedger) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustgrid_ht7e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustGrid) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecluster_w0fp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCluster) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticcore_igcc_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticCore) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19212,6 +19252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticnexus_6xb7_logic": {
+          try {
+            const { OpenSemanticNexusService } = await import("../liberty/opensemanticnexus_6xb7.service.js");
+            const res = await OpenSemanticNexusService.execute(args.target || "system");
+            return { output: `### OpenSemanticNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorylayer_xp2s_logic": {
+          try {
+            const { OpenInMemoryLayerService } = await import("../liberty/openin-memorylayer_xp2s.service.js");
+            const res = await OpenInMemoryLayerService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryledger_iopy_logic": {
+          try {
+            const { OpenPlanetaryLedgerService } = await import("../liberty/openplanetaryledger_iopy.service.js");
+            const res = await OpenPlanetaryLedgerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustgrid_ht7e_logic": {
+          try {
+            const { OpenZeroTrustGridService } = await import("../liberty/openzero-trustgrid_ht7e.service.js");
+            const res = await OpenZeroTrustGridService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecluster_w0fp_logic": {
+          try {
+            const { OpenZeroKnowledgeClusterService } = await import("../liberty/openzero-knowledgecluster_w0fp.service.js");
+            const res = await OpenZeroKnowledgeClusterService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticcore_igcc_logic": {
           try {
             const { OpenStaticCoreService } = await import("../liberty/openstaticcore_igcc.service.js");
