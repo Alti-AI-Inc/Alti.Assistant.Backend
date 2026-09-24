@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "process_complex_document",
+      description: "Process a complex PDF, financial report, or scientific document using the Aphura Docling Engine to extract perfect tables and layout prior to RAG analysis.",
+      parameters: { type: "object", properties: { filePath: { type: "string" }, collectionId: { type: "string" } }, required: ["filePath", "collectionId"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "swe_execute_command",
       description: "Execute a bash command in the Aphura Autonomous Engineering sandbox. Use this to run tests, grep for files, or compile code.",
       parameters: { type: "object", properties: { command: { type: "string" } }, required: ["command"] }
@@ -596,7 +604,16 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "swe_execute_command": {
+        case "process_complex_document": {
+          try {
+            const { DoclingService } = await import("../rag/docling.service.js");
+            const parseRes = await DoclingService.parseDocument(args.filePath);
+            await DoclingService.ingestToVectorDB(args.collectionId, parseRes.content);
+            return { output: `Document successfully processed and vectorized into ${args.collectionId}. Extracted ${parseRes.tablesExtracted} tables.` };
+          } catch (err) {
+            return { output: `Document processing failed: ${err.message}` };
+          }
+        }        case "swe_execute_command": {
           try {
             const { SWEService } = await import("../agents/swe.service.js");
             const res = await SWEService.executeCommand(args.command);
