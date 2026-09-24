@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessbroker_vzan_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessBroker) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partymatrix_zuts_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyMatrix) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedbroker_v7nh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedBroker) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicmesh_mafj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMesh) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpumesh_6bfm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUMesh) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedpipeline_olyk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedPipeline) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21252,6 +21292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessbroker_vzan_logic": {
+          try {
+            const { OpenServerlessBrokerService } = await import("../liberty/openserverlessbroker_vzan.service.js");
+            const res = await OpenServerlessBrokerService.execute(args.target || "system");
+            return { output: `### OpenServerlessBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partymatrix_zuts_logic": {
+          try {
+            const { OpenMultiPartyMatrixService } = await import("../liberty/openmulti-partymatrix_zuts.service.js");
+            const res = await OpenMultiPartyMatrixService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedbroker_v7nh_logic": {
+          try {
+            const { OpenAdvancedBrokerService } = await import("../liberty/openadvancedbroker_v7nh.service.js");
+            const res = await OpenAdvancedBrokerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicmesh_mafj_logic": {
+          try {
+            const { OpenHomomorphicMeshService } = await import("../liberty/openhomomorphicmesh_mafj.service.js");
+            const res = await OpenHomomorphicMeshService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpumesh_6bfm_logic": {
+          try {
+            const { OpenGPUMeshService } = await import("../liberty/opengpumesh_6bfm.service.js");
+            const res = await OpenGPUMeshService.execute(args.target || "system");
+            return { output: `### OpenGPUMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUMesh failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedpipeline_olyk_logic": {
           try {
             const { OpenDistributedPipelineService } = await import("../liberty/opendistributedpipeline_olyk.service.js");
