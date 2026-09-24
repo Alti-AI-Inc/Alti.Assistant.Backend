@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "generate_audio_track",
+      description: "Use the Aphura Generative Audio Engine (MusicGen) to create high-quality songs, ambient tracks, or sound effects from text.",
+      parameters: { type: "object", properties: { prompt: { type: "string" }, durationSec: { type: "number" } }, required: ["prompt"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "run_security_audit",
       description: "Use the Aphura Cyber-Security Engine (Semgrep) to autonomously scan a codebase for Zero-Day vulnerabilities, SQL injections, or memory leaks.",
       parameters: { type: "object", properties: { repoPath: { type: "string" } }, required: ["repoPath"] }
@@ -676,7 +684,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "run_security_audit": {
+        case "generate_audio_track": {
+          try {
+            const { MusicGenService } = await import("../audio/musicgen.service.js");
+            const res = await MusicGenService.generateAudio(args.prompt, args.durationSec);
+            return { output: `### Generated Audio\\n\\n[Listen to your track](${res.url})` };
+          } catch (err) {
+            return { output: `Audio generation failed: ${err.message}` };
+          }
+        }        case "run_security_audit": {
           try {
             const { SemgrepService } = await import("../security/semgrep.service.js");
             const res = await SemgrepService.scanRepository(args.repoPath);
