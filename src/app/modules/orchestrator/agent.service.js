@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openin-memoryvault_i8ec_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryVault) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicsync_xml8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicSync) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatacompiler_bfju_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataCompiler) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedlayer_bsqb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedLayer) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpnode_lpgw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPNode) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaospipeline_oy1c_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosPipeline) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12332,6 +12372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openin-memoryvault_i8ec_logic": {
+          try {
+            const { OpenInMemoryVaultService } = await import("../liberty/openin-memoryvault_i8ec.service.js");
+            const res = await OpenInMemoryVaultService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicsync_xml8_logic": {
+          try {
+            const { OpenNeuromorphicSyncService } = await import("../liberty/openneuromorphicsync_xml8.service.js");
+            const res = await OpenNeuromorphicSyncService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatacompiler_bfju_logic": {
+          try {
+            const { OpenDataCompilerService } = await import("../liberty/opendatacompiler_bfju.service.js");
+            const res = await OpenDataCompilerService.execute(args.target || "system");
+            return { output: `### OpenDataCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedlayer_bsqb_logic": {
+          try {
+            const { OpenAutomatedLayerService } = await import("../liberty/openautomatedlayer_bsqb.service.js");
+            const res = await OpenAutomatedLayerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpnode_lpgw_logic": {
+          try {
+            const { OpenBGPNodeService } = await import("../liberty/openbgpnode_lpgw.service.js");
+            const res = await OpenBGPNodeService.execute(args.target || "system");
+            return { output: `### OpenBGPNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPNode failed: ${err.message}` };
+          }
+        }
         case "execute_openchaospipeline_oy1c_logic": {
           try {
             const { OpenChaosPipelineService } = await import("../liberty/openchaospipeline_oy1c.service.js");
