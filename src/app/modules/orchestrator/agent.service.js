@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedmesh_k8oa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedMesh) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablecompiler_wtll_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableCompiler) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpucore_dlbo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUCore) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosmesh_po6q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosMesh) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustergraph_d5c4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterGraph) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativedaemon_nj4w_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeDaemon) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17972,6 +18012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedmesh_k8oa_logic": {
+          try {
+            const { OpenAdvancedMeshService } = await import("../liberty/openadvancedmesh_k8oa.service.js");
+            const res = await OpenAdvancedMeshService.execute(args.target || "system");
+            return { output: `### OpenAdvancedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablecompiler_wtll_logic": {
+          try {
+            const { OpenImmutableCompilerService } = await import("../liberty/openimmutablecompiler_wtll.service.js");
+            const res = await OpenImmutableCompilerService.execute(args.target || "system");
+            return { output: `### OpenImmutableCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpucore_dlbo_logic": {
+          try {
+            const { OpenGPUCoreService } = await import("../liberty/opengpucore_dlbo.service.js");
+            const res = await OpenGPUCoreService.execute(args.target || "system");
+            return { output: `### OpenGPUCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosmesh_po6q_logic": {
+          try {
+            const { OpenChaosMeshService } = await import("../liberty/openchaosmesh_po6q.service.js");
+            const res = await OpenChaosMeshService.execute(args.target || "system");
+            return { output: `### OpenChaosMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustergraph_d5c4_logic": {
+          try {
+            const { OpenCrossClusterGraphService } = await import("../liberty/opencross-clustergraph_d5c4.service.js");
+            const res = await OpenCrossClusterGraphService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterGraph failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativedaemon_nj4w_logic": {
           try {
             const { OpenCloudNativeDaemonService } = await import("../liberty/opencloud-nativedaemon_nj4w.service.js");
