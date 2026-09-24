@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlesscompiler_rg7t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessCompiler) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablecore_dzpv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableCore) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativeswarm_2c3b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeSwarm) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticvault_ixka_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticVault) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumplane_0qjd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumPlane) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosnexus_nt56_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosNexus) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12612,6 +12652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlesscompiler_rg7t_logic": {
+          try {
+            const { OpenServerlessCompilerService } = await import("../liberty/openserverlesscompiler_rg7t.service.js");
+            const res = await OpenServerlessCompilerService.execute(args.target || "system");
+            return { output: `### OpenServerlessCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablecore_dzpv_logic": {
+          try {
+            const { OpenImmutableCoreService } = await import("../liberty/openimmutablecore_dzpv.service.js");
+            const res = await OpenImmutableCoreService.execute(args.target || "system");
+            return { output: `### OpenImmutableCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativeswarm_2c3b_logic": {
+          try {
+            const { OpenCloudNativeSwarmService } = await import("../liberty/opencloud-nativeswarm_2c3b.service.js");
+            const res = await OpenCloudNativeSwarmService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticvault_ixka_logic": {
+          try {
+            const { OpenSemanticVaultService } = await import("../liberty/opensemanticvault_ixka.service.js");
+            const res = await OpenSemanticVaultService.execute(args.target || "system");
+            return { output: `### OpenSemanticVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumplane_0qjd_logic": {
+          try {
+            const { OpenQuantumPlaneService } = await import("../liberty/openquantumplane_0qjd.service.js");
+            const res = await OpenQuantumPlaneService.execute(args.target || "system");
+            return { output: `### OpenQuantumPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosnexus_nt56_logic": {
           try {
             const { OpenChaosNexusService } = await import("../liberty/openchaosnexus_nt56.service.js");
