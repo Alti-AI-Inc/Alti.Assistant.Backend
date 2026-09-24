@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openlogengine_ianu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogEngine) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablevault_fye9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableVault) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partymatrix_bnk9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyMatrix) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractledger_aeux_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractLedger) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelmatrix_1al9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMatrix) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedlayer_dgau_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLayer) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17852,6 +17892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openlogengine_ianu_logic": {
+          try {
+            const { OpenLogEngineService } = await import("../liberty/openlogengine_ianu.service.js");
+            const res = await OpenLogEngineService.execute(args.target || "system");
+            return { output: `### OpenLogEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablevault_fye9_logic": {
+          try {
+            const { OpenImmutableVaultService } = await import("../liberty/openimmutablevault_fye9.service.js");
+            const res = await OpenImmutableVaultService.execute(args.target || "system");
+            return { output: `### OpenImmutableVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partymatrix_bnk9_logic": {
+          try {
+            const { OpenMultiPartyMatrixService } = await import("../liberty/openmulti-partymatrix_bnk9.service.js");
+            const res = await OpenMultiPartyMatrixService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractledger_aeux_logic": {
+          try {
+            const { OpenAbstractLedgerService } = await import("../liberty/openabstractledger_aeux.service.js");
+            const res = await OpenAbstractLedgerService.execute(args.target || "system");
+            return { output: `### OpenAbstractLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelmatrix_1al9_logic": {
+          try {
+            const { OpenMicroKernelMatrixService } = await import("../liberty/openmicro-kernelmatrix_1al9.service.js");
+            const res = await OpenMicroKernelMatrixService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedlayer_dgau_logic": {
           try {
             const { OpenDecentralizedLayerService } = await import("../liberty/opendecentralizedlayer_dgau.service.js");
