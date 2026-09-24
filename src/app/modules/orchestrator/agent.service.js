@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwareswarm_7bl9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareSwarm) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendoracle_8g8g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendOracle) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumnet_qf0m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumNet) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedmatrix_h8wu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedMatrix) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterrouter_63ud_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterRouter) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicnode_9a0u_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNode) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21452,6 +21492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwareswarm_7bl9_logic": {
+          try {
+            const { OpenHardwareSwarmService } = await import("../liberty/openhardwareswarm_7bl9.service.js");
+            const res = await OpenHardwareSwarmService.execute(args.target || "system");
+            return { output: `### OpenHardwareSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendoracle_8g8g_logic": {
+          try {
+            const { OpenMicroFrontendOracleService } = await import("../liberty/openmicro-frontendoracle_8g8g.service.js");
+            const res = await OpenMicroFrontendOracleService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumnet_qf0m_logic": {
+          try {
+            const { OpenQuantumNetService } = await import("../liberty/openquantumnet_qf0m.service.js");
+            const res = await OpenQuantumNetService.execute(args.target || "system");
+            return { output: `### OpenQuantumNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedmatrix_h8wu_logic": {
+          try {
+            const { OpenAutomatedMatrixService } = await import("../liberty/openautomatedmatrix_h8wu.service.js");
+            const res = await OpenAutomatedMatrixService.execute(args.target || "system");
+            return { output: `### OpenAutomatedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterrouter_63ud_logic": {
+          try {
+            const { OpenCrossClusterRouterService } = await import("../liberty/opencross-clusterrouter_63ud.service.js");
+            const res = await OpenCrossClusterRouterService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicnode_9a0u_logic": {
           try {
             const { OpenHomomorphicNodeService } = await import("../liberty/openhomomorphicnode_9a0u.service.js");
