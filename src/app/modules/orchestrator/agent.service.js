@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgering_nse4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeRing) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableswarm_ir70_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableSwarm) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednode_adea_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNode) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesscluster_6dqe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessCluster) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventcompiler_wajw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventCompiler) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpugraph_zd00_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUGraph) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12932,6 +12972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgering_nse4_logic": {
+          try {
+            const { OpenZeroKnowledgeRingService } = await import("../liberty/openzero-knowledgering_nse4.service.js");
+            const res = await OpenZeroKnowledgeRingService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableswarm_ir70_logic": {
+          try {
+            const { OpenImmutableSwarmService } = await import("../liberty/openimmutableswarm_ir70.service.js");
+            const res = await OpenImmutableSwarmService.execute(args.target || "system");
+            return { output: `### OpenImmutableSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednode_adea_logic": {
+          try {
+            const { OpenDecentralizedNodeService } = await import("../liberty/opendecentralizednode_adea.service.js");
+            const res = await OpenDecentralizedNodeService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesscluster_6dqe_logic": {
+          try {
+            const { OpenServerlessClusterService } = await import("../liberty/openserverlesscluster_6dqe.service.js");
+            const res = await OpenServerlessClusterService.execute(args.target || "system");
+            return { output: `### OpenServerlessCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventcompiler_wajw_logic": {
+          try {
+            const { OpenEventCompilerService } = await import("../liberty/openeventcompiler_wajw.service.js");
+            const res = await OpenEventCompilerService.execute(args.target || "system");
+            return { output: `### OpenEventCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_opengpugraph_zd00_logic": {
           try {
             const { OpenGPUGraphService } = await import("../liberty/opengpugraph_zd00.service.js");
