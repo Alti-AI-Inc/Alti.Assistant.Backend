@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgefabric_fu6x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeFabric) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumbroker_k9ld_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumBroker) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticrouter_w8q6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticRouter) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicring_orxj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicRing) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyengine_iw2m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyEngine) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepmatrix_76mi_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepMatrix) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6292,6 +6332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgefabric_fu6x_logic": {
+          try {
+            const { OpenEdgeFabricService } = await import("../liberty/openedgefabric_fu6x.service.js");
+            const res = await OpenEdgeFabricService.execute(args.target || "system");
+            return { output: `### OpenEdgeFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumbroker_k9ld_logic": {
+          try {
+            const { OpenQuantumBrokerService } = await import("../liberty/openquantumbroker_k9ld.service.js");
+            const res = await OpenQuantumBrokerService.execute(args.target || "system");
+            return { output: `### OpenQuantumBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticrouter_w8q6_logic": {
+          try {
+            const { OpenSemanticRouterService } = await import("../liberty/opensemanticrouter_w8q6.service.js");
+            const res = await OpenSemanticRouterService.execute(args.target || "system");
+            return { output: `### OpenSemanticRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicring_orxj_logic": {
+          try {
+            const { OpenNeuromorphicRingService } = await import("../liberty/openneuromorphicring_orxj.service.js");
+            const res = await OpenNeuromorphicRingService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyengine_iw2m_logic": {
+          try {
+            const { OpenHighFrequencyEngineService } = await import("../liberty/openhigh-frequencyengine_iw2m.service.js");
+            const res = await OpenHighFrequencyEngineService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyEngine failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepmatrix_76mi_logic": {
           try {
             const { OpenDeepMatrixService } = await import("../liberty/opendeepmatrix_76mi.service.js");
