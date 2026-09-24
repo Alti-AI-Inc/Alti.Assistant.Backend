@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_python_code",
+      description: "Write and execute Python code in a sandboxed Jupyter kernel to perform advanced data analysis, crunch math, or generate visual charts.",
+      parameters: { type: "object", properties: { code: { type: "string" } }, required: ["code"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "process_complex_document",
       description: "Process a complex PDF, financial report, or scientific document using the Aphura Docling Engine to extract perfect tables and layout prior to RAG analysis.",
       parameters: { type: "object", properties: { filePath: { type: "string" }, collectionId: { type: "string" } }, required: ["filePath", "collectionId"] }
@@ -604,7 +612,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "process_complex_document": {
+        case "execute_python_code": {
+          try {
+            const { JupyterService } = await import("../compute/jupyter.service.js");
+            const res = await JupyterService.executeCode(args.code);
+            return { output: `### Python Execution Result\\n\\n```text\\n${res.stdout}\\n```` };
+          } catch (err) {
+            return { output: `Python execution failed: ${err.message}` };
+          }
+        }        case "process_complex_document": {
           try {
             const { DoclingService } = await import("../rag/docling.service.js");
             const parseRes = await DoclingService.parseDocument(args.filePath);
