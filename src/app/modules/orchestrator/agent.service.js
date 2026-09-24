@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedlayer_n8jj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedLayer) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustlayer_aks4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustLayer) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterlayer_jf64_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLayer) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyoracle_ek3u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyOracle) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecompiler_o054_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareCompiler) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalstream_5k0w_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalStream) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3092,6 +3132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedlayer_n8jj_logic": {
+          try {
+            const { OpenAdvancedLayerService } = await import("../liberty/openadvancedlayer_n8jj.service.js");
+            const res = await OpenAdvancedLayerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustlayer_aks4_logic": {
+          try {
+            const { OpenZeroTrustLayerService } = await import("../liberty/openzero-trustlayer_aks4.service.js");
+            const res = await OpenZeroTrustLayerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterlayer_jf64_logic": {
+          try {
+            const { OpenCrossClusterLayerService } = await import("../liberty/opencross-clusterlayer_jf64.service.js");
+            const res = await OpenCrossClusterLayerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyoracle_ek3u_logic": {
+          try {
+            const { OpenMultiPartyOracleService } = await import("../liberty/openmulti-partyoracle_ek3u.service.js");
+            const res = await OpenMultiPartyOracleService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecompiler_o054_logic": {
+          try {
+            const { OpenHardwareCompilerService } = await import("../liberty/openhardwarecompiler_o054.service.js");
+            const res = await OpenHardwareCompilerService.execute(args.target || "system");
+            return { output: `### OpenHardwareCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalstream_5k0w_logic": {
           try {
             const { OpenHyperDimensionalStreamService } = await import("../liberty/openhyper-dimensionalstream_5k0w.service.js");
