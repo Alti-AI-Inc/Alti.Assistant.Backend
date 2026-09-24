@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumcontroller_k73y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumController) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyrouter_hsnl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyRouter) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecluster_gnjz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareCluster) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessproxy_ed80_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessProxy) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogcore_9i7b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogCore) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlesscluster_m6m6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCluster) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12092,6 +12132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumcontroller_k73y_logic": {
+          try {
+            const { OpenQuantumControllerService } = await import("../liberty/openquantumcontroller_k73y.service.js");
+            const res = await OpenQuantumControllerService.execute(args.target || "system");
+            return { output: `### OpenQuantumController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumController failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyrouter_hsnl_logic": {
+          try {
+            const { OpenMultiPartyRouterService } = await import("../liberty/openmulti-partyrouter_hsnl.service.js");
+            const res = await OpenMultiPartyRouterService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecluster_gnjz_logic": {
+          try {
+            const { OpenHardwareClusterService } = await import("../liberty/openhardwarecluster_gnjz.service.js");
+            const res = await OpenHardwareClusterService.execute(args.target || "system");
+            return { output: `### OpenHardwareCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessproxy_ed80_logic": {
+          try {
+            const { OpenHeadlessProxyService } = await import("../liberty/openheadlessproxy_ed80.service.js");
+            const res = await OpenHeadlessProxyService.execute(args.target || "system");
+            return { output: `### OpenHeadlessProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogcore_9i7b_logic": {
+          try {
+            const { OpenLogCoreService } = await import("../liberty/openlogcore_9i7b.service.js");
+            const res = await OpenLogCoreService.execute(args.target || "system");
+            return { output: `### OpenLogCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogCore failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlesscluster_m6m6_logic": {
           try {
             const { OpenHeadlessClusterService } = await import("../liberty/openheadlesscluster_m6m6.service.js");
