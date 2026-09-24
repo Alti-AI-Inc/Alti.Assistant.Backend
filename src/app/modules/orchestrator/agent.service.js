@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedrouter_e4ko_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticcompiler_u15j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticCompiler) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarymatrix_xesm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryMatrix) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarerouter_3686_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareRouter) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosbroker_hrhv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosBroker) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfgraph_mfq5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFGraph) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14092,6 +14132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedrouter_e4ko_logic": {
+          try {
+            const { OpenDecentralizedRouterService } = await import("../liberty/opendecentralizedrouter_e4ko.service.js");
+            const res = await OpenDecentralizedRouterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticcompiler_u15j_logic": {
+          try {
+            const { OpenStaticCompilerService } = await import("../liberty/openstaticcompiler_u15j.service.js");
+            const res = await OpenStaticCompilerService.execute(args.target || "system");
+            return { output: `### OpenStaticCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarymatrix_xesm_logic": {
+          try {
+            const { OpenPlanetaryMatrixService } = await import("../liberty/openplanetarymatrix_xesm.service.js");
+            const res = await OpenPlanetaryMatrixService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarerouter_3686_logic": {
+          try {
+            const { OpenHardwareRouterService } = await import("../liberty/openhardwarerouter_3686.service.js");
+            const res = await OpenHardwareRouterService.execute(args.target || "system");
+            return { output: `### OpenHardwareRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosbroker_hrhv_logic": {
+          try {
+            const { OpenChaosBrokerService } = await import("../liberty/openchaosbroker_hrhv.service.js");
+            const res = await OpenChaosBrokerService.execute(args.target || "system");
+            return { output: `### OpenChaosBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosBroker failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfgraph_mfq5_logic": {
           try {
             const { OpeneBPFGraphService } = await import("../liberty/openebpfgraph_mfq5.service.js");
