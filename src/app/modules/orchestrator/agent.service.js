@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisepipeline_99ox_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterprisePipeline) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedvortex_2sx2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVortex) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablevortex_f99h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableVortex) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosvortex_2hnc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosVortex) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogcontroller_qxi5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogController) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutableplane_6twf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutablePlane) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12212,6 +12252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisepipeline_99ox_logic": {
+          try {
+            const { OpenEnterprisePipelineService } = await import("../liberty/openenterprisepipeline_99ox.service.js");
+            const res = await OpenEnterprisePipelineService.execute(args.target || "system");
+            return { output: `### OpenEnterprisePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterprisePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedvortex_2sx2_logic": {
+          try {
+            const { OpenDecentralizedVortexService } = await import("../liberty/opendecentralizedvortex_2sx2.service.js");
+            const res = await OpenDecentralizedVortexService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablevortex_f99h_logic": {
+          try {
+            const { OpenImmutableVortexService } = await import("../liberty/openimmutablevortex_f99h.service.js");
+            const res = await OpenImmutableVortexService.execute(args.target || "system");
+            return { output: `### OpenImmutableVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosvortex_2hnc_logic": {
+          try {
+            const { OpenChaosVortexService } = await import("../liberty/openchaosvortex_2hnc.service.js");
+            const res = await OpenChaosVortexService.execute(args.target || "system");
+            return { output: `### OpenChaosVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogcontroller_qxi5_logic": {
+          try {
+            const { OpenLogControllerService } = await import("../liberty/openlogcontroller_qxi5.service.js");
+            const res = await OpenLogControllerService.execute(args.target || "system");
+            return { output: `### OpenLogController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogController failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutableplane_6twf_logic": {
           try {
             const { OpenImmutablePlaneService } = await import("../liberty/openimmutableplane_6twf.service.js");
