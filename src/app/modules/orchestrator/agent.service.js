@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfmatrix_d8s0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFMatrix) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondgraph_hwje_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondGraph) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventlayer_tl9a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventLayer) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumnexus_bfkm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumNexus) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendring_7b02_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRing) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedrouter_s6hz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11812,6 +11852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfmatrix_d8s0_logic": {
+          try {
+            const { OpeneBPFMatrixService } = await import("../liberty/openebpfmatrix_d8s0.service.js");
+            const res = await OpeneBPFMatrixService.execute(args.target || "system");
+            return { output: `### OpeneBPFMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondgraph_hwje_logic": {
+          try {
+            const { OpenSubMillisecondGraphService } = await import("../liberty/opensub-millisecondgraph_hwje.service.js");
+            const res = await OpenSubMillisecondGraphService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventlayer_tl9a_logic": {
+          try {
+            const { OpenEventLayerService } = await import("../liberty/openeventlayer_tl9a.service.js");
+            const res = await OpenEventLayerService.execute(args.target || "system");
+            return { output: `### OpenEventLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumnexus_bfkm_logic": {
+          try {
+            const { OpenQuantumNexusService } = await import("../liberty/openquantumnexus_bfkm.service.js");
+            const res = await OpenQuantumNexusService.execute(args.target || "system");
+            return { output: `### OpenQuantumNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendring_7b02_logic": {
+          try {
+            const { OpenMicroFrontendRingService } = await import("../liberty/openmicro-frontendring_7b02.service.js");
+            const res = await OpenMicroFrontendRingService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendRing failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedrouter_s6hz_logic": {
           try {
             const { OpenDecentralizedRouterService } = await import("../liberty/opendecentralizedrouter_s6hz.service.js");
