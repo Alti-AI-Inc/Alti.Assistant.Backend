@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustengine_jgxh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustEngine) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessmesh_u0qf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessMesh) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalbroker_vf5u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalBroker) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorgraph_t01a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorGraph) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventfabric_a921_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventFabric) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalproxy_pp6d_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalProxy) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17572,6 +17612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustengine_jgxh_logic": {
+          try {
+            const { OpenZeroTrustEngineService } = await import("../liberty/openzero-trustengine_jgxh.service.js");
+            const res = await OpenZeroTrustEngineService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessmesh_u0qf_logic": {
+          try {
+            const { OpenHeadlessMeshService } = await import("../liberty/openheadlessmesh_u0qf.service.js");
+            const res = await OpenHeadlessMeshService.execute(args.target || "system");
+            return { output: `### OpenHeadlessMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalbroker_vf5u_logic": {
+          try {
+            const { OpenHyperDimensionalBrokerService } = await import("../liberty/openhyper-dimensionalbroker_vf5u.service.js");
+            const res = await OpenHyperDimensionalBrokerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorgraph_t01a_logic": {
+          try {
+            const { OpenVectorGraphService } = await import("../liberty/openvectorgraph_t01a.service.js");
+            const res = await OpenVectorGraphService.execute(args.target || "system");
+            return { output: `### OpenVectorGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventfabric_a921_logic": {
+          try {
+            const { OpenEventFabricService } = await import("../liberty/openeventfabric_a921.service.js");
+            const res = await OpenEventFabricService.execute(args.target || "system");
+            return { output: `### OpenEventFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalproxy_pp6d_logic": {
           try {
             const { OpenHyperDimensionalProxyService } = await import("../liberty/openhyper-dimensionalproxy_pp6d.service.js");
