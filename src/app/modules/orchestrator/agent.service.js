@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedoracle_p2f1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedOracle) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgedaemon_bsqh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeDaemon) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondnode_j8hd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondNode) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialmatrix_b12f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialMatrix) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecore_ybjt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCore) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpbroker_v485_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPBroker) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10972,6 +11012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedoracle_p2f1_logic": {
+          try {
+            const { OpenDistributedOracleService } = await import("../liberty/opendistributedoracle_p2f1.service.js");
+            const res = await OpenDistributedOracleService.execute(args.target || "system");
+            return { output: `### OpenDistributedOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgedaemon_bsqh_logic": {
+          try {
+            const { OpenZeroKnowledgeDaemonService } = await import("../liberty/openzero-knowledgedaemon_bsqh.service.js");
+            const res = await OpenZeroKnowledgeDaemonService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondnode_j8hd_logic": {
+          try {
+            const { OpenSubMillisecondNodeService } = await import("../liberty/opensub-millisecondnode_j8hd.service.js");
+            const res = await OpenSubMillisecondNodeService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialmatrix_b12f_logic": {
+          try {
+            const { OpenFinancialMatrixService } = await import("../liberty/openfinancialmatrix_b12f.service.js");
+            const res = await OpenFinancialMatrixService.execute(args.target || "system");
+            return { output: `### OpenFinancialMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecore_ybjt_logic": {
+          try {
+            const { OpenZeroKnowledgeCoreService } = await import("../liberty/openzero-knowledgecore_ybjt.service.js");
+            const res = await OpenZeroKnowledgeCoreService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCore failed: ${err.message}` };
+          }
+        }
         case "execute_openbgpbroker_v485_logic": {
           try {
             const { OpenBGPBrokerService } = await import("../liberty/openbgpbroker_v485.service.js");
