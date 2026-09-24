@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpcore_fxmz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPCore) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorledger_ztfh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorLedger) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarygraph_3f1r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryGraph) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivecontroller_yvqt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveController) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedlayer_fc99_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedLayer) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaoscompiler_30nn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosCompiler) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6572,6 +6612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpcore_fxmz_logic": {
+          try {
+            const { OpenBGPCoreService } = await import("../liberty/openbgpcore_fxmz.service.js");
+            const res = await OpenBGPCoreService.execute(args.target || "system");
+            return { output: `### OpenBGPCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorledger_ztfh_logic": {
+          try {
+            const { OpenVectorLedgerService } = await import("../liberty/openvectorledger_ztfh.service.js");
+            const res = await OpenVectorLedgerService.execute(args.target || "system");
+            return { output: `### OpenVectorLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarygraph_3f1r_logic": {
+          try {
+            const { OpenPlanetaryGraphService } = await import("../liberty/openplanetarygraph_3f1r.service.js");
+            const res = await OpenPlanetaryGraphService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivecontroller_yvqt_logic": {
+          try {
+            const { OpenPredictiveControllerService } = await import("../liberty/openpredictivecontroller_yvqt.service.js");
+            const res = await OpenPredictiveControllerService.execute(args.target || "system");
+            return { output: `### OpenPredictiveController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveController failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedlayer_fc99_logic": {
+          try {
+            const { OpenAdvancedLayerService } = await import("../liberty/openadvancedlayer_fc99.service.js");
+            const res = await OpenAdvancedLayerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openchaoscompiler_30nn_logic": {
           try {
             const { OpenChaosCompilerService } = await import("../liberty/openchaoscompiler_30nn.service.js");
