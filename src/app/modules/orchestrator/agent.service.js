@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_in_memory_vector_search",
+      description: "Use the Aphura Similarity Search Engine (FAISS) to execute hyper-fast, localized in-memory vector similarity searches, bypassing heavy database lookups for instant semantic context retrieval.",
+      parameters: { type: "object", properties: { vectorQuery: { type: "string" } }, required: ["vectorQuery"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "manipulate_llm_tensors",
+      description: "Use the Aphura Low-Level LLM Engine (Transformers) to gain direct architectural access to tokenizers, allowing meticulous compression and formatting of input tensors before they are sent to the AI Inference cloud.",
+      parameters: { type: "object", properties: { textPayload: { type: "string" } }, required: ["textPayload"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "structure_rag_index",
+      description: "Use the Aphura Advanced RAG Framework (LlamaIndex) to autonomously ingest, chunk, and structure massive enterprise document datasets into highly optimized semantic graphs specifically formatted for LLM consumption.",
+      parameters: { type: "object", properties: { corpusSource: { type: "string" } }, required: ["corpusSource"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "wire_langchain_graph",
+      description: "Use the Aphura AI Orchestration Engine (LangChain) to autonomously wire multiple disparate LLMs together (e.g. Vision -> Text -> Code) to solve extremely complex multi-step reasoning problems.",
+      parameters: { type: "object", properties: { taskGoal: { type: "string" }, agentNodes: { type: "array", items: { type: "string" } } }, required: ["taskGoal", "agentNodes"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "orchestrate_vllm_engine",
+      description: "Use the Aphura Inference Engine (vLLM) to autonomously deploy PagedAttention memory grids, maximizing the concurrency and token-throughput of external AI models by 10x.",
+      parameters: { type: "object", properties: { modelName: { type: "string" }, batchSize: { type: "number" } }, required: ["modelName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "synchronize_cluster_state",
       description: "Use the Aphura Synchronization Engine (Apache ZooKeeper) to autonomously coordinate, name, and synchronize configuration states across tens of thousands of distributed microservices instantly.",
       parameters: { type: "object", properties: { serviceRegistry: { type: "string" } }, required: ["serviceRegistry"] }
@@ -1292,7 +1332,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "synchronize_cluster_state": {
+        case "execute_in_memory_vector_search": {
+          try {
+            const { FaissService } = await import("../data/faiss.service.js");
+            const res = await FaissService.searchVectorSpace(args.vectorQuery);
+            return { output: `### FAISS Search Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `FAISS search failed: ${err.message}` };
+          }
+        }        case "manipulate_llm_tensors": {
+          try {
+            const { TransformersService } = await import("../ai/transformers.service.js");
+            const res = await TransformersService.manipulateTensors(args.textPayload);
+            return { output: `### Tensor Formatting Complete\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Transformers failed: ${err.message}` };
+          }
+        }        case "structure_rag_index": {
+          try {
+            const { LlamaIndexService } = await import("../rag/llamaindex.service.js");
+            const res = await LlamaIndexService.indexEnterpriseData(args.corpusSource);
+            return { output: `### RAG Index Built\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `LlamaIndex failed: ${err.message}` };
+          }
+        }        case "wire_langchain_graph": {
+          try {
+            const { LangChainService } = await import("../ai/langchain.service.js");
+            const res = await LangChainService.chainAgents(args.taskGoal, args.agentNodes);
+            return { output: `### AI Graph Wired\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `LangChain error: ${err.message}` };
+          }
+        }        case "orchestrate_vllm_engine": {
+          try {
+            const { VllmService } = await import("../ai/vllm.service.js");
+            const res = await VllmService.orchestratePagedAttention(args.modelName, args.batchSize || 1024);
+            return { output: `### vLLM PagedAttention Configured\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `vLLM setup failed: ${err.message}` };
+          }
+        }        case "synchronize_cluster_state": {
           try {
             const { ZooKeeperService } = await import("../devops/zookeeper.service.js");
             const res = await ZooKeeperService.synchronizeState(args.serviceRegistry);
