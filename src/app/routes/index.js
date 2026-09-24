@@ -1,4 +1,5 @@
 import express from 'express';
+import { MobileRoutes } from './mobile.js';
 import { authRoutes } from '../modules/auth/auth.route.js';
 import { DeepResearchRoutes } from '../modules/ExaDeepResearch/exaDeepResearch.route.js';
 import { ResearchRoutes } from '../modules/ExaResearch/exaResearch.route.js';
@@ -59,6 +60,7 @@ const router = express.Router();
 import { secRoutes } from '../modules/sec/sec.route.js';
 
 const moduleRoutes = [
+  { path: '/mobile', route: MobileRoutes },
   { path: '/sec', route: secRoutes },
   {
     path: '/tenant',
