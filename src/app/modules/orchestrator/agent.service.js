@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutableswarm_hkn1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableSwarm) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycontroller_2hdy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyController) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuengine_v74u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUEngine) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesscompiler_b60w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessCompiler) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustgrid_3yr0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustGrid) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgering_zmg2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeRing) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10132,6 +10172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutableswarm_hkn1_logic": {
+          try {
+            const { OpenImmutableSwarmService } = await import("../liberty/openimmutableswarm_hkn1.service.js");
+            const res = await OpenImmutableSwarmService.execute(args.target || "system");
+            return { output: `### OpenImmutableSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycontroller_2hdy_logic": {
+          try {
+            const { OpenHighFrequencyControllerService } = await import("../liberty/openhigh-frequencycontroller_2hdy.service.js");
+            const res = await OpenHighFrequencyControllerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyController failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuengine_v74u_logic": {
+          try {
+            const { OpenGPUEngineService } = await import("../liberty/opengpuengine_v74u.service.js");
+            const res = await OpenGPUEngineService.execute(args.target || "system");
+            return { output: `### OpenGPUEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesscompiler_b60w_logic": {
+          try {
+            const { OpenServerlessCompilerService } = await import("../liberty/openserverlesscompiler_b60w.service.js");
+            const res = await OpenServerlessCompilerService.execute(args.target || "system");
+            return { output: `### OpenServerlessCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustgrid_3yr0_logic": {
+          try {
+            const { OpenZeroTrustGridService } = await import("../liberty/openzero-trustgrid_3yr0.service.js");
+            const res = await OpenZeroTrustGridService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgering_zmg2_logic": {
           try {
             const { OpenZeroKnowledgeRingService } = await import("../liberty/openzero-knowledgering_zmg2.service.js");
