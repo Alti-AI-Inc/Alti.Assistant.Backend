@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfplane_rikt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFPlane) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessgrid_27pg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessGrid) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscore_imqo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCore) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednexus_9nq2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNexus) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendcluster_cml7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCluster) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondgraph_o7df_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondGraph) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4092,6 +4132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfplane_rikt_logic": {
+          try {
+            const { OpeneBPFPlaneService } = await import("../liberty/openebpfplane_rikt.service.js");
+            const res = await OpeneBPFPlaneService.execute(args.target || "system");
+            return { output: `### OpeneBPFPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessgrid_27pg_logic": {
+          try {
+            const { OpenHeadlessGridService } = await import("../liberty/openheadlessgrid_27pg.service.js");
+            const res = await OpenHeadlessGridService.execute(args.target || "system");
+            return { output: `### OpenHeadlessGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscore_imqo_logic": {
+          try {
+            const { OpenHeadlessCoreService } = await import("../liberty/openheadlesscore_imqo.service.js");
+            const res = await OpenHeadlessCoreService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednexus_9nq2_logic": {
+          try {
+            const { OpenDecentralizedNexusService } = await import("../liberty/opendecentralizednexus_9nq2.service.js");
+            const res = await OpenDecentralizedNexusService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendcluster_cml7_logic": {
+          try {
+            const { OpenMicroFrontendClusterService } = await import("../liberty/openmicro-frontendcluster_cml7.service.js");
+            const res = await OpenMicroFrontendClusterService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCluster failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondgraph_o7df_logic": {
           try {
             const { OpenSubMillisecondGraphService } = await import("../liberty/opensub-millisecondgraph_o7df.service.js");
