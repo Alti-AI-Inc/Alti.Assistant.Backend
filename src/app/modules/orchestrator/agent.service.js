@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedplane_ij6k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedPlane) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicledger_3f9v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicLedger) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticcontroller_9di7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticController) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicpipeline_sj64_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicPipeline) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustring_j3th_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustRing) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openabstractgraph_418x_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAbstractGraph) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20052,6 +20092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedplane_ij6k_logic": {
+          try {
+            const { OpenDecentralizedPlaneService } = await import("../liberty/opendecentralizedplane_ij6k.service.js");
+            const res = await OpenDecentralizedPlaneService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicledger_3f9v_logic": {
+          try {
+            const { OpenNeuromorphicLedgerService } = await import("../liberty/openneuromorphicledger_3f9v.service.js");
+            const res = await OpenNeuromorphicLedgerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticcontroller_9di7_logic": {
+          try {
+            const { OpenSemanticControllerService } = await import("../liberty/opensemanticcontroller_9di7.service.js");
+            const res = await OpenSemanticControllerService.execute(args.target || "system");
+            return { output: `### OpenSemanticController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicpipeline_sj64_logic": {
+          try {
+            const { OpenHomomorphicPipelineService } = await import("../liberty/openhomomorphicpipeline_sj64.service.js");
+            const res = await OpenHomomorphicPipelineService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustring_j3th_logic": {
+          try {
+            const { OpenZeroTrustRingService } = await import("../liberty/openzero-trustring_j3th.service.js");
+            const res = await OpenZeroTrustRingService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustRing failed: ${err.message}` };
+          }
+        }
         case "execute_openabstractgraph_418x_logic": {
           try {
             const { OpenAbstractGraphService } = await import("../liberty/openabstractgraph_418x.service.js");
