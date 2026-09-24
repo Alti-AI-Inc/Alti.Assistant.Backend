@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizednexus_coy5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNexus) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticvortex_1rfx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticVortex) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicdaemon_h9rw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicDaemon) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencypipeline_tc3v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyPipeline) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicplane_4cwb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicPlane) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicnode_rzrc_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNode) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10812,6 +10852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizednexus_coy5_logic": {
+          try {
+            const { OpenDecentralizedNexusService } = await import("../liberty/opendecentralizednexus_coy5.service.js");
+            const res = await OpenDecentralizedNexusService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticvortex_1rfx_logic": {
+          try {
+            const { OpenStaticVortexService } = await import("../liberty/openstaticvortex_1rfx.service.js");
+            const res = await OpenStaticVortexService.execute(args.target || "system");
+            return { output: `### OpenStaticVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicdaemon_h9rw_logic": {
+          try {
+            const { OpenNeuromorphicDaemonService } = await import("../liberty/openneuromorphicdaemon_h9rw.service.js");
+            const res = await OpenNeuromorphicDaemonService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencypipeline_tc3v_logic": {
+          try {
+            const { OpenHighFrequencyPipelineService } = await import("../liberty/openhigh-frequencypipeline_tc3v.service.js");
+            const res = await OpenHighFrequencyPipelineService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicplane_4cwb_logic": {
+          try {
+            const { OpenNeuromorphicPlaneService } = await import("../liberty/openneuromorphicplane_4cwb.service.js");
+            const res = await OpenNeuromorphicPlaneService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicnode_rzrc_logic": {
           try {
             const { OpenHomomorphicNodeService } = await import("../liberty/openhomomorphicnode_rzrc.service.js");
