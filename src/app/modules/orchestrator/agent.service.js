@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedcompiler_wtau_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCompiler) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicring_7dai_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicRing) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractplane_a42u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractPlane) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencydaemon_gf8r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyDaemon) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialgrid_4f2t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialGrid) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openneuromorphicmesh_wqhi_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicMesh) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2772,6 +2812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedcompiler_wtau_logic": {
+          try {
+            const { OpenDecentralizedCompilerService } = await import("../liberty/opendecentralizedcompiler_wtau.service.js");
+            const res = await OpenDecentralizedCompilerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicring_7dai_logic": {
+          try {
+            const { OpenNeuromorphicRingService } = await import("../liberty/openneuromorphicring_7dai.service.js");
+            const res = await OpenNeuromorphicRingService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractplane_a42u_logic": {
+          try {
+            const { OpenAbstractPlaneService } = await import("../liberty/openabstractplane_a42u.service.js");
+            const res = await OpenAbstractPlaneService.execute(args.target || "system");
+            return { output: `### OpenAbstractPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencydaemon_gf8r_logic": {
+          try {
+            const { OpenHighFrequencyDaemonService } = await import("../liberty/openhigh-frequencydaemon_gf8r.service.js");
+            const res = await OpenHighFrequencyDaemonService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialgrid_4f2t_logic": {
+          try {
+            const { OpenFinancialGridService } = await import("../liberty/openfinancialgrid_4f2t.service.js");
+            const res = await OpenFinancialGridService.execute(args.target || "system");
+            return { output: `### OpenFinancialGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openneuromorphicmesh_wqhi_logic": {
           try {
             const { OpenNeuromorphicMeshService } = await import("../liberty/openneuromorphicmesh_wqhi.service.js");
