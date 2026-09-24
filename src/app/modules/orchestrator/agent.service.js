@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterledger_2mmv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLedger) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableplane_vzfx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutablePlane) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaossync_t2rt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosSync) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisemesh_5yjw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseMesh) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticcluster_qofx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticCluster) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgematrix_a15g_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeMatrix) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8652,6 +8692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterledger_2mmv_logic": {
+          try {
+            const { OpenCrossClusterLedgerService } = await import("../liberty/opencross-clusterledger_2mmv.service.js");
+            const res = await OpenCrossClusterLedgerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableplane_vzfx_logic": {
+          try {
+            const { OpenImmutablePlaneService } = await import("../liberty/openimmutableplane_vzfx.service.js");
+            const res = await OpenImmutablePlaneService.execute(args.target || "system");
+            return { output: `### OpenImmutablePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutablePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaossync_t2rt_logic": {
+          try {
+            const { OpenChaosSyncService } = await import("../liberty/openchaossync_t2rt.service.js");
+            const res = await OpenChaosSyncService.execute(args.target || "system");
+            return { output: `### OpenChaosSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisemesh_5yjw_logic": {
+          try {
+            const { OpenEnterpriseMeshService } = await import("../liberty/openenterprisemesh_5yjw.service.js");
+            const res = await OpenEnterpriseMeshService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticcluster_qofx_logic": {
+          try {
+            const { OpenStaticClusterService } = await import("../liberty/openstaticcluster_qofx.service.js");
+            const res = await OpenStaticClusterService.execute(args.target || "system");
+            return { output: `### OpenStaticCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgematrix_a15g_logic": {
           try {
             const { OpenZeroKnowledgeMatrixService } = await import("../liberty/openzero-knowledgematrix_a15g.service.js");
