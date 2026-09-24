@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendataplane_hhdg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataPlane) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticswarm_vfvu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticSwarm) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfsync_l5ba_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFSync) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesbroker_uven_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesBroker) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentgrid_a5qq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentGrid) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterpriseswarm_opiy_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseSwarm) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21772,6 +21812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendataplane_hhdg_logic": {
+          try {
+            const { OpenDataPlaneService } = await import("../liberty/opendataplane_hhdg.service.js");
+            const res = await OpenDataPlaneService.execute(args.target || "system");
+            return { output: `### OpenDataPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticswarm_vfvu_logic": {
+          try {
+            const { OpenSemanticSwarmService } = await import("../liberty/opensemanticswarm_vfvu.service.js");
+            const res = await OpenSemanticSwarmService.execute(args.target || "system");
+            return { output: `### OpenSemanticSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfsync_l5ba_logic": {
+          try {
+            const { OpeneBPFSyncService } = await import("../liberty/openebpfsync_l5ba.service.js");
+            const res = await OpeneBPFSyncService.execute(args.target || "system");
+            return { output: `### OpeneBPFSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesbroker_uven_logic": {
+          try {
+            const { OpenTimeSeriesBrokerService } = await import("../liberty/opentime-seriesbroker_uven.service.js");
+            const res = await OpenTimeSeriesBrokerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentgrid_a5qq_logic": {
+          try {
+            const { OpenPersistentGridService } = await import("../liberty/openpersistentgrid_a5qq.service.js");
+            const res = await OpenPersistentGridService.execute(args.target || "system");
+            return { output: `### OpenPersistentGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openenterpriseswarm_opiy_logic": {
           try {
             const { OpenEnterpriseSwarmService } = await import("../liberty/openenterpriseswarm_opiy.service.js");
