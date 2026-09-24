@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfcontroller_tukz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFController) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicoracle_og43_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicOracle) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionaldaemon_17n0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalDaemon) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpbroker_hvfi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPBroker) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticpipeline_btg2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticPipeline) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosnexus_6muf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosNexus) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7652,6 +7692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfcontroller_tukz_logic": {
+          try {
+            const { OpeneBPFControllerService } = await import("../liberty/openebpfcontroller_tukz.service.js");
+            const res = await OpeneBPFControllerService.execute(args.target || "system");
+            return { output: `### OpeneBPFController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicoracle_og43_logic": {
+          try {
+            const { OpenHomomorphicOracleService } = await import("../liberty/openhomomorphicoracle_og43.service.js");
+            const res = await OpenHomomorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionaldaemon_17n0_logic": {
+          try {
+            const { OpenHyperDimensionalDaemonService } = await import("../liberty/openhyper-dimensionaldaemon_17n0.service.js");
+            const res = await OpenHyperDimensionalDaemonService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpbroker_hvfi_logic": {
+          try {
+            const { OpenBGPBrokerService } = await import("../liberty/openbgpbroker_hvfi.service.js");
+            const res = await OpenBGPBrokerService.execute(args.target || "system");
+            return { output: `### OpenBGPBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticpipeline_btg2_logic": {
+          try {
+            const { OpenSemanticPipelineService } = await import("../liberty/opensemanticpipeline_btg2.service.js");
+            const res = await OpenSemanticPipelineService.execute(args.target || "system");
+            return { output: `### OpenSemanticPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosnexus_6muf_logic": {
           try {
             const { OpenChaosNexusService } = await import("../liberty/openchaosnexus_6muf.service.js");
