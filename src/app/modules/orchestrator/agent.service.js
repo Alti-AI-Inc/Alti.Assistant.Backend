@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedlayer_jans_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedLayer) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryswarm_4uxq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetarySwarm) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventvortex_5eak_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventVortex) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivepipeline_c8f2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictivePipeline) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlognode_phd6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogNode) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedmesh_flgn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedMesh) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7732,6 +7772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedlayer_jans_logic": {
+          try {
+            const { OpenAutomatedLayerService } = await import("../liberty/openautomatedlayer_jans.service.js");
+            const res = await OpenAutomatedLayerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryswarm_4uxq_logic": {
+          try {
+            const { OpenPlanetarySwarmService } = await import("../liberty/openplanetaryswarm_4uxq.service.js");
+            const res = await OpenPlanetarySwarmService.execute(args.target || "system");
+            return { output: `### OpenPlanetarySwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetarySwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventvortex_5eak_logic": {
+          try {
+            const { OpenEventVortexService } = await import("../liberty/openeventvortex_5eak.service.js");
+            const res = await OpenEventVortexService.execute(args.target || "system");
+            return { output: `### OpenEventVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivepipeline_c8f2_logic": {
+          try {
+            const { OpenPredictivePipelineService } = await import("../liberty/openpredictivepipeline_c8f2.service.js");
+            const res = await OpenPredictivePipelineService.execute(args.target || "system");
+            return { output: `### OpenPredictivePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictivePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openlognode_phd6_logic": {
+          try {
+            const { OpenLogNodeService } = await import("../liberty/openlognode_phd6.service.js");
+            const res = await OpenLogNodeService.execute(args.target || "system");
+            return { output: `### OpenLogNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogNode failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedmesh_flgn_logic": {
           try {
             const { OpenDistributedMeshService } = await import("../liberty/opendistributedmesh_flgn.service.js");
