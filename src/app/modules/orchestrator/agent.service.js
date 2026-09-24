@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutableplane_6twf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutablePlane) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialcompiler_ov6g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialCompiler) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiccore_1eae_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicCore) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectornode_ml5q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorNode) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedgraph_ekb0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedGraph) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partyvault_x6g7_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyVault) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12172,6 +12212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutableplane_6twf_logic": {
+          try {
+            const { OpenImmutablePlaneService } = await import("../liberty/openimmutableplane_6twf.service.js");
+            const res = await OpenImmutablePlaneService.execute(args.target || "system");
+            return { output: `### OpenImmutablePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutablePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialcompiler_ov6g_logic": {
+          try {
+            const { OpenFinancialCompilerService } = await import("../liberty/openfinancialcompiler_ov6g.service.js");
+            const res = await OpenFinancialCompilerService.execute(args.target || "system");
+            return { output: `### OpenFinancialCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiccore_1eae_logic": {
+          try {
+            const { OpenNeuromorphicCoreService } = await import("../liberty/openneuromorphiccore_1eae.service.js");
+            const res = await OpenNeuromorphicCoreService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectornode_ml5q_logic": {
+          try {
+            const { OpenVectorNodeService } = await import("../liberty/openvectornode_ml5q.service.js");
+            const res = await OpenVectorNodeService.execute(args.target || "system");
+            return { output: `### OpenVectorNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedgraph_ekb0_logic": {
+          try {
+            const { OpenAdvancedGraphService } = await import("../liberty/openadvancedgraph_ekb0.service.js");
+            const res = await OpenAdvancedGraphService.execute(args.target || "system");
+            return { output: `### OpenAdvancedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partyvault_x6g7_logic": {
           try {
             const { OpenMultiPartyVaultService } = await import("../liberty/openmulti-partyvault_x6g7.service.js");
