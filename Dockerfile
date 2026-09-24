@@ -20,6 +20,10 @@ FROM node:20-slim
 
 WORKDIR /app/aphura-backend
 
+# Install libjemalloc for world-class V8 memory allocation performance (no fragmentation)
+RUN apt-get update && apt-get install -y libjemalloc2 && rm -rf /var/lib/apt/lists/*
+ENV LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2
+
 # Copy pre-built node_modules from builder (native addons already compiled)
 COPY --from=builder /app/aphura-backend/node_modules ./node_modules
 

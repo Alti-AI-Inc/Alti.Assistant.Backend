@@ -2,6 +2,35 @@ import dotenv from 'dotenv';
 // Load environment variables immediately on boot before any other modules are imported
 dotenv.config();
 
+// ─── WORLD-CLASS PERFORMANCE TUNING ──────────────────────────────────────────
+import os from 'os';
+// 1. Maximize LibUV Threadpool for heavy Crypto/DNS/File I/O
+process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || String(Math.max(os.cpus().length, 128));
+
+// 2. Optimize V8 Garbage Collection for high-memory server (run like a Ferrari)
+// Note: V8 flags must be set on boot (e.g. node --max-old-space-size=8192), 
+// but we enforce strict HTTP Keep-Alive here to prevent TLS handshake overhead.
+import http from 'http';
+import https from 'https';
+http.globalAgent.keepAlive = true;
+http.globalAgent.maxSockets = 1000;
+https.globalAgent.keepAlive = true;
+https.globalAgent.maxSockets = 1000;
+
+// 3. Optimize Native Fetch (Undici) for massive concurrent LLM API calls
+try {
+  const { setGlobalDispatcher, Agent } = await import('undici');
+  setGlobalDispatcher(new Agent({
+    connections: 1000,
+    pipelining: 10,
+    keepAliveTimeout: 60000,
+    keepAliveMaxTimeout: 600000
+  }));
+} catch (e) {
+  // Graceful fallback if undici isn't manually installed
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 import dns from 'dns';
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
@@ -188,8 +217,16 @@ app.use(
 // Request ID tracing — must be early for correlation across all middleware
 app.use(requestIdMiddleware);
 
-// Compression — gzip all responses for bandwidth savings
-app.use(compression());
+// Compression — utilize Brotli (brotliCompressSync) for maximum bandwidth savings on Liberty Center One
+import zlib from 'zlib';
+app.use(compression({
+  brotli: {
+    enabled: true,
+    zlib: {
+      level: zlib.constants.BROTLI_MAX_QUALITY,
+    }
+  }
+}));
 
 // Body parsing with explicit size limits
 // Exclude Stripe webhook paths (they need raw body for signature verification)
@@ -292,8 +329,8 @@ const connectDB = (retries = 5, delay = 5000) => {
       connectionPromise = mongoose.connect(dbUri, {
         family: 4,
         serverSelectionTimeoutMS: 10000,
-        maxPoolSize: 20,
-        minPoolSize: 2,
+        maxPoolSize: 200, // Ferrari-tier DB pooling
+        minPoolSize: 10,
         socketTimeoutMS: 45000,
         connectTimeoutMS: 10000,
       });
