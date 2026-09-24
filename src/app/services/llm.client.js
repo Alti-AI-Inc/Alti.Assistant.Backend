@@ -18,20 +18,20 @@ const llmClient = new Together({
  */
 const TOGETHER_AI_FACTORY = {
   // 🧠 Extreme Reasoning & Coding (Cursor/Copilot Killers)
-  CODE_HEAVY: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
-  CODE_FAST: 'deepseek-ai/deepseek-coder-33b-instruct',
+  CODE_HEAVY: 'deepseek-ai/DeepSeek-V4-Pro',
+  CODE_FAST: 'deepseek-ai/DeepSeek-V4-Flash',
   
   // 🌐 Web Search & Data Extraction (Perplexity Killers)
-  SEARCH_EXPERT: 'Qwen/Qwen2.5-72B-Instruct-Turbo',
-  DATA_MINER: 'mistralai/Mixtral-8x22B-Instruct-v0.1',
+  SEARCH_EXPERT: 'moonshotai/Kimi-K3',
+  DATA_MINER: 'zai-org/GLM-5.3',
   
   // 👁️ Vision & Multimodal Analysis
   VISION_HEAVY: 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo',
   VISION_FAST: 'meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo',
   
   // ⚡ General Chat & Edge Speed (ChatGPT Speed Killers)
-  CHAT_SPEED: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
-  CHAT_SMART: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+  CHAT_SPEED: 'deepseek-ai/DeepSeek-V4-Flash',
+  CHAT_SMART: 'zai-org/GLM-5.3',
 
   // 🎨 Image Generation
   IMAGE_GEN: 'black-forest-labs/FLUX.1-schnell',
@@ -47,13 +47,13 @@ function routeToExpert(messages, options = {}) {
   
   // 🛠️ Internal Tool-Calling Lock
   if (options.tools && options.tools.length > 0) {
-    logger.info('[MoE Factory] 🛠️ Dispatching to Llama 405B (Tool Calling Expert)');
+    logger.info('[MoE Factory] 🛠️ Dispatching to DeepSeek V4 Pro (Tool Calling Expert)');
     return TOGETHER_AI_FACTORY.CODE_HEAVY;
   }
 
   // 📝 Internal JSON Lock
   if (options.responseFormat?.type === 'json_object') {
-    logger.info('[MoE Factory] 📝 Dispatching to Llama 70B (JSON Schema Expert)');
+    logger.info('[MoE Factory] 📝 Dispatching to GLM 5.3 (JSON Schema Expert)');
     return TOGETHER_AI_FACTORY.CHAT_SMART;
   }
   
@@ -61,32 +61,32 @@ function routeToExpert(messages, options = {}) {
   const prompt = (typeof lastMsg === 'string' ? lastMsg : JSON.stringify(lastMsg)).toLowerCase();
   
   if (prompt.match(/code|debug|refactor|script|function|build|deploy|terminal|shell|mcp/)) {
-    logger.info('[MoE Factory] 🧠 Dispatching to DeepSeek/Llama 405B (Code Expert)');
+    logger.info('[MoE Factory] 🧠 Dispatching to DeepSeek V4 Pro (Code Expert)');
     return TOGETHER_AI_FACTORY.CODE_HEAVY;
   }
   
   if (prompt.match(/search|news|latest|find|who|what|when|where|analyze data/)) {
-    logger.info('[MoE Factory] 🌐 Dispatching to Qwen 72B (Search/Data Expert)');
+    logger.info('[MoE Factory] 🌐 Dispatching to Kimi K3 (Search/Data Expert)');
     return TOGETHER_AI_FACTORY.SEARCH_EXPERT;
   }
   
   if (prompt.match(/finance|stock|market|sec|filing|revenue|earnings|crypto|bitcoin/)) {
-    logger.info('[MoE Factory] 📈 Dispatching to Llama 405B (Financial/Quant Expert)');
+    logger.info('[MoE Factory] 📈 Dispatching to DeepSeek V4 Pro (Financial/Quant Expert)');
     return TOGETHER_AI_FACTORY.CODE_HEAVY;
   }
   
   if (prompt.match(/sports|score|game|win|odds|bet|nfl|nba|soccer/)) {
-    logger.info('[MoE Factory] 🏈 Dispatching to Qwen 72B (Sports/Odds Expert)');
+    logger.info('[MoE Factory] 🏈 Dispatching to Kimi K3 (Sports/Odds Expert)');
     return TOGETHER_AI_FACTORY.SEARCH_EXPERT;
   }
   
   if (prompt.match(/deep research|report|analysis|compare|history|comprehensive/)) {
-    logger.info('[MoE Factory] 📚 Dispatching to Qwen 72B (Deep Research Expert)');
+    logger.info('[MoE Factory] 📚 Dispatching to Kimi K3 (Deep Research Expert)');
     return TOGETHER_AI_FACTORY.SEARCH_EXPERT;
   }
   
   if (prompt.match(/explain|teach|summarize/)) {
-    logger.info('[MoE Factory] ⚡ Dispatching to Llama 70B (General Intelligence)');
+    logger.info('[MoE Factory] ⚡ Dispatching to GLM 5.3 (General Intelligence)');
     return TOGETHER_AI_FACTORY.CHAT_SMART;
   }
   

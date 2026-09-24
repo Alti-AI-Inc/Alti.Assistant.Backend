@@ -3,11 +3,11 @@ import config from '../../../../config/index.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
-  CODE_HEAVY: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
-  CODE_FAST: 'deepseek-ai/deepseek-coder-33b-instruct',
-  SEARCH_EXPERT: 'Qwen/Qwen2.5-72B-Instruct-Turbo',
-  CHAT_SMART: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
-  CHAT_SPEED: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+  CODE_HEAVY: 'deepseek-ai/DeepSeek-V4-Pro',
+  CODE_FAST: 'deepseek-ai/DeepSeek-V4-Flash',
+  SEARCH_EXPERT: 'moonshotai/Kimi-K3',
+  CHAT_SMART: 'zai-org/GLM-5.3',
+  CHAT_SPEED: 'deepseek-ai/DeepSeek-V4-Flash',
   VISION: 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo',
   GUARDRAIL: 'meta-llama/Meta-Llama-Guard-3-8B',
 };
@@ -30,7 +30,7 @@ export const InferenceGateway = {
     
     // 🛠️ TOOL-CALLING EXPERT ROUTING
     // If the client provides tools (e.g., Composio MCP, Desktop Shell), 
-    // we MUST route to Llama 405B to ensure near-perfect JSON tool-call schema adherence.
+    // we MUST route to DeepSeek V4 Pro to ensure near-perfect JSON tool-call schema adherence.
     if (reqBody.tools && reqBody.tools.length > 0) {
       return MODELS.CODE_HEAVY;
     }
@@ -102,8 +102,8 @@ export const InferenceGateway = {
     }
 
     // 🧠 ADVANCED MoE ROUTING:
-    // If the client explicitly requests JSON output, we force the Llama 70B engine 
-    // because it has the highest strict-schema compliance rate without the latency of 405B.
+    // If the client explicitly requests JSON output, we force the GLM 5.3 engine 
+    // because it has the highest strict-schema compliance rate without the latency of DeepSeek V4 Pro.
     let originalModel = reqBody.model;
     if (!originalModel) {
       if (reqBody.response_format?.type === 'json_object') {

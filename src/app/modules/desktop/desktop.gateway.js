@@ -48,24 +48,24 @@ export const DesktopGateway = {
             const { ComposioService } = await import('../composio/composio.service.js');
             
             try {
-              // We use Llama 3.1 405B to interpret the intent of the highlighted text
+              // We use DeepSeek V4 Pro to interpret the intent of the highlighted text
               const prompt = `You are the Sovereign Agent. The user highlighted this text and pressed the Omni-Hotkey. Analyze it and extract the actionable intent (e.g. "Create Jira Ticket", "Schedule meeting", "Summarize this code", "Reply to this email"). Text: "${clipText}"`;
               
               const analysis = await llmChat([{ role: 'user', content: prompt }]);
               const intent = analysis.choices[0].message.content;
               
-              logger.info(`[Omni-Hotkey] Llama 405B determined intent: ${intent}`);
+              logger.info(`[Omni-Hotkey] DeepSeek V4 Pro determined intent: ${intent}`);
               
               // In a full implementation, you would dynamically execute the Composio Tool here:
               // await ComposioService.executeTool(userId, intent);
               
               // Push the final result back down the encrypted WebSocket to the Desktop Notification Center
               this.dispatchActionResponse(userId, "hotkey_response", { 
-                message: `Llama 405B Intent Analyzed:\n${intent.substring(0, 50)}...`
+                message: `DeepSeek V4 Pro Intent Analyzed:\n${intent.substring(0, 50)}...`
               });
               
             } catch (err) {
-              logger.error(`[Omni-Hotkey] Llama 405B Processing failed: ${err.message}`);
+              logger.error(`[Omni-Hotkey] DeepSeek V4 Pro Processing failed: ${err.message}`);
               this.dispatchActionResponse(userId, "hotkey_response", { message: "Failed to process Omni-Hotkey command via Aphura." });
             }
           }
