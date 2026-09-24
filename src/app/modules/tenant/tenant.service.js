@@ -60,6 +60,14 @@ const createTenant = async (tenantData) => {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Subdomain is already taken');
     }
 
+    // Provision Subdomain via Liberty Center One OpenStack Designate
+    try {
+      const { OpenStackService } = await import('../../../services/openstack.service.js');
+      await OpenStackService.provisionTenantSubdomain(subdomain);
+    } catch (err) {
+      logger.warn(`Failed to provision OpenStack DNS for ${subdomain}: ${err.message}`);
+    }
+
     // Create tenant
     const tenant = await Tenant.create({
       name,
