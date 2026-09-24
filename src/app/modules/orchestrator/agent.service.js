@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlesscompiler_js8k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCompiler) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuvortex_jaoa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUVortex) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablenode_ii9b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableNode) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticrouter_x1nd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticRouter) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablerouter_6mgk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableRouter) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialnet_93vw_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialNet) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5532,6 +5572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlesscompiler_js8k_logic": {
+          try {
+            const { OpenHeadlessCompilerService } = await import("../liberty/openheadlesscompiler_js8k.service.js");
+            const res = await OpenHeadlessCompilerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuvortex_jaoa_logic": {
+          try {
+            const { OpenGPUVortexService } = await import("../liberty/opengpuvortex_jaoa.service.js");
+            const res = await OpenGPUVortexService.execute(args.target || "system");
+            return { output: `### OpenGPUVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablenode_ii9b_logic": {
+          try {
+            const { OpenImmutableNodeService } = await import("../liberty/openimmutablenode_ii9b.service.js");
+            const res = await OpenImmutableNodeService.execute(args.target || "system");
+            return { output: `### OpenImmutableNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticrouter_x1nd_logic": {
+          try {
+            const { OpenStaticRouterService } = await import("../liberty/openstaticrouter_x1nd.service.js");
+            const res = await OpenStaticRouterService.execute(args.target || "system");
+            return { output: `### OpenStaticRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablerouter_6mgk_logic": {
+          try {
+            const { OpenImmutableRouterService } = await import("../liberty/openimmutablerouter_6mgk.service.js");
+            const res = await OpenImmutableRouterService.execute(args.target || "system");
+            return { output: `### OpenImmutableRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialnet_93vw_logic": {
           try {
             const { OpenFinancialNetService } = await import("../liberty/openfinancialnet_93vw.service.js");
