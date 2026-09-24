@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedlayer_dgau_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLayer) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedengine_ym7y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedEngine) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessledger_jd91_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessLedger) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedmatrix_qoi1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedMatrix) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpdaemon_r4i1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPDaemon) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlessnet_m45w_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNet) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17812,6 +17852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedlayer_dgau_logic": {
+          try {
+            const { OpenDecentralizedLayerService } = await import("../liberty/opendecentralizedlayer_dgau.service.js");
+            const res = await OpenDecentralizedLayerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedengine_ym7y_logic": {
+          try {
+            const { OpenDecentralizedEngineService } = await import("../liberty/opendecentralizedengine_ym7y.service.js");
+            const res = await OpenDecentralizedEngineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessledger_jd91_logic": {
+          try {
+            const { OpenHeadlessLedgerService } = await import("../liberty/openheadlessledger_jd91.service.js");
+            const res = await OpenHeadlessLedgerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedmatrix_qoi1_logic": {
+          try {
+            const { OpenDecentralizedMatrixService } = await import("../liberty/opendecentralizedmatrix_qoi1.service.js");
+            const res = await OpenDecentralizedMatrixService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpdaemon_r4i1_logic": {
+          try {
+            const { OpenBGPDaemonService } = await import("../liberty/openbgpdaemon_r4i1.service.js");
+            const res = await OpenBGPDaemonService.execute(args.target || "system");
+            return { output: `### OpenBGPDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPDaemon failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlessnet_m45w_logic": {
           try {
             const { OpenHeadlessNetService } = await import("../liberty/openheadlessnet_m45w.service.js");
