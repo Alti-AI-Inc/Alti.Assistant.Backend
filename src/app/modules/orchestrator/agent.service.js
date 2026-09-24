@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedstream_logic",
+      description: "Use the Aphura Engine (OpenDistributedStream) to Autonomously deploy Distributed Caching architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractgrid_logic",
+      description: "Use the Aphura Engine (OpenAbstractGrid) to Autonomously deploy Abstract Syntax Trees architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventmesh_logic",
+      description: "Use the Aphura Engine (OpenEventMesh) to Autonomously deploy Event Streaming architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticvortex_logic",
+      description: "Use the Aphura Engine (OpenStaticVortex) to Autonomously deploy Static Code Analysis architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractgraph_logic",
+      description: "Use the Aphura Engine (OpenAbstractGraph) to Autonomously deploy Abstract Syntax Trees architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticcore_logic",
       description: "Use the Aphura Engine (OpenStaticCore) to Autonomously deploy Static Code Analysis architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2212,6 +2252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedstream_logic": {
+          try {
+            const { OpendistributedstreamService } = await import("../enterprise/opendistributedstream.service.js");
+            const res = await OpendistributedstreamService.execute(args.target || "system");
+            return { output: `### OpenDistributedStream Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractgrid_logic": {
+          try {
+            const { OpenabstractgridService } = await import("../enterprise/openabstractgrid.service.js");
+            const res = await OpenabstractgridService.execute(args.target || "system");
+            return { output: `### OpenAbstractGrid Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventmesh_logic": {
+          try {
+            const { OpeneventmeshService } = await import("../enterprise/openeventmesh.service.js");
+            const res = await OpeneventmeshService.execute(args.target || "system");
+            return { output: `### OpenEventMesh Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticvortex_logic": {
+          try {
+            const { OpenstaticvortexService } = await import("../enterprise/openstaticvortex.service.js");
+            const res = await OpenstaticvortexService.execute(args.target || "system");
+            return { output: `### OpenStaticVortex Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractgraph_logic": {
+          try {
+            const { OpenabstractgraphService } = await import("../enterprise/openabstractgraph.service.js");
+            const res = await OpenabstractgraphService.execute(args.target || "system");
+            return { output: `### OpenAbstractGraph Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticcore_logic": {
           try {
             const { OpenstaticcoreService } = await import("../enterprise/openstaticcore.service.js");
