@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openlogvortex_2a35_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogVortex) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicdaemon_pwm0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicDaemon) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticplane_bld6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticPlane) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partystream_xed4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyStream) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpucompiler_u1bk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUCompiler) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticnet_ub3y_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticNet) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11452,6 +11492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openlogvortex_2a35_logic": {
+          try {
+            const { OpenLogVortexService } = await import("../liberty/openlogvortex_2a35.service.js");
+            const res = await OpenLogVortexService.execute(args.target || "system");
+            return { output: `### OpenLogVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicdaemon_pwm0_logic": {
+          try {
+            const { OpenNeuromorphicDaemonService } = await import("../liberty/openneuromorphicdaemon_pwm0.service.js");
+            const res = await OpenNeuromorphicDaemonService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticplane_bld6_logic": {
+          try {
+            const { OpenStaticPlaneService } = await import("../liberty/openstaticplane_bld6.service.js");
+            const res = await OpenStaticPlaneService.execute(args.target || "system");
+            return { output: `### OpenStaticPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partystream_xed4_logic": {
+          try {
+            const { OpenMultiPartyStreamService } = await import("../liberty/openmulti-partystream_xed4.service.js");
+            const res = await OpenMultiPartyStreamService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpucompiler_u1bk_logic": {
+          try {
+            const { OpenGPUCompilerService } = await import("../liberty/opengpucompiler_u1bk.service.js");
+            const res = await OpenGPUCompilerService.execute(args.target || "system");
+            return { output: `### OpenGPUCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticnet_ub3y_logic": {
           try {
             const { OpenSemanticNetService } = await import("../liberty/opensemanticnet_ub3y.service.js");
