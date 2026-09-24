@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clustermatrix_li3z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterMatrix) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogproxy_6dho_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogProxy) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesspipeline_ohs7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessPipeline) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesssync_ydw5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessSync) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedring_p6ku_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedRing) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partybroker_3dql_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyBroker) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19812,6 +19852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clustermatrix_li3z_logic": {
+          try {
+            const { OpenCrossClusterMatrixService } = await import("../liberty/opencross-clustermatrix_li3z.service.js");
+            const res = await OpenCrossClusterMatrixService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogproxy_6dho_logic": {
+          try {
+            const { OpenLogProxyService } = await import("../liberty/openlogproxy_6dho.service.js");
+            const res = await OpenLogProxyService.execute(args.target || "system");
+            return { output: `### OpenLogProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesspipeline_ohs7_logic": {
+          try {
+            const { OpenHeadlessPipelineService } = await import("../liberty/openheadlesspipeline_ohs7.service.js");
+            const res = await OpenHeadlessPipelineService.execute(args.target || "system");
+            return { output: `### OpenHeadlessPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesssync_ydw5_logic": {
+          try {
+            const { OpenServerlessSyncService } = await import("../liberty/openserverlesssync_ydw5.service.js");
+            const res = await OpenServerlessSyncService.execute(args.target || "system");
+            return { output: `### OpenServerlessSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedring_p6ku_logic": {
+          try {
+            const { OpenAutomatedRingService } = await import("../liberty/openautomatedring_p6ku.service.js");
+            const res = await OpenAutomatedRingService.execute(args.target || "system");
+            return { output: `### OpenAutomatedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedRing failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partybroker_3dql_logic": {
           try {
             const { OpenMultiPartyBrokerService } = await import("../liberty/openmulti-partybroker_3dql.service.js");
