@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpforacle_15lz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFOracle) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogbroker_dgxy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogBroker) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumcompiler_zxvj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumCompiler) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partybroker_qkin_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyBroker) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustproxy_8kl9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustProxy) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpcore_fxmz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPCore) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6612,6 +6652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpforacle_15lz_logic": {
+          try {
+            const { OpeneBPFOracleService } = await import("../liberty/openebpforacle_15lz.service.js");
+            const res = await OpeneBPFOracleService.execute(args.target || "system");
+            return { output: `### OpeneBPFOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogbroker_dgxy_logic": {
+          try {
+            const { OpenLogBrokerService } = await import("../liberty/openlogbroker_dgxy.service.js");
+            const res = await OpenLogBrokerService.execute(args.target || "system");
+            return { output: `### OpenLogBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumcompiler_zxvj_logic": {
+          try {
+            const { OpenQuantumCompilerService } = await import("../liberty/openquantumcompiler_zxvj.service.js");
+            const res = await OpenQuantumCompilerService.execute(args.target || "system");
+            return { output: `### OpenQuantumCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partybroker_qkin_logic": {
+          try {
+            const { OpenMultiPartyBrokerService } = await import("../liberty/openmulti-partybroker_qkin.service.js");
+            const res = await OpenMultiPartyBrokerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustproxy_8kl9_logic": {
+          try {
+            const { OpenZeroTrustProxyService } = await import("../liberty/openzero-trustproxy_8kl9.service.js");
+            const res = await OpenZeroTrustProxyService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openbgpcore_fxmz_logic": {
           try {
             const { OpenBGPCoreService } = await import("../liberty/openbgpcore_fxmz.service.js");
