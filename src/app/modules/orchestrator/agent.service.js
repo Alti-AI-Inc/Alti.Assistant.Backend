@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedgraph_18vd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedGraph) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openloggrid_ne1w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogGrid) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kerneldaemon_jv6c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelDaemon) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialcore_3s08_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialCore) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosgrid_ehgw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosGrid) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedengine_ke4a_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedEngine) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9612,6 +9652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedgraph_18vd_logic": {
+          try {
+            const { OpenFederatedGraphService } = await import("../liberty/openfederatedgraph_18vd.service.js");
+            const res = await OpenFederatedGraphService.execute(args.target || "system");
+            return { output: `### OpenFederatedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openloggrid_ne1w_logic": {
+          try {
+            const { OpenLogGridService } = await import("../liberty/openloggrid_ne1w.service.js");
+            const res = await OpenLogGridService.execute(args.target || "system");
+            return { output: `### OpenLogGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kerneldaemon_jv6c_logic": {
+          try {
+            const { OpenMicroKernelDaemonService } = await import("../liberty/openmicro-kerneldaemon_jv6c.service.js");
+            const res = await OpenMicroKernelDaemonService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialcore_3s08_logic": {
+          try {
+            const { OpenFinancialCoreService } = await import("../liberty/openfinancialcore_3s08.service.js");
+            const res = await OpenFinancialCoreService.execute(args.target || "system");
+            return { output: `### OpenFinancialCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosgrid_ehgw_logic": {
+          try {
+            const { OpenChaosGridService } = await import("../liberty/openchaosgrid_ehgw.service.js");
+            const res = await OpenChaosGridService.execute(args.target || "system");
+            return { output: `### OpenChaosGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedengine_ke4a_logic": {
           try {
             const { OpenDistributedEngineService } = await import("../liberty/opendistributedengine_ke4a.service.js");
