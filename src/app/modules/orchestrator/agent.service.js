@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventlayer_5xz1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventLayer) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractplane_xnh0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractPlane) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatednet_n7p5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedNet) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesrouter_59wu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesRouter) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partycontroller_lsyl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyController) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosnode_c67q_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosNode) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5252,6 +5292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventlayer_5xz1_logic": {
+          try {
+            const { OpenEventLayerService } = await import("../liberty/openeventlayer_5xz1.service.js");
+            const res = await OpenEventLayerService.execute(args.target || "system");
+            return { output: `### OpenEventLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractplane_xnh0_logic": {
+          try {
+            const { OpenAbstractPlaneService } = await import("../liberty/openabstractplane_xnh0.service.js");
+            const res = await OpenAbstractPlaneService.execute(args.target || "system");
+            return { output: `### OpenAbstractPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatednet_n7p5_logic": {
+          try {
+            const { OpenFederatedNetService } = await import("../liberty/openfederatednet_n7p5.service.js");
+            const res = await OpenFederatedNetService.execute(args.target || "system");
+            return { output: `### OpenFederatedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesrouter_59wu_logic": {
+          try {
+            const { OpenTimeSeriesRouterService } = await import("../liberty/opentime-seriesrouter_59wu.service.js");
+            const res = await OpenTimeSeriesRouterService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partycontroller_lsyl_logic": {
+          try {
+            const { OpenMultiPartyControllerService } = await import("../liberty/openmulti-partycontroller_lsyl.service.js");
+            const res = await OpenMultiPartyControllerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyController failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosnode_c67q_logic": {
           try {
             const { OpenChaosNodeService } = await import("../liberty/openchaosnode_c67q.service.js");
