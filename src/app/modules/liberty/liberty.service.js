@@ -3,10 +3,10 @@ import axios from 'axios';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
-// MinIO client targeting Liberty Center One OpenStack Swift S3-compatible storage
+// MinIO client targeting Aphura OpenStack Swift S3-compatible storage
 // MinIO client is Apache 2.0 — zero AWS dependency
 const minioClient = new Minio.Client({
-  endPoint: (config.objectStorage?.endpoint || 'storage.libertycenterone.com').replace(/^https?:\/\//, ''),
+  endPoint: (config.objectStorage?.endpoint || 'storage.aphura.com').replace(/^https?:\/\//, ''),
   port: config.objectStorage?.port || 443,
   useSSL: (config.objectStorage?.endpoint || 'https://').startsWith('https'),
   accessKey: config.objectStorage?.accessKey || 'dev-key',
@@ -34,7 +34,7 @@ async function getKeystoneToken() {
   const authUrl = config.openstack?.authUrl;
 
   if (!username || !password) {
-    logger.warn('[Liberty Center One] OPENSTACK_USERNAME / OPENSTACK_PASSWORD not set — running in MOCK MODE. Set credentials in .env to connect to real infrastructure.');
+    logger.warn('[Aphura] OPENSTACK_USERNAME / OPENSTACK_PASSWORD not set — running in MOCK MODE. Set credentials in .env to connect to real infrastructure.');
     return '__MOCK_OPENSTACK_TOKEN__';
   }
 
@@ -70,7 +70,7 @@ export const LibertyService = {
   // ── 1. Cluster Status ──────────────────────────────────────────────────
   async getClusterStatus() {
     return {
-      provider: 'Liberty Center One',
+      provider: 'Aphura',
       infrastructure: 'OpenStack Enterprise',
       datacenter: 'Troy, Michigan (LCO-1)',
       storage: 'All-Flash NVMe Vector Storage',
@@ -160,7 +160,7 @@ export const LibertyService = {
       return { url, bucket: bucketName, key, action, expiresIn };
     } catch (err) {
       logger.warn('[Liberty] presignedUrl error:', err.message);
-      const endpoint = config.objectStorage?.endpoint || 'https://storage.libertycenterone.com';
+      const endpoint = config.objectStorage?.endpoint || 'https://storage.aphura.com';
       return {
         url: `${endpoint}/${bucketName}/${key}?expires=${expiresIn}`,
         bucket: bucketName,
@@ -183,7 +183,7 @@ export const LibertyService = {
 
   async getStorageStats() {
     return {
-      provider: 'Liberty Center One Object Storage',
+      provider: 'Aphura Object Storage',
       storageBackend: 'All-Flash NVMe / OpenStack Swift / Ceph RGW',
       bucketsCount: 5,
       totalCapacityBytes: 10 * 1024 * 1024 * 1024 * 1024, // 10TB
@@ -738,7 +738,7 @@ export const LibertyService = {
     ]);
 
     return {
-      provider: 'Liberty Center One',
+      provider: 'Aphura',
       infrastructure: 'OpenStack Enterprise',
       datacenter: 'Troy, Michigan (LCO-1)',
       storage: 'All-Flash NVMe Vector Storage',
@@ -798,7 +798,7 @@ export const LibertyService = {
           action,
           params,
           platform: status,
-          message: `Liberty Center One execution completed for action: ${action}`,
+          message: `Aphura execution completed for action: ${action}`,
         };
     }
   },

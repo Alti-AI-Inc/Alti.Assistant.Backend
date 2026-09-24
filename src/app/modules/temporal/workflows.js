@@ -31,7 +31,7 @@ export async function pollExaMonitorsWorkflow() {
 }
 
 /**
- * Workflow to clean up Liberty Center One object storage
+ * Workflow to clean up Aphura object storage
  */
 export async function cleanupTempUploadsWorkflow() {
   const result = await cleanupTempUploadsActivity();

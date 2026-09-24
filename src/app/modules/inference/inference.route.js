@@ -4,7 +4,7 @@ import { InferenceGateway } from './inference.gateway.js';
 const router = express.Router();
 
 /**
- * 🚀 Liberty Center One - Sovereign Inference API
+ * 🚀 Aphura - Sovereign Inference API
  * 100% OpenAI-compatible endpoint. Any standard SDK can connect here.
  * We act as our own OpenRouter, funneling to Together.ai.
  */

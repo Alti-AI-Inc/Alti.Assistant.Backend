@@ -30,7 +30,7 @@ const requireMobileEdgeAuth = async (req, res, next) => {
 
 // Health check specifically for the mobile Flutter app to ping
 router.get('/ping', (req, res) => {
-  res.status(200).json({ success: true, edge: 'Liberty Center One Mobile Gateway', status: 'operational' });
+  res.status(200).json({ success: true, edge: 'Aphura Mobile Gateway', status: 'operational' });
 });
 
 // Protect all subsequent mobile routes
@@ -55,7 +55,7 @@ router.post('/push/register', (req, res) => {
   const { deviceToken, platform } = req.body;
   // Here we would map the Apple/Google token to an OpenStack Zaqar queue
   logger.info(`[Mobile Gateway] Registered ${platform} push token for tenant ${req.tenantId}`);
-  res.status(200).json({ success: true, message: 'Push token registered with Liberty Center One Zaqar.' });
+  res.status(200).json({ success: true, message: 'Push token registered with Aphura Zaqar.' });
 });
 
 export const MobileRoutes = router;

@@ -201,7 +201,7 @@ const tools = [
     type: 'function',
     function: {
       name: 'desktop_computer_use',
-      description: 'Executes an action directly on the user\'s local Desktop/Mobile device via Liberty Center One WebSocket Bridge (MCP Local Code/Mouse/File manipulation).',
+      description: 'Executes an action directly on the user\'s local Desktop/Mobile device via Aphura WebSocket Bridge (MCP Local Code/Mouse/File manipulation).',
       parameters: { type: 'object', properties: { action: { type: 'string' }, payload: { type: 'object' } }, required: ['action', 'payload'] }
     }
   },
@@ -209,7 +209,7 @@ const tools = [
     type: 'function',
     function: {
       name: 'cloud_code_interpreter',
-      description: 'Executes Python or Node.js code securely in a Liberty Center One air-gapped Zun container. Use this for heavy data analysis, math, or backend scripting when the user is on Mobile/Web.',
+      description: 'Executes Python or Node.js code securely in a Aphura air-gapped Zun container. Use this for heavy data analysis, math, or backend scripting when the user is on Mobile/Web.',
       parameters: { type: 'object', properties: { code: { type: 'string' }, language: { type: 'string', enum: ['python', 'node'] } }, required: ['code'] }
     }
   },
@@ -499,12 +499,12 @@ const tools = [
       }, required: ['workflowName'] }
     }
   },
-  // ── Liberty Center One ───────────────────────────────────────────────────
+  // ── Aphura ───────────────────────────────────────────────────
   {
     type: 'function',
     function: {
       name: 'liberty_query',
-      description: 'Query Liberty Center One platform services. Use for internal platform operations, tenant management, or enterprise data queries.',
+      description: 'Query Aphura platform services. Use for internal platform operations, tenant management, or enterprise data queries.',
       parameters: { type: 'object', properties: {
         action: { type: 'string', description: 'Action to perform: status, query, analytics' },
         params: { type: 'string', description: 'JSON string of action parameters' }
@@ -814,11 +814,11 @@ export const AgentService = {
         case 'cloud_code_interpreter': {
           try {
             const { default: OpenStackService } = await import('../../services/openstack.service.js');
-            // Execute on Liberty Center One bare-metal via Zun Container Sandbox
+            // Execute on Aphura bare-metal via Zun Container Sandbox
             const result = await OpenStackService.executeAirGappedCode(args.code, args.language || 'python', false);
             return { 
               output: `Code execution initiated in Zun Sandbox ${result.containerId}. Status: ${result.status}`, 
-              references: [{ title: 'Code Interpreter', url: 'liberty-center-one://zun-sandbox', snippet: 'Isolated compute container', source: 'Liberty Center One' }]
+              references: [{ title: 'Code Interpreter', url: 'aphura://zun-sandbox', snippet: 'Isolated compute container', source: 'Aphura' }]
             };
           } catch (err) {
             return { output: `Cloud code execution failed: ${err.message}`, references: [] };
@@ -1236,7 +1236,7 @@ export const AgentService = {
           }
         }
 
-        // ── Liberty Center One ──────────────────────────────────────────────
+        // ── Aphura ──────────────────────────────────────────────
         case 'liberty_query': {
           try {
             let params = {};
@@ -1245,7 +1245,7 @@ export const AgentService = {
             customMetadata = { domain: 'liberty_platform', action: args.action, result: result };
             return {
               output: typeof result === 'string' ? result : JSON.stringify(result, null, 2).slice(0, 3000),
-              references: [{ title: `Liberty: ${args.action}`, url: 'local://liberty', snippet: `Action: ${args.action}`, source: 'Liberty Center One' }]
+              references: [{ title: `Liberty: ${args.action}`, url: 'local://liberty', snippet: `Action: ${args.action}`, source: 'Aphura' }]
             };
           } catch (error) {
             return { output: `Liberty query failed: ${error.message}`, references: [] };

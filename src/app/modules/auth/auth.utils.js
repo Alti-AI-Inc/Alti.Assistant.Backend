@@ -318,7 +318,7 @@ export const loginOtpTemplate = (email, otp) => {
         <p style="color: #999; font-size: 14px; text-align: center;">This code expires in 5 minutes. Do not share it with anyone.</p>
         <p style="color: #999; font-size: 14px; text-align: center;">If you didn't request this code, you can safely ignore this email.</p>
       </div>
-      <p style="color: #bbb; margin-top: 16px; text-align: center; font-size: 12px;">Aphura AI — Sent from Liberty Center One</p>
+      <p style="color: #bbb; margin-top: 16px; text-align: center; font-size: 12px;">Aphura AI — Sent from Aphura</p>
     </div>`,
   };
   return mailData;

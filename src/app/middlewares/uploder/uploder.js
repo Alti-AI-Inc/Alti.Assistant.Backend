@@ -3,10 +3,10 @@ import multer from 'multer';
 import path from 'path';
 import config from '../../../../config/index.js';
 
-// MinIO client targeting Liberty Center One all-flash NVMe storage
+// MinIO client targeting Aphura all-flash NVMe storage
 // Apache 2.0 — zero AWS dependency
 const minioClient = new Minio.Client({
-  endPoint: (config.objectStorage?.endpoint || 'storage.libertycenterone.com').replace(/^https?:\/\//, ''),
+  endPoint: (config.objectStorage?.endpoint || 'storage.aphura.com').replace(/^https?:\/\//, ''),
   port: config.objectStorage?.port || 443,
   useSSL: (config.objectStorage?.endpoint || 'https://').startsWith('https'),
   accessKey: config.objectStorage?.accessKey || 'dev-key',
@@ -18,7 +18,7 @@ const bucketName = config.objectStorage?.uploadsBucket || 'aphura-uploads';
 
 /**
  * Custom Multer storage engine for S3-compatible object storage via MinIO client.
- * Targets Liberty Center One OpenStack Swift.
+ * Targets Aphura OpenStack Swift.
  */
 export class S3StorageEngine {
   constructor(options) {
@@ -39,7 +39,7 @@ export class S3StorageEngine {
         'Cache-Control': 'public, max-age=31536000',
       })
         .then(() => {
-          const endpoint = (config.objectStorage?.endpoint || 'https://storage.libertycenterone.com').replace(/\/$/, '');
+          const endpoint = (config.objectStorage?.endpoint || 'https://storage.aphura.com').replace(/\/$/, '');
           const publicUrl = `${endpoint}/${bucketName}/${fileName}`;
 
           cb(null, {

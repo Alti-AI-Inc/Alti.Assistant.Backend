@@ -6,7 +6,7 @@ import axios from 'axios';
 
 /**
  * Aphura Enterprise API Key Vault
- * Stores and manages high-value B2B API keys using Liberty Center One's OpenStack Barbican HSM.
+ * Stores and manages high-value B2B API keys using Aphura's OpenStack Barbican HSM.
  */
 export const ApiKeyService = {
 

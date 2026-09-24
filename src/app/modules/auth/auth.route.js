@@ -302,7 +302,7 @@ router
 router.route('/login').post(createRateLimiter(5, 5), authController.login); // login in app
 
 // =================================================================
-//           Passwordless OTP Auth (Liberty Center One SMTP)
+//           Passwordless OTP Auth (Aphura SMTP)
 // =================================================================
 
 /**

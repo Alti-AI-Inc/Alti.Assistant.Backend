@@ -8,7 +8,7 @@ const getClusterStatus = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Liberty Center One cluster status retrieved.',
+    message: 'Aphura cluster status retrieved.',
     data: result,
   });
 });

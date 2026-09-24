@@ -965,7 +965,7 @@ export const authorizeKnowledgeAccess = async (userId, ownerType, ownerId) => {
     throw new ApiError(httpStatus.BAD_REQUEST, `Invalid ownerType: ${ownerType}`);
   }
 };
-// ── Passwordless OTP Auth (Liberty Center One SMTP) ──────────────────────────
+// ── Passwordless OTP Auth (Aphura SMTP) ──────────────────────────
 
 const OTP_PREFIX = 'otp:';
 const OTP_COOLDOWN_PREFIX = 'otp_cooldown:';
@@ -1014,7 +1014,7 @@ const sendLoginOtp = async (email) => {
   // Set cooldown
   await RedisClient.set(cooldownKey, '1', 'EX', OTP_COOLDOWN_SECONDS);
 
-  // Send email via Liberty Center One SMTP
+  // Send email via Aphura SMTP
   const mailData = loginOtpTemplate(normalizedEmail, otp);
   try {
     await sendMailWithNodeMailer(mailData);

@@ -3,7 +3,7 @@ import { logger } from '../../../shared/logger.js';
 import nodemailer from 'nodemailer';
 
 /**
- * Send email via Liberty Center One OpenStack SMTP.
+ * Send email via Aphura OpenStack SMTP.
  * No third-party email services — sent natively from our infrastructure.
  */
 export const sendMailWithNodeMailer = async (mailData) => {
@@ -17,7 +17,7 @@ export const sendMailWithNodeMailer = async (mailData) => {
       user: config.mail.smtp_user,
       pass: config.mail.smtp_password,
     },
-    // Liberty Center One OpenStack SMTP — allow self-signed certs in dev
+    // Aphura OpenStack SMTP — allow self-signed certs in dev
     tls: {
       rejectUnauthorized: process.env.NODE_ENV === 'production',
     },

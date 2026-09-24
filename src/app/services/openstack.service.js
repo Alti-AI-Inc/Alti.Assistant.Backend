@@ -7,7 +7,7 @@ export const OpenStackService = {
    * Authenticate with OpenStack Keystone v3
    */
   async getAuthToken() {
-    const authUrl = process.env.OS_AUTH_URL || 'https://keystone.libertycenterone.com/v3/auth/tokens';
+    const authUrl = process.env.OS_AUTH_URL || 'https://keystone.aphura.com/v3/auth/tokens';
     const payload = {
       auth: {
         identity: {
@@ -42,11 +42,11 @@ export const OpenStackService = {
   },
 
   /**
-   * Provision a Virtual Computer on Liberty Center One
+   * Provision a Virtual Computer on Aphura
    * Uses OpenStack Nova / Compute APIs
    */
   async provisionVirtualComputer(options = {}) {
-    logger.info(`[Liberty Center One] Provisioning Virtual Computer: ${options.name || 'agi-worker'}`);
+    logger.info(`[Aphura] Provisioning Virtual Computer: ${options.name || 'agi-worker'}`);
     
     if (!process.env.OS_USERNAME) {
       logger.warn('[OpenStack] Missing OS_USERNAME, falling back to simulation mode');
@@ -91,7 +91,7 @@ export const OpenStackService = {
 
   /**
    * OpenStack Designate (DNS v2)
-   * Automatically registers tenant subdomains on Liberty Center One's edge DNS.
+   * Automatically registers tenant subdomains on Aphura's edge DNS.
    */
   async provisionTenantSubdomain(subdomain) {
     if (!process.env.OS_USERNAME || !process.env.OS_DNS_ZONE_ID) return null;
@@ -144,7 +144,7 @@ export const OpenStackService = {
 
   /**
    * OpenStack Barbican (Key Manager v1)
-   * Securely retrieve encryption keys or API tokens from the Liberty Center One vault.
+   * Securely retrieve encryption keys or API tokens from the Aphura vault.
    */
   async getSecret(secretRef) {
     if (!process.env.OS_USERNAME) return null;
@@ -187,7 +187,7 @@ export const OpenStackService = {
 
       // Inject PCIe passthrough request for Nvidia/AMD accelerators
       if (requireGpu) {
-        payload.labels = { 'accelerator': 'nvidia-tesla-t4' }; // Target Liberty Center One ML nodes
+        payload.labels = { 'accelerator': 'nvidia-tesla-t4' }; // Target Aphura ML nodes
       }
 
       const createRes = await axios.post(`${zunEndpoint}/v1/containers`, payload, {

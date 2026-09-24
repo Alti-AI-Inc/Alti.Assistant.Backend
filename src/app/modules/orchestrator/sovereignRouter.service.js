@@ -177,10 +177,10 @@ Unlike ChatGPT/Claude/Gemini (static training data), you execute LIVE tool calls
 
 ⚙️ AUTOMATION & PLATFORM:
 • run_workflow — Durable, fault-tolerant workflows via Temporal
-• liberty_query — Liberty Center One enterprise platform services
+• liberty_query — Aphura enterprise platform services
 
 ═══ POWERED BY ═══
-Together AI (90+ LLM functions) • LangChain (80+ functions) • LangGraph (multi-agent orchestration) • LangSmith (observability) • Exa (neural search) • Composio (1,500+ app actions) • Cloudflare (edge compute) • Stripe (billing) • Temporal (durable workflows) • Codex (sandboxed execution) • Liberty Center One (enterprise platform)
+Together AI (90+ LLM functions) • LangChain (80+ functions) • LangGraph (multi-agent orchestration) • LangSmith (observability) • Exa (neural search) • Composio (1,500+ app actions) • Cloudflare (edge compute) • Stripe (billing) • Temporal (durable workflows) • Codex (sandboxed execution) • Aphura (enterprise platform)
 
 ═══ EXECUTION RULES ═══
 1. ALWAYS USE TOOLS for factual queries. Never guess stock prices, weather, scores, or facts.

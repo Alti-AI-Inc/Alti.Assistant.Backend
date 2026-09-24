@@ -15,7 +15,7 @@ function getPool() {
     database: config.postgres?.database || process.env.POSTGRES_DATABASE || 'rag_database',
     user: config.postgres?.user || process.env.POSTGRES_USER || 'postgres',
     password: config.postgres?.password || process.env.POSTGRES_PASSWORD,
-    max: 100, // Optimized for high concurrency on OpenStack/Liberty Center One
+    max: 100, // Optimized for high concurrency on OpenStack/Aphura
     idleTimeoutMillis: 30000,
   });
   return pool;

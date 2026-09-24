@@ -1,7 +1,7 @@
 import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
 
-// The full Together AI Serverless Library available to Liberty Center One
+// The full Together AI Serverless Library available to Aphura
 const MODELS = {
   CODE_HEAVY: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
   CODE_FAST: 'deepseek-ai/deepseek-coder-33b-instruct',
@@ -93,7 +93,7 @@ export const InferenceGateway = {
       if (safetyOutput.includes('unsafe')) {
         logger.warn(`[Llama Guard 3] 🛑 BLOCKED: Malicious/Harmful intent detected.`);
         return res.status(403).json({ 
-          error: 'Content policy violation. Your request was blocked by the Liberty Center One Sovereign Guardrail.' 
+          error: 'Content policy violation. Your request was blocked by the Aphura Sovereign Guardrail.' 
         });
       }
     } catch (e) {

@@ -6,7 +6,7 @@ import config from '../../../../config/index.js';
 import crypto from 'crypto';
 
 // The OEM Master Key derived from OpenStack Barbican HSM for the Desktop Gateway
-const BARBICAN_AES_KEY = crypto.scryptSync(process.env.BARBICAN_SECRET || 'liberty-center-one-oem-key', 'salt', 32);
+const BARBICAN_AES_KEY = crypto.scryptSync(process.env.BARBICAN_SECRET || 'aphura-oem-key', 'salt', 32);
 
 export const DesktopGateway = {
   wss: null,
@@ -66,7 +66,7 @@ export const DesktopGateway = {
               
             } catch (err) {
               logger.error(`[Omni-Hotkey] Llama 405B Processing failed: ${err.message}`);
-              this.dispatchActionResponse(userId, "hotkey_response", { message: "Failed to process Omni-Hotkey command via Liberty Center One." });
+              this.dispatchActionResponse(userId, "hotkey_response", { message: "Failed to process Omni-Hotkey command via Aphura." });
             }
           }
         } catch (e) {
@@ -80,7 +80,7 @@ export const DesktopGateway = {
       });
     });
     
-    logger.info('🚀 Desktop App WebSocket Bridge initialized on Liberty Center One');
+    logger.info('🚀 Desktop App WebSocket Bridge initialized on Aphura');
   },
 
   /**

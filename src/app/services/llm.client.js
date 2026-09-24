@@ -3,7 +3,7 @@ import config from '../../../config/index.js';
 import { logger } from '../shared/logger.js';
 
 // 🛑 OEM HARD LAW: EXCLUSIVE PROVIDER LOCK
-// Liberty Center One is strictly bound to Together.ai as the sole inference engine.
+// Aphura is strictly bound to Together.ai as the sole inference engine.
 // Connecting to OpenAI, Anthropic, Google, or any other provider is mathematically forbidden.
 const llmClient = new Together({
   apiKey: config.llm?.apiKey || process.env.TOGETHER_API_KEY || 'dummy_key',
@@ -14,7 +14,7 @@ const llmClient = new Together({
 
 /**
  * 🚀 OEM MAGIC: The Ultimate Mixture-of-Experts (MoE) Inference Factory
- * Maps the ENTIRE Together.ai serverless library to Liberty Center One.
+ * Maps the ENTIRE Together.ai serverless library to Aphura.
  */
 const TOGETHER_AI_FACTORY = {
   // 🧠 Extreme Reasoning & Coding (Cursor/Copilot Killers)
