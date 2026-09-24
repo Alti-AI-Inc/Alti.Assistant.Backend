@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedgraph_logic",
+      description: "Use the Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy Decentralized Auth architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustrouter_logic",
+      description: "Use the Aphura Engine (OpenZero-TrustRouter) to Autonomously deploy Zero-Trust Security architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicproxy_logic",
+      description: "Use the Aphura Engine (OpenHomomorphicProxy) to Autonomously deploy Homomorphic Encryption architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedengine_logic",
+      description: "Use the Aphura Engine (OpenAutomatedEngine) to Autonomously deploy Automated Load Balancing architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgecontroller_logic",
+      description: "Use the Aphura Engine (OpenEdgeController) to Autonomously deploy Edge Proxy Gateways architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphiccontroller_logic",
       description: "Use the Aphura Engine (OpenHomomorphicController) to Autonomously deploy Homomorphic Encryption architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2332,6 +2372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedgraph_logic": {
+          try {
+            const { OpendecentralizedgraphService } = await import("../enterprise/opendecentralizedgraph.service.js");
+            const res = await OpendecentralizedgraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustrouter_logic": {
+          try {
+            const { Openzero-trustrouterService } = await import("../enterprise/openzero-trustrouter.service.js");
+            const res = await Openzero-trustrouterService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustRouter Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicproxy_logic": {
+          try {
+            const { OpenhomomorphicproxyService } = await import("../enterprise/openhomomorphicproxy.service.js");
+            const res = await OpenhomomorphicproxyService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicProxy Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedengine_logic": {
+          try {
+            const { OpenautomatedengineService } = await import("../enterprise/openautomatedengine.service.js");
+            const res = await OpenautomatedengineService.execute(args.target || "system");
+            return { output: `### OpenAutomatedEngine Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgecontroller_logic": {
+          try {
+            const { OpenedgecontrollerService } = await import("../enterprise/openedgecontroller.service.js");
+            const res = await OpenedgecontrollerService.execute(args.target || "system");
+            return { output: `### OpenEdgeController Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeController failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphiccontroller_logic": {
           try {
             const { OpenhomomorphiccontrollerService } = await import("../enterprise/openhomomorphiccontroller.service.js");
