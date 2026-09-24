@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlesslayer_418s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessLayer) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgeengine_6zql_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeEngine) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendcore_v3fq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCore) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentvault_1iol_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentVault) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesspipeline_i78d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessPipeline) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendcontroller_jvji_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendController) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19652,6 +19692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlesslayer_418s_logic": {
+          try {
+            const { OpenServerlessLayerService } = await import("../liberty/openserverlesslayer_418s.service.js");
+            const res = await OpenServerlessLayerService.execute(args.target || "system");
+            return { output: `### OpenServerlessLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgeengine_6zql_logic": {
+          try {
+            const { OpenZeroKnowledgeEngineService } = await import("../liberty/openzero-knowledgeengine_6zql.service.js");
+            const res = await OpenZeroKnowledgeEngineService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendcore_v3fq_logic": {
+          try {
+            const { OpenMicroFrontendCoreService } = await import("../liberty/openmicro-frontendcore_v3fq.service.js");
+            const res = await OpenMicroFrontendCoreService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentvault_1iol_logic": {
+          try {
+            const { OpenPersistentVaultService } = await import("../liberty/openpersistentvault_1iol.service.js");
+            const res = await OpenPersistentVaultService.execute(args.target || "system");
+            return { output: `### OpenPersistentVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesspipeline_i78d_logic": {
+          try {
+            const { OpenHeadlessPipelineService } = await import("../liberty/openheadlesspipeline_i78d.service.js");
+            const res = await OpenHeadlessPipelineService.execute(args.target || "system");
+            return { output: `### OpenHeadlessPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendcontroller_jvji_logic": {
           try {
             const { OpenMicroFrontendControllerService } = await import("../liberty/openmicro-frontendcontroller_jvji.service.js");
