@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectorvault_y53n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorVault) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogmatrix_bjh9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogMatrix) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpmesh_a92k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPMesh) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscompiler_wv2u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCompiler) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicgraph_8hgv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicGraph) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwarefabric_6r61_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareFabric) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11972,6 +12012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectorvault_y53n_logic": {
+          try {
+            const { OpenVectorVaultService } = await import("../liberty/openvectorvault_y53n.service.js");
+            const res = await OpenVectorVaultService.execute(args.target || "system");
+            return { output: `### OpenVectorVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogmatrix_bjh9_logic": {
+          try {
+            const { OpenLogMatrixService } = await import("../liberty/openlogmatrix_bjh9.service.js");
+            const res = await OpenLogMatrixService.execute(args.target || "system");
+            return { output: `### OpenLogMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpmesh_a92k_logic": {
+          try {
+            const { OpenBGPMeshService } = await import("../liberty/openbgpmesh_a92k.service.js");
+            const res = await OpenBGPMeshService.execute(args.target || "system");
+            return { output: `### OpenBGPMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscompiler_wv2u_logic": {
+          try {
+            const { OpenChaosCompilerService } = await import("../liberty/openchaoscompiler_wv2u.service.js");
+            const res = await OpenChaosCompilerService.execute(args.target || "system");
+            return { output: `### OpenChaosCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicgraph_8hgv_logic": {
+          try {
+            const { OpenNeuromorphicGraphService } = await import("../liberty/openneuromorphicgraph_8hgv.service.js");
+            const res = await OpenNeuromorphicGraphService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwarefabric_6r61_logic": {
           try {
             const { OpenHardwareFabricService } = await import("../liberty/openhardwarefabric_6r61.service.js");
