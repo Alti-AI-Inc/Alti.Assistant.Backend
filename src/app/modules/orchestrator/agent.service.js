@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendatasync_kgpr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataSync) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaredaemon_y00x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareDaemon) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedswarm_og73_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedSwarm) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelmatrix_3o5q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMatrix) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosvault_nv5l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosVault) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedsync_em2v_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSync) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17012,6 +17052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendatasync_kgpr_logic": {
+          try {
+            const { OpenDataSyncService } = await import("../liberty/opendatasync_kgpr.service.js");
+            const res = await OpenDataSyncService.execute(args.target || "system");
+            return { output: `### OpenDataSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaredaemon_y00x_logic": {
+          try {
+            const { OpenHardwareDaemonService } = await import("../liberty/openhardwaredaemon_y00x.service.js");
+            const res = await OpenHardwareDaemonService.execute(args.target || "system");
+            return { output: `### OpenHardwareDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedswarm_og73_logic": {
+          try {
+            const { OpenAdvancedSwarmService } = await import("../liberty/openadvancedswarm_og73.service.js");
+            const res = await OpenAdvancedSwarmService.execute(args.target || "system");
+            return { output: `### OpenAdvancedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelmatrix_3o5q_logic": {
+          try {
+            const { OpenMicroKernelMatrixService } = await import("../liberty/openmicro-kernelmatrix_3o5q.service.js");
+            const res = await OpenMicroKernelMatrixService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosvault_nv5l_logic": {
+          try {
+            const { OpenChaosVaultService } = await import("../liberty/openchaosvault_nv5l.service.js");
+            const res = await OpenChaosVaultService.execute(args.target || "system");
+            return { output: `### OpenChaosVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosVault failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedsync_em2v_logic": {
           try {
             const { OpenDecentralizedSyncService } = await import("../liberty/opendecentralizedsync_em2v.service.js");
