@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosvortex_rxhy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosVortex) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepcore_4d5e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepCore) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedstream_hvk5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedStream) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventengine_q4jn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventEngine) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatanexus_p6no_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataNexus) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendnode_w286_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNode) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10532,6 +10572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosvortex_rxhy_logic": {
+          try {
+            const { OpenChaosVortexService } = await import("../liberty/openchaosvortex_rxhy.service.js");
+            const res = await OpenChaosVortexService.execute(args.target || "system");
+            return { output: `### OpenChaosVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepcore_4d5e_logic": {
+          try {
+            const { OpenDeepCoreService } = await import("../liberty/opendeepcore_4d5e.service.js");
+            const res = await OpenDeepCoreService.execute(args.target || "system");
+            return { output: `### OpenDeepCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedstream_hvk5_logic": {
+          try {
+            const { OpenAutomatedStreamService } = await import("../liberty/openautomatedstream_hvk5.service.js");
+            const res = await OpenAutomatedStreamService.execute(args.target || "system");
+            return { output: `### OpenAutomatedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventengine_q4jn_logic": {
+          try {
+            const { OpenEventEngineService } = await import("../liberty/openeventengine_q4jn.service.js");
+            const res = await OpenEventEngineService.execute(args.target || "system");
+            return { output: `### OpenEventEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatanexus_p6no_logic": {
+          try {
+            const { OpenDataNexusService } = await import("../liberty/opendatanexus_p6no.service.js");
+            const res = await OpenDataNexusService.execute(args.target || "system");
+            return { output: `### OpenDataNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendnode_w286_logic": {
           try {
             const { OpenMicroFrontendNodeService } = await import("../liberty/openmicro-frontendnode_w286.service.js");
