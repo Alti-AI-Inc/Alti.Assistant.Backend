@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessplane_07tf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessPlane) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumchain_kro7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumChain) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosgrid_1i67_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosGrid) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgepipeline_v208_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgePipeline) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedplane_nu62_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedPlane) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustmatrix_olai_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustMatrix) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18812,6 +18852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessplane_07tf_logic": {
+          try {
+            const { OpenServerlessPlaneService } = await import("../liberty/openserverlessplane_07tf.service.js");
+            const res = await OpenServerlessPlaneService.execute(args.target || "system");
+            return { output: `### OpenServerlessPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumchain_kro7_logic": {
+          try {
+            const { OpenQuantumChainService } = await import("../liberty/openquantumchain_kro7.service.js");
+            const res = await OpenQuantumChainService.execute(args.target || "system");
+            return { output: `### OpenQuantumChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosgrid_1i67_logic": {
+          try {
+            const { OpenChaosGridService } = await import("../liberty/openchaosgrid_1i67.service.js");
+            const res = await OpenChaosGridService.execute(args.target || "system");
+            return { output: `### OpenChaosGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgepipeline_v208_logic": {
+          try {
+            const { OpenZeroKnowledgePipelineService } = await import("../liberty/openzero-knowledgepipeline_v208.service.js");
+            const res = await OpenZeroKnowledgePipelineService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedplane_nu62_logic": {
+          try {
+            const { OpenAdvancedPlaneService } = await import("../liberty/openadvancedplane_nu62.service.js");
+            const res = await OpenAdvancedPlaneService.execute(args.target || "system");
+            return { output: `### OpenAdvancedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustmatrix_olai_logic": {
           try {
             const { OpenZeroTrustMatrixService } = await import("../liberty/openzero-trustmatrix_olai.service.js");
