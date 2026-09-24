@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhigh-frequencymatrix_x4tk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyMatrix) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendcore_f5nr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCore) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatednet_0k6w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedNet) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablevortex_jgvg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableVortex) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogledger_3skd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogLedger) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablenode_1hvi_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableNode) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7572,6 +7612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhigh-frequencymatrix_x4tk_logic": {
+          try {
+            const { OpenHighFrequencyMatrixService } = await import("../liberty/openhigh-frequencymatrix_x4tk.service.js");
+            const res = await OpenHighFrequencyMatrixService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendcore_f5nr_logic": {
+          try {
+            const { OpenMicroFrontendCoreService } = await import("../liberty/openmicro-frontendcore_f5nr.service.js");
+            const res = await OpenMicroFrontendCoreService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatednet_0k6w_logic": {
+          try {
+            const { OpenFederatedNetService } = await import("../liberty/openfederatednet_0k6w.service.js");
+            const res = await OpenFederatedNetService.execute(args.target || "system");
+            return { output: `### OpenFederatedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablevortex_jgvg_logic": {
+          try {
+            const { OpenImmutableVortexService } = await import("../liberty/openimmutablevortex_jgvg.service.js");
+            const res = await OpenImmutableVortexService.execute(args.target || "system");
+            return { output: `### OpenImmutableVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogledger_3skd_logic": {
+          try {
+            const { OpenLogLedgerService } = await import("../liberty/openlogledger_3skd.service.js");
+            const res = await OpenLogLedgerService.execute(args.target || "system");
+            return { output: `### OpenLogLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogLedger failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablenode_1hvi_logic": {
           try {
             const { OpenImmutableNodeService } = await import("../liberty/openimmutablenode_1hvi.service.js");
