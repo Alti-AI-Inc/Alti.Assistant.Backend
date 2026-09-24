@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedengine_ke4a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedEngine) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogrouter_6pzq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogRouter) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencynexus_zza6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyNexus) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancednexus_hele_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNexus) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicsync_dx04_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicSync) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openin-memoryengine_egmc_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryEngine) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9572,6 +9612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedengine_ke4a_logic": {
+          try {
+            const { OpenDistributedEngineService } = await import("../liberty/opendistributedengine_ke4a.service.js");
+            const res = await OpenDistributedEngineService.execute(args.target || "system");
+            return { output: `### OpenDistributedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogrouter_6pzq_logic": {
+          try {
+            const { OpenLogRouterService } = await import("../liberty/openlogrouter_6pzq.service.js");
+            const res = await OpenLogRouterService.execute(args.target || "system");
+            return { output: `### OpenLogRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencynexus_zza6_logic": {
+          try {
+            const { OpenHighFrequencyNexusService } = await import("../liberty/openhigh-frequencynexus_zza6.service.js");
+            const res = await OpenHighFrequencyNexusService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancednexus_hele_logic": {
+          try {
+            const { OpenAdvancedNexusService } = await import("../liberty/openadvancednexus_hele.service.js");
+            const res = await OpenAdvancedNexusService.execute(args.target || "system");
+            return { output: `### OpenAdvancedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicsync_dx04_logic": {
+          try {
+            const { OpenHomomorphicSyncService } = await import("../liberty/openhomomorphicsync_dx04.service.js");
+            const res = await OpenHomomorphicSyncService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicSync failed: ${err.message}` };
+          }
+        }
         case "execute_openin-memoryengine_egmc_logic": {
           try {
             const { OpenInMemoryEngineService } = await import("../liberty/openin-memoryengine_egmc.service.js");
