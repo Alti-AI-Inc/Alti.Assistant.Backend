@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partyring_ld8u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyRing) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessgrid_xrtz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessGrid) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentgrid_qh8c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentGrid) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventengine_b6ss_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventEngine) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicnode_lyxw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNode) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendcompiler_5vrv_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCompiler) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15212,6 +15252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partyring_ld8u_logic": {
+          try {
+            const { OpenMultiPartyRingService } = await import("../liberty/openmulti-partyring_ld8u.service.js");
+            const res = await OpenMultiPartyRingService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessgrid_xrtz_logic": {
+          try {
+            const { OpenServerlessGridService } = await import("../liberty/openserverlessgrid_xrtz.service.js");
+            const res = await OpenServerlessGridService.execute(args.target || "system");
+            return { output: `### OpenServerlessGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentgrid_qh8c_logic": {
+          try {
+            const { OpenPersistentGridService } = await import("../liberty/openpersistentgrid_qh8c.service.js");
+            const res = await OpenPersistentGridService.execute(args.target || "system");
+            return { output: `### OpenPersistentGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventengine_b6ss_logic": {
+          try {
+            const { OpenEventEngineService } = await import("../liberty/openeventengine_b6ss.service.js");
+            const res = await OpenEventEngineService.execute(args.target || "system");
+            return { output: `### OpenEventEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicnode_lyxw_logic": {
+          try {
+            const { OpenHomomorphicNodeService } = await import("../liberty/openhomomorphicnode_lyxw.service.js");
+            const res = await OpenHomomorphicNodeService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicNode failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendcompiler_5vrv_logic": {
           try {
             const { OpenMicroFrontendCompilerService } = await import("../liberty/openmicro-frontendcompiler_5vrv.service.js");
