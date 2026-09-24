@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwareledger_qcdn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareLedger) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatabroker_uilh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataBroker) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedbroker_ht6b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedBroker) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcontroller_witw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedController) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesrouter_kdpb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesRouter) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentbroker_l1rd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentBroker) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7852,6 +7892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwareledger_qcdn_logic": {
+          try {
+            const { OpenHardwareLedgerService } = await import("../liberty/openhardwareledger_qcdn.service.js");
+            const res = await OpenHardwareLedgerService.execute(args.target || "system");
+            return { output: `### OpenHardwareLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatabroker_uilh_logic": {
+          try {
+            const { OpenDataBrokerService } = await import("../liberty/opendatabroker_uilh.service.js");
+            const res = await OpenDataBrokerService.execute(args.target || "system");
+            return { output: `### OpenDataBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedbroker_ht6b_logic": {
+          try {
+            const { OpenFederatedBrokerService } = await import("../liberty/openfederatedbroker_ht6b.service.js");
+            const res = await OpenFederatedBrokerService.execute(args.target || "system");
+            return { output: `### OpenFederatedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcontroller_witw_logic": {
+          try {
+            const { OpenAdvancedControllerService } = await import("../liberty/openadvancedcontroller_witw.service.js");
+            const res = await OpenAdvancedControllerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedController failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesrouter_kdpb_logic": {
+          try {
+            const { OpenTimeSeriesRouterService } = await import("../liberty/opentime-seriesrouter_kdpb.service.js");
+            const res = await OpenTimeSeriesRouterService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentbroker_l1rd_logic": {
           try {
             const { OpenPersistentBrokerService } = await import("../liberty/openpersistentbroker_l1rd.service.js");
