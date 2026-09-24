@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partymesh_opgi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyMesh) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticgrid_ra1a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticGrid) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycluster_f1wf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyCluster) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentdaemon_oodf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentDaemon) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablemesh_06n3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableMesh) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedswarm_qew1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedSwarm) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8492,6 +8532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partymesh_opgi_logic": {
+          try {
+            const { OpenMultiPartyMeshService } = await import("../liberty/openmulti-partymesh_opgi.service.js");
+            const res = await OpenMultiPartyMeshService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticgrid_ra1a_logic": {
+          try {
+            const { OpenStaticGridService } = await import("../liberty/openstaticgrid_ra1a.service.js");
+            const res = await OpenStaticGridService.execute(args.target || "system");
+            return { output: `### OpenStaticGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycluster_f1wf_logic": {
+          try {
+            const { OpenHighFrequencyClusterService } = await import("../liberty/openhigh-frequencycluster_f1wf.service.js");
+            const res = await OpenHighFrequencyClusterService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentdaemon_oodf_logic": {
+          try {
+            const { OpenPersistentDaemonService } = await import("../liberty/openpersistentdaemon_oodf.service.js");
+            const res = await OpenPersistentDaemonService.execute(args.target || "system");
+            return { output: `### OpenPersistentDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablemesh_06n3_logic": {
+          try {
+            const { OpenImmutableMeshService } = await import("../liberty/openimmutablemesh_06n3.service.js");
+            const res = await OpenImmutableMeshService.execute(args.target || "system");
+            return { output: `### OpenImmutableMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedswarm_qew1_logic": {
           try {
             const { OpenAutomatedSwarmService } = await import("../liberty/openautomatedswarm_qew1.service.js");
