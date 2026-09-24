@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengraphnet_5vgd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNet) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterengine_nx8a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterEngine) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpudaemon_mpt7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUDaemon) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumlayer_45lq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumLayer) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialpipeline_36iy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialPipeline) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticrouter_l62u_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticRouter) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9932,6 +9972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengraphnet_5vgd_logic": {
+          try {
+            const { OpenGraphNetService } = await import("../liberty/opengraphnet_5vgd.service.js");
+            const res = await OpenGraphNetService.execute(args.target || "system");
+            return { output: `### OpenGraphNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterengine_nx8a_logic": {
+          try {
+            const { OpenCrossClusterEngineService } = await import("../liberty/opencross-clusterengine_nx8a.service.js");
+            const res = await OpenCrossClusterEngineService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpudaemon_mpt7_logic": {
+          try {
+            const { OpenGPUDaemonService } = await import("../liberty/opengpudaemon_mpt7.service.js");
+            const res = await OpenGPUDaemonService.execute(args.target || "system");
+            return { output: `### OpenGPUDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumlayer_45lq_logic": {
+          try {
+            const { OpenQuantumLayerService } = await import("../liberty/openquantumlayer_45lq.service.js");
+            const res = await OpenQuantumLayerService.execute(args.target || "system");
+            return { output: `### OpenQuantumLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialpipeline_36iy_logic": {
+          try {
+            const { OpenFinancialPipelineService } = await import("../liberty/openfinancialpipeline_36iy.service.js");
+            const res = await OpenFinancialPipelineService.execute(args.target || "system");
+            return { output: `### OpenFinancialPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticrouter_l62u_logic": {
           try {
             const { OpenStaticRouterService } = await import("../liberty/openstaticrouter_l62u.service.js");
