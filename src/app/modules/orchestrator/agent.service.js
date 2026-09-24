@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openneuromorphicstream_2r71_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicStream) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondoracle_0n3n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondOracle) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosfabric_dod4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosFabric) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedcontroller_0aq1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedController) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendataswarm_deza_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataSwarm) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwareswarm_4edb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareSwarm) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9812,6 +9852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openneuromorphicstream_2r71_logic": {
+          try {
+            const { OpenNeuromorphicStreamService } = await import("../liberty/openneuromorphicstream_2r71.service.js");
+            const res = await OpenNeuromorphicStreamService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondoracle_0n3n_logic": {
+          try {
+            const { OpenSubMillisecondOracleService } = await import("../liberty/opensub-millisecondoracle_0n3n.service.js");
+            const res = await OpenSubMillisecondOracleService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosfabric_dod4_logic": {
+          try {
+            const { OpenChaosFabricService } = await import("../liberty/openchaosfabric_dod4.service.js");
+            const res = await OpenChaosFabricService.execute(args.target || "system");
+            return { output: `### OpenChaosFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedcontroller_0aq1_logic": {
+          try {
+            const { OpenFederatedControllerService } = await import("../liberty/openfederatedcontroller_0aq1.service.js");
+            const res = await OpenFederatedControllerService.execute(args.target || "system");
+            return { output: `### OpenFederatedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedController failed: ${err.message}` };
+          }
+        }
+        case "execute_opendataswarm_deza_logic": {
+          try {
+            const { OpenDataSwarmService } = await import("../liberty/opendataswarm_deza.service.js");
+            const res = await OpenDataSwarmService.execute(args.target || "system");
+            return { output: `### OpenDataSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwareswarm_4edb_logic": {
           try {
             const { OpenHardwareSwarmService } = await import("../liberty/openhardwareswarm_4edb.service.js");
