@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterchain_6suz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterChain) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeplane_8rl3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgePlane) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpusync_f88p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUSync) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvanceddaemon_h9w0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedDaemon) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgestream_663m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeStream) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphiccompiler_o4r1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicCompiler) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2652,6 +2692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterchain_6suz_logic": {
+          try {
+            const { OpenCrossClusterChainService } = await import("../liberty/opencross-clusterchain_6suz.service.js");
+            const res = await OpenCrossClusterChainService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeplane_8rl3_logic": {
+          try {
+            const { OpenEdgePlaneService } = await import("../liberty/openedgeplane_8rl3.service.js");
+            const res = await OpenEdgePlaneService.execute(args.target || "system");
+            return { output: `### OpenEdgePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpusync_f88p_logic": {
+          try {
+            const { OpenGPUSyncService } = await import("../liberty/opengpusync_f88p.service.js");
+            const res = await OpenGPUSyncService.execute(args.target || "system");
+            return { output: `### OpenGPUSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvanceddaemon_h9w0_logic": {
+          try {
+            const { OpenAdvancedDaemonService } = await import("../liberty/openadvanceddaemon_h9w0.service.js");
+            const res = await OpenAdvancedDaemonService.execute(args.target || "system");
+            return { output: `### OpenAdvancedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgestream_663m_logic": {
+          try {
+            const { OpenEdgeStreamService } = await import("../liberty/openedgestream_663m.service.js");
+            const res = await OpenEdgeStreamService.execute(args.target || "system");
+            return { output: `### OpenEdgeStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeStream failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphiccompiler_o4r1_logic": {
           try {
             const { OpenHomomorphicCompilerService } = await import("../liberty/openhomomorphiccompiler_o4r1.service.js");
