@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedproxy_yd20_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedProxy) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicpipeline_wr2p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicPipeline) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustchain_bbap_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustChain) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpnode_v5yn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPNode) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencypipeline_2p91_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyPipeline) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpuvortex_stch_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUVortex) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5052,6 +5092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedproxy_yd20_logic": {
+          try {
+            const { OpenFederatedProxyService } = await import("../liberty/openfederatedproxy_yd20.service.js");
+            const res = await OpenFederatedProxyService.execute(args.target || "system");
+            return { output: `### OpenFederatedProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicpipeline_wr2p_logic": {
+          try {
+            const { OpenHomomorphicPipelineService } = await import("../liberty/openhomomorphicpipeline_wr2p.service.js");
+            const res = await OpenHomomorphicPipelineService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustchain_bbap_logic": {
+          try {
+            const { OpenZeroTrustChainService } = await import("../liberty/openzero-trustchain_bbap.service.js");
+            const res = await OpenZeroTrustChainService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpnode_v5yn_logic": {
+          try {
+            const { OpenBGPNodeService } = await import("../liberty/openbgpnode_v5yn.service.js");
+            const res = await OpenBGPNodeService.execute(args.target || "system");
+            return { output: `### OpenBGPNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencypipeline_2p91_logic": {
+          try {
+            const { OpenHighFrequencyPipelineService } = await import("../liberty/openhigh-frequencypipeline_2p91.service.js");
+            const res = await OpenHighFrequencyPipelineService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_opengpuvortex_stch_logic": {
           try {
             const { OpenGPUVortexService } = await import("../liberty/opengpuvortex_stch.service.js");
