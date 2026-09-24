@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendproxy_6tyw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendProxy) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosengine_fsz3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosEngine) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kerneldaemon_hw3j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelDaemon) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractoracle_4on0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractOracle) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondring_9fpt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondRing) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendatagrid_12de_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataGrid) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10612,6 +10652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendproxy_6tyw_logic": {
+          try {
+            const { OpenMicroFrontendProxyService } = await import("../liberty/openmicro-frontendproxy_6tyw.service.js");
+            const res = await OpenMicroFrontendProxyService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosengine_fsz3_logic": {
+          try {
+            const { OpenChaosEngineService } = await import("../liberty/openchaosengine_fsz3.service.js");
+            const res = await OpenChaosEngineService.execute(args.target || "system");
+            return { output: `### OpenChaosEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kerneldaemon_hw3j_logic": {
+          try {
+            const { OpenMicroKernelDaemonService } = await import("../liberty/openmicro-kerneldaemon_hw3j.service.js");
+            const res = await OpenMicroKernelDaemonService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractoracle_4on0_logic": {
+          try {
+            const { OpenAbstractOracleService } = await import("../liberty/openabstractoracle_4on0.service.js");
+            const res = await OpenAbstractOracleService.execute(args.target || "system");
+            return { output: `### OpenAbstractOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondring_9fpt_logic": {
+          try {
+            const { OpenSubMillisecondRingService } = await import("../liberty/opensub-millisecondring_9fpt.service.js");
+            const res = await OpenSubMillisecondRingService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondRing failed: ${err.message}` };
+          }
+        }
         case "execute_opendatagrid_12de_logic": {
           try {
             const { OpenDataGridService } = await import("../liberty/opendatagrid_12de.service.js");
