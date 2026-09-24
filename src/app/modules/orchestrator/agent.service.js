@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedmatrix_st0g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedMatrix) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessstream_qixn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessStream) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventrouter_qumo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventRouter) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpustream_ht8f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUStream) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractcompiler_p5hu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractCompiler) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfmatrix_d8s0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFMatrix) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11852,6 +11892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedmatrix_st0g_logic": {
+          try {
+            const { OpenDecentralizedMatrixService } = await import("../liberty/opendecentralizedmatrix_st0g.service.js");
+            const res = await OpenDecentralizedMatrixService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessstream_qixn_logic": {
+          try {
+            const { OpenHeadlessStreamService } = await import("../liberty/openheadlessstream_qixn.service.js");
+            const res = await OpenHeadlessStreamService.execute(args.target || "system");
+            return { output: `### OpenHeadlessStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventrouter_qumo_logic": {
+          try {
+            const { OpenEventRouterService } = await import("../liberty/openeventrouter_qumo.service.js");
+            const res = await OpenEventRouterService.execute(args.target || "system");
+            return { output: `### OpenEventRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpustream_ht8f_logic": {
+          try {
+            const { OpenGPUStreamService } = await import("../liberty/opengpustream_ht8f.service.js");
+            const res = await OpenGPUStreamService.execute(args.target || "system");
+            return { output: `### OpenGPUStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractcompiler_p5hu_logic": {
+          try {
+            const { OpenAbstractCompilerService } = await import("../liberty/openabstractcompiler_p5hu.service.js");
+            const res = await OpenAbstractCompilerService.execute(args.target || "system");
+            return { output: `### OpenAbstractCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfmatrix_d8s0_logic": {
           try {
             const { OpeneBPFMatrixService } = await import("../liberty/openebpfmatrix_d8s0.service.js");
