@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwareledger_gzmb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareLedger) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecore_db3m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCore) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedsync_kf68_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSync) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatednexus_ao4m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedNexus) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedpipeline_q2hh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedPipeline) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticrouter_bzqd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticRouter) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14212,6 +14252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwareledger_gzmb_logic": {
+          try {
+            const { OpenHardwareLedgerService } = await import("../liberty/openhardwareledger_gzmb.service.js");
+            const res = await OpenHardwareLedgerService.execute(args.target || "system");
+            return { output: `### OpenHardwareLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecore_db3m_logic": {
+          try {
+            const { OpenZeroKnowledgeCoreService } = await import("../liberty/openzero-knowledgecore_db3m.service.js");
+            const res = await OpenZeroKnowledgeCoreService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedsync_kf68_logic": {
+          try {
+            const { OpenDecentralizedSyncService } = await import("../liberty/opendecentralizedsync_kf68.service.js");
+            const res = await OpenDecentralizedSyncService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatednexus_ao4m_logic": {
+          try {
+            const { OpenAutomatedNexusService } = await import("../liberty/openautomatednexus_ao4m.service.js");
+            const res = await OpenAutomatedNexusService.execute(args.target || "system");
+            return { output: `### OpenAutomatedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedpipeline_q2hh_logic": {
+          try {
+            const { OpenDecentralizedPipelineService } = await import("../liberty/opendecentralizedpipeline_q2hh.service.js");
+            const res = await OpenDecentralizedPipelineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticrouter_bzqd_logic": {
           try {
             const { OpenSemanticRouterService } = await import("../liberty/opensemanticrouter_bzqd.service.js");
