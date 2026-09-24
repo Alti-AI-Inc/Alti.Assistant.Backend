@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedcontroller_a94v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedController) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessengine_g4tq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessEngine) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphledger_2xwd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphLedger) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencybroker_voza_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyBroker) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendrouter_m7hj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRouter) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwarerouter_bkjw_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareRouter) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3012,6 +3052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedcontroller_a94v_logic": {
+          try {
+            const { OpenDecentralizedControllerService } = await import("../liberty/opendecentralizedcontroller_a94v.service.js");
+            const res = await OpenDecentralizedControllerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedController failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessengine_g4tq_logic": {
+          try {
+            const { OpenHeadlessEngineService } = await import("../liberty/openheadlessengine_g4tq.service.js");
+            const res = await OpenHeadlessEngineService.execute(args.target || "system");
+            return { output: `### OpenHeadlessEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphledger_2xwd_logic": {
+          try {
+            const { OpenGraphLedgerService } = await import("../liberty/opengraphledger_2xwd.service.js");
+            const res = await OpenGraphLedgerService.execute(args.target || "system");
+            return { output: `### OpenGraphLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencybroker_voza_logic": {
+          try {
+            const { OpenHighFrequencyBrokerService } = await import("../liberty/openhigh-frequencybroker_voza.service.js");
+            const res = await OpenHighFrequencyBrokerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendrouter_m7hj_logic": {
+          try {
+            const { OpenMicroFrontendRouterService } = await import("../liberty/openmicro-frontendrouter_m7hj.service.js");
+            const res = await OpenMicroFrontendRouterService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwarerouter_bkjw_logic": {
           try {
             const { OpenHardwareRouterService } = await import("../liberty/openhardwarerouter_bkjw.service.js");
