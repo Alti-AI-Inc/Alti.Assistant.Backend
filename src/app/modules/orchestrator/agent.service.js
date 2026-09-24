@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutableengine_hyku_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableEngine) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivering_xlby_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveRing) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicstream_6smt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicStream) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogcontroller_abw0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogController) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeeppipeline_0au7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepPipeline) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticnet_3ryb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticNet) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5452,6 +5492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutableengine_hyku_logic": {
+          try {
+            const { OpenImmutableEngineService } = await import("../liberty/openimmutableengine_hyku.service.js");
+            const res = await OpenImmutableEngineService.execute(args.target || "system");
+            return { output: `### OpenImmutableEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivering_xlby_logic": {
+          try {
+            const { OpenPredictiveRingService } = await import("../liberty/openpredictivering_xlby.service.js");
+            const res = await OpenPredictiveRingService.execute(args.target || "system");
+            return { output: `### OpenPredictiveRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicstream_6smt_logic": {
+          try {
+            const { OpenNeuromorphicStreamService } = await import("../liberty/openneuromorphicstream_6smt.service.js");
+            const res = await OpenNeuromorphicStreamService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogcontroller_abw0_logic": {
+          try {
+            const { OpenLogControllerService } = await import("../liberty/openlogcontroller_abw0.service.js");
+            const res = await OpenLogControllerService.execute(args.target || "system");
+            return { output: `### OpenLogController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogController failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeeppipeline_0au7_logic": {
+          try {
+            const { OpenDeepPipelineService } = await import("../liberty/opendeeppipeline_0au7.service.js");
+            const res = await OpenDeepPipelineService.execute(args.target || "system");
+            return { output: `### OpenDeepPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticnet_3ryb_logic": {
           try {
             const { OpenStaticNetService } = await import("../liberty/openstaticnet_3ryb.service.js");
