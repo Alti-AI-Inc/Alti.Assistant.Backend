@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partysync_zm27_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartySync) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partygrid_kerp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyGrid) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustervortex_z14n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterVortex) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticdaemon_65ea_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticDaemon) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesswarm_h1ab_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesSwarm) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedmesh_sl1k_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedMesh) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3892,6 +3932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partysync_zm27_logic": {
+          try {
+            const { OpenMultiPartySyncService } = await import("../liberty/openmulti-partysync_zm27.service.js");
+            const res = await OpenMultiPartySyncService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartySync failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partygrid_kerp_logic": {
+          try {
+            const { OpenMultiPartyGridService } = await import("../liberty/openmulti-partygrid_kerp.service.js");
+            const res = await OpenMultiPartyGridService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustervortex_z14n_logic": {
+          try {
+            const { OpenCrossClusterVortexService } = await import("../liberty/opencross-clustervortex_z14n.service.js");
+            const res = await OpenCrossClusterVortexService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticdaemon_65ea_logic": {
+          try {
+            const { OpenStaticDaemonService } = await import("../liberty/openstaticdaemon_65ea.service.js");
+            const res = await OpenStaticDaemonService.execute(args.target || "system");
+            return { output: `### OpenStaticDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesswarm_h1ab_logic": {
+          try {
+            const { OpenTimeSeriesSwarmService } = await import("../liberty/opentime-seriesswarm_h1ab.service.js");
+            const res = await OpenTimeSeriesSwarmService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedmesh_sl1k_logic": {
           try {
             const { OpenDistributedMeshService } = await import("../liberty/opendistributedmesh_sl1k.service.js");
