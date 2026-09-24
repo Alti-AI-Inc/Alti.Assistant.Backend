@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwareplane_nkd1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwarePlane) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableplane_0993_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutablePlane) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriselayer_qq2n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseLayer) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesscore_tsyv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessCore) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessrouter_9c2r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessRouter) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustengine_jgxh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustEngine) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17612,6 +17652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwareplane_nkd1_logic": {
+          try {
+            const { OpenHardwarePlaneService } = await import("../liberty/openhardwareplane_nkd1.service.js");
+            const res = await OpenHardwarePlaneService.execute(args.target || "system");
+            return { output: `### OpenHardwarePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwarePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableplane_0993_logic": {
+          try {
+            const { OpenImmutablePlaneService } = await import("../liberty/openimmutableplane_0993.service.js");
+            const res = await OpenImmutablePlaneService.execute(args.target || "system");
+            return { output: `### OpenImmutablePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutablePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriselayer_qq2n_logic": {
+          try {
+            const { OpenEnterpriseLayerService } = await import("../liberty/openenterpriselayer_qq2n.service.js");
+            const res = await OpenEnterpriseLayerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesscore_tsyv_logic": {
+          try {
+            const { OpenServerlessCoreService } = await import("../liberty/openserverlesscore_tsyv.service.js");
+            const res = await OpenServerlessCoreService.execute(args.target || "system");
+            return { output: `### OpenServerlessCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessrouter_9c2r_logic": {
+          try {
+            const { OpenServerlessRouterService } = await import("../liberty/openserverlessrouter_9c2r.service.js");
+            const res = await OpenServerlessRouterService.execute(args.target || "system");
+            return { output: `### OpenServerlessRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustengine_jgxh_logic": {
           try {
             const { OpenZeroTrustEngineService } = await import("../liberty/openzero-trustengine_jgxh.service.js");
