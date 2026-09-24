@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablematrix_3xrt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableMatrix) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumlayer_kvz9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumLayer) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcontroller_y0wz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedController) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessdaemon_fmp3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessDaemon) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryengine_pv2z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryEngine) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openneuromorphicgraph_b1sl_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicGraph) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16612,6 +16652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablematrix_3xrt_logic": {
+          try {
+            const { OpenImmutableMatrixService } = await import("../liberty/openimmutablematrix_3xrt.service.js");
+            const res = await OpenImmutableMatrixService.execute(args.target || "system");
+            return { output: `### OpenImmutableMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumlayer_kvz9_logic": {
+          try {
+            const { OpenQuantumLayerService } = await import("../liberty/openquantumlayer_kvz9.service.js");
+            const res = await OpenQuantumLayerService.execute(args.target || "system");
+            return { output: `### OpenQuantumLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcontroller_y0wz_logic": {
+          try {
+            const { OpenAdvancedControllerService } = await import("../liberty/openadvancedcontroller_y0wz.service.js");
+            const res = await OpenAdvancedControllerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedController failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessdaemon_fmp3_logic": {
+          try {
+            const { OpenServerlessDaemonService } = await import("../liberty/openserverlessdaemon_fmp3.service.js");
+            const res = await OpenServerlessDaemonService.execute(args.target || "system");
+            return { output: `### OpenServerlessDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryengine_pv2z_logic": {
+          try {
+            const { OpenPlanetaryEngineService } = await import("../liberty/openplanetaryengine_pv2z.service.js");
+            const res = await OpenPlanetaryEngineService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openneuromorphicgraph_b1sl_logic": {
           try {
             const { OpenNeuromorphicGraphService } = await import("../liberty/openneuromorphicgraph_b1sl.service.js");
