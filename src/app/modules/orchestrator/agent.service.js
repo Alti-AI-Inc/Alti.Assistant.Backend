@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendgrid_3ddv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendGrid) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablegraph_ykbn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableGraph) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeswarm_v8lj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSwarm) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributednet_18p8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedNet) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycompiler_dxj7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyCompiler) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosnexus_fztj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosNexus) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3212,6 +3252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendgrid_3ddv_logic": {
+          try {
+            const { OpenMicroFrontendGridService } = await import("../liberty/openmicro-frontendgrid_3ddv.service.js");
+            const res = await OpenMicroFrontendGridService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablegraph_ykbn_logic": {
+          try {
+            const { OpenImmutableGraphService } = await import("../liberty/openimmutablegraph_ykbn.service.js");
+            const res = await OpenImmutableGraphService.execute(args.target || "system");
+            return { output: `### OpenImmutableGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeswarm_v8lj_logic": {
+          try {
+            const { OpenEdgeSwarmService } = await import("../liberty/openedgeswarm_v8lj.service.js");
+            const res = await OpenEdgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenEdgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributednet_18p8_logic": {
+          try {
+            const { OpenDistributedNetService } = await import("../liberty/opendistributednet_18p8.service.js");
+            const res = await OpenDistributedNetService.execute(args.target || "system");
+            return { output: `### OpenDistributedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycompiler_dxj7_logic": {
+          try {
+            const { OpenHighFrequencyCompilerService } = await import("../liberty/openhigh-frequencycompiler_dxj7.service.js");
+            const res = await OpenHighFrequencyCompilerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosnexus_fztj_logic": {
           try {
             const { OpenChaosNexusService } = await import("../liberty/openchaosnexus_fztj.service.js");
