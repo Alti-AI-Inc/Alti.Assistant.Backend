@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfvortex_i4va_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFVortex) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphengine_lr8y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphEngine) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencymesh_7zrk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyMesh) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancednet_quyb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNet) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecompiler_mysc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCompiler) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openin-memorybroker_36h9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryBroker) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19532,6 +19572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfvortex_i4va_logic": {
+          try {
+            const { OpeneBPFVortexService } = await import("../liberty/openebpfvortex_i4va.service.js");
+            const res = await OpeneBPFVortexService.execute(args.target || "system");
+            return { output: `### OpeneBPFVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphengine_lr8y_logic": {
+          try {
+            const { OpenGraphEngineService } = await import("../liberty/opengraphengine_lr8y.service.js");
+            const res = await OpenGraphEngineService.execute(args.target || "system");
+            return { output: `### OpenGraphEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencymesh_7zrk_logic": {
+          try {
+            const { OpenHighFrequencyMeshService } = await import("../liberty/openhigh-frequencymesh_7zrk.service.js");
+            const res = await OpenHighFrequencyMeshService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancednet_quyb_logic": {
+          try {
+            const { OpenAdvancedNetService } = await import("../liberty/openadvancednet_quyb.service.js");
+            const res = await OpenAdvancedNetService.execute(args.target || "system");
+            return { output: `### OpenAdvancedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecompiler_mysc_logic": {
+          try {
+            const { OpenCloudNativeCompilerService } = await import("../liberty/opencloud-nativecompiler_mysc.service.js");
+            const res = await OpenCloudNativeCompilerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openin-memorybroker_36h9_logic": {
           try {
             const { OpenInMemoryBrokerService } = await import("../liberty/openin-memorybroker_36h9.service.js");
