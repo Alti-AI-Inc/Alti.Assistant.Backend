@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessproxy_logic",
+      description: "Use the Aphura Engine (OpenHeadlessProxy) to Autonomously deploy Headless CMS Routing architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedgraph_logic",
+      description: "Use the Aphura Engine (OpenAutomatedGraph) to Autonomously deploy Automated Load Balancing architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryrouter_logic",
+      description: "Use the Aphura Engine (OpenIn-MemoryRouter) to Autonomously deploy In-Memory Data Grids architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentrouter_logic",
+      description: "Use the Aphura Engine (OpenPersistentRouter) to Autonomously deploy Persistent Memory architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractbroker_logic",
+      description: "Use the Aphura Engine (OpenAbstractBroker) to Autonomously deploy Abstract Syntax Trees architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedrouter_logic",
       description: "Use the Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy Decentralized Auth architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2012,6 +2052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessproxy_logic": {
+          try {
+            const { OpenheadlessproxyService } = await import("../enterprise/openheadlessproxy.service.js");
+            const res = await OpenheadlessproxyService.execute(args.target || "system");
+            return { output: `### OpenHeadlessProxy Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedgraph_logic": {
+          try {
+            const { OpenautomatedgraphService } = await import("../enterprise/openautomatedgraph.service.js");
+            const res = await OpenautomatedgraphService.execute(args.target || "system");
+            return { output: `### OpenAutomatedGraph Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryrouter_logic": {
+          try {
+            const { Openin-memoryrouterService } = await import("../enterprise/openin-memoryrouter.service.js");
+            const res = await Openin-memoryrouterService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryRouter Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentrouter_logic": {
+          try {
+            const { OpenpersistentrouterService } = await import("../enterprise/openpersistentrouter.service.js");
+            const res = await OpenpersistentrouterService.execute(args.target || "system");
+            return { output: `### OpenPersistentRouter Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractbroker_logic": {
+          try {
+            const { OpenabstractbrokerService } = await import("../enterprise/openabstractbroker.service.js");
+            const res = await OpenabstractbrokerService.execute(args.target || "system");
+            return { output: `### OpenAbstractBroker Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractBroker failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedrouter_logic": {
           try {
             const { OpendecentralizedrouterService } = await import("../enterprise/opendecentralizedrouter.service.js");
