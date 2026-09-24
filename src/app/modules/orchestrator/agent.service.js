@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "configure_iceberg_tables",
+      description: "Use the Aphura Open Table Engine (Apache Iceberg) to bring SQL-like reliability and ACID transactions to massive Data Lakes, allowing multiple analytical engines to query Petabytes of data concurrently without locking.",
+      parameters: { type: "object", properties: { dataLakePath: { type: "string" } }, required: ["dataLakePath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "route_enterprise_data",
+      description: "Use the Aphura Data Routing Engine (Apache NiFi) to autonomously wire, route, and transform massive data flows between thousands of disconnected enterprise systems with perfect guaranteed delivery.",
+      parameters: { type: "object", properties: { sourceSystem: { type: "string" }, destinationSystem: { type: "string" } }, required: ["sourceSystem", "destinationSystem"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deploy_unified_etl_pipeline",
+      description: "Use the Aphura Unified Data Engine (Apache Beam) to autonomously author and deploy complex ETL pipelines that can process massive static batch files and real-time streaming data simultaneously.",
+      parameters: { type: "object", properties: { pipelineName: { type: "string" } }, required: ["pipelineName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_spark_analytics",
+      description: "Use the Aphura Analytics Engine (Apache Spark) to autonomously distribute and execute extremely fast Data Science operations (like MapReduce or ML training) entirely in-memory across the cluster.",
+      parameters: { type: "object", properties: { jobType: { type: "string" }, datasetUrl: { type: "string" } }, required: ["jobType", "datasetUrl"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "provision_hadoop_hdfs",
+      description: "Use the Aphura Distributed Storage Engine (Apache Hadoop) to autonomously orchestrate massive HDFS clusters capable of securely storing Exabytes of unstructured enterprise data across OpenStack.",
+      parameters: { type: "object", properties: { clusterName: { type: "string" }, datanodeCount: { type: "number" } }, required: ["clusterName", "datanodeCount"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_in_memory_vector_search",
       description: "Use the Aphura Similarity Search Engine (FAISS) to execute hyper-fast, localized in-memory vector similarity searches, bypassing heavy database lookups for instant semantic context retrieval.",
       parameters: { type: "object", properties: { vectorQuery: { type: "string" } }, required: ["vectorQuery"] }
@@ -1332,7 +1372,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "execute_in_memory_vector_search": {
+        case "configure_iceberg_tables": {
+          try {
+            const { IcebergService } = await import("../data/iceberg.service.js");
+            const res = await IcebergService.configureTableFormat(args.dataLakePath);
+            return { output: `### Iceberg Data Lake Active\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Iceberg configuration failed: ${err.message}` };
+          }
+        }        case "route_enterprise_data": {
+          try {
+            const { NiFiService } = await import("../data/nifi.service.js");
+            const res = await NiFiService.configureDataFlow(args.sourceSystem, args.destinationSystem);
+            return { output: `### NiFi Routing Configured\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `NiFi failed: ${err.message}` };
+          }
+        }        case "deploy_unified_etl_pipeline": {
+          try {
+            const { BeamService } = await import("../data/beam.service.js");
+            const res = await BeamService.deployUnifiedPipeline(args.pipelineName);
+            return { output: `### Beam Pipeline Deployed\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Beam deployment failed: ${err.message}` };
+          }
+        }        case "execute_spark_analytics": {
+          try {
+            const { SparkService } = await import("../data/spark.service.js");
+            const res = await SparkService.executeSparkJob(args.jobType, args.datasetUrl);
+            return { output: `### Spark Analytics Result\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Spark failed: ${err.message}` };
+          }
+        }        case "provision_hadoop_hdfs": {
+          try {
+            const { HadoopService } = await import("../data/hadoop.service.js");
+            const res = await HadoopService.provisionHdfs(args.clusterName, args.datanodeCount);
+            return { output: `### Hadoop HDFS Deployed\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Hadoop provisioning failed: ${err.message}` };
+          }
+        }        case "execute_in_memory_vector_search": {
           try {
             const { FaissService } = await import("../data/faiss.service.js");
             const res = await FaissService.searchVectorSpace(args.vectorQuery);
