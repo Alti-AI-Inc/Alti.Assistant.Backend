@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondnexus_03th_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondNexus) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialcore_r4rd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialCore) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecontroller_ulr7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareController) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustvault_abm4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustVault) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorysync_5uh1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemorySync) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancednet_o6t5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNet) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3452,6 +3492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondnexus_03th_logic": {
+          try {
+            const { OpenSubMillisecondNexusService } = await import("../liberty/opensub-millisecondnexus_03th.service.js");
+            const res = await OpenSubMillisecondNexusService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialcore_r4rd_logic": {
+          try {
+            const { OpenFinancialCoreService } = await import("../liberty/openfinancialcore_r4rd.service.js");
+            const res = await OpenFinancialCoreService.execute(args.target || "system");
+            return { output: `### OpenFinancialCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecontroller_ulr7_logic": {
+          try {
+            const { OpenHardwareControllerService } = await import("../liberty/openhardwarecontroller_ulr7.service.js");
+            const res = await OpenHardwareControllerService.execute(args.target || "system");
+            return { output: `### OpenHardwareController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareController failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustvault_abm4_logic": {
+          try {
+            const { OpenZeroTrustVaultService } = await import("../liberty/openzero-trustvault_abm4.service.js");
+            const res = await OpenZeroTrustVaultService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorysync_5uh1_logic": {
+          try {
+            const { OpenInMemorySyncService } = await import("../liberty/openin-memorysync_5uh1.service.js");
+            const res = await OpenInMemorySyncService.execute(args.target || "system");
+            return { output: `### OpenIn-MemorySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemorySync failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancednet_o6t5_logic": {
           try {
             const { OpenAdvancedNetService } = await import("../liberty/openadvancednet_o6t5.service.js");
