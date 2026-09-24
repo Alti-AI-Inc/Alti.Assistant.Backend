@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelengine_di7c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelEngine) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticpipeline_l9b1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticPipeline) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatadaemon_g4s9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataDaemon) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumcontroller_u5mc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumController) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelnexus_rz3e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNexus) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openin-memoryrouter_iafs_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryRouter) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15612,6 +15652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelengine_di7c_logic": {
+          try {
+            const { OpenMicroKernelEngineService } = await import("../liberty/openmicro-kernelengine_di7c.service.js");
+            const res = await OpenMicroKernelEngineService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticpipeline_l9b1_logic": {
+          try {
+            const { OpenStaticPipelineService } = await import("../liberty/openstaticpipeline_l9b1.service.js");
+            const res = await OpenStaticPipelineService.execute(args.target || "system");
+            return { output: `### OpenStaticPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatadaemon_g4s9_logic": {
+          try {
+            const { OpenDataDaemonService } = await import("../liberty/opendatadaemon_g4s9.service.js");
+            const res = await OpenDataDaemonService.execute(args.target || "system");
+            return { output: `### OpenDataDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumcontroller_u5mc_logic": {
+          try {
+            const { OpenQuantumControllerService } = await import("../liberty/openquantumcontroller_u5mc.service.js");
+            const res = await OpenQuantumControllerService.execute(args.target || "system");
+            return { output: `### OpenQuantumController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumController failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelnexus_rz3e_logic": {
+          try {
+            const { OpenMicroKernelNexusService } = await import("../liberty/openmicro-kernelnexus_rz3e.service.js");
+            const res = await OpenMicroKernelNexusService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openin-memoryrouter_iafs_logic": {
           try {
             const { OpenInMemoryRouterService } = await import("../liberty/openin-memoryrouter_iafs.service.js");
