@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticcore_igcc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticCore) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticgrid_0qb1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticGrid) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterfabric_jgcv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterFabric) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumfabric_y19y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumFabric) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecompiler_w0xs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCompiler) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivering_t5ke_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveRing) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19172,6 +19212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticcore_igcc_logic": {
+          try {
+            const { OpenStaticCoreService } = await import("../liberty/openstaticcore_igcc.service.js");
+            const res = await OpenStaticCoreService.execute(args.target || "system");
+            return { output: `### OpenStaticCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticgrid_0qb1_logic": {
+          try {
+            const { OpenSemanticGridService } = await import("../liberty/opensemanticgrid_0qb1.service.js");
+            const res = await OpenSemanticGridService.execute(args.target || "system");
+            return { output: `### OpenSemanticGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterfabric_jgcv_logic": {
+          try {
+            const { OpenCrossClusterFabricService } = await import("../liberty/opencross-clusterfabric_jgcv.service.js");
+            const res = await OpenCrossClusterFabricService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumfabric_y19y_logic": {
+          try {
+            const { OpenQuantumFabricService } = await import("../liberty/openquantumfabric_y19y.service.js");
+            const res = await OpenQuantumFabricService.execute(args.target || "system");
+            return { output: `### OpenQuantumFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecompiler_w0xs_logic": {
+          try {
+            const { OpenZeroKnowledgeCompilerService } = await import("../liberty/openzero-knowledgecompiler_w0xs.service.js");
+            const res = await OpenZeroKnowledgeCompilerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivering_t5ke_logic": {
           try {
             const { OpenPredictiveRingService } = await import("../liberty/openpredictivering_t5ke.service.js");
