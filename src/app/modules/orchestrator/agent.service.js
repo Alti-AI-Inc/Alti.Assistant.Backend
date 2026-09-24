@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustmatrix_olai_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustMatrix) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederateddaemon_98pf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedDaemon) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgraph_kznt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicmatrix_3yiw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMatrix) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondgrid_vmr9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondGrid) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openlogcore_6jb5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenLogCore) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18772,6 +18812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustmatrix_olai_logic": {
+          try {
+            const { OpenZeroTrustMatrixService } = await import("../liberty/openzero-trustmatrix_olai.service.js");
+            const res = await OpenZeroTrustMatrixService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederateddaemon_98pf_logic": {
+          try {
+            const { OpenFederatedDaemonService } = await import("../liberty/openfederateddaemon_98pf.service.js");
+            const res = await OpenFederatedDaemonService.execute(args.target || "system");
+            return { output: `### OpenFederatedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgraph_kznt_logic": {
+          try {
+            const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_kznt.service.js");
+            const res = await OpenDecentralizedGraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicmatrix_3yiw_logic": {
+          try {
+            const { OpenHomomorphicMatrixService } = await import("../liberty/openhomomorphicmatrix_3yiw.service.js");
+            const res = await OpenHomomorphicMatrixService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondgrid_vmr9_logic": {
+          try {
+            const { OpenSubMillisecondGridService } = await import("../liberty/opensub-millisecondgrid_vmr9.service.js");
+            const res = await OpenSubMillisecondGridService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openlogcore_6jb5_logic": {
           try {
             const { OpenLogCoreService } = await import("../liberty/openlogcore_6jb5.service.js");
