@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablerouter_wl11_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableRouter) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventplane_xm9j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventPlane) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialproxy_klye_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialProxy) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustergraph_5wbn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterGraph) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpucluster_22zl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUCluster) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedengine_3g6y_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedEngine) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15772,6 +15812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablerouter_wl11_logic": {
+          try {
+            const { OpenImmutableRouterService } = await import("../liberty/openimmutablerouter_wl11.service.js");
+            const res = await OpenImmutableRouterService.execute(args.target || "system");
+            return { output: `### OpenImmutableRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventplane_xm9j_logic": {
+          try {
+            const { OpenEventPlaneService } = await import("../liberty/openeventplane_xm9j.service.js");
+            const res = await OpenEventPlaneService.execute(args.target || "system");
+            return { output: `### OpenEventPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialproxy_klye_logic": {
+          try {
+            const { OpenFinancialProxyService } = await import("../liberty/openfinancialproxy_klye.service.js");
+            const res = await OpenFinancialProxyService.execute(args.target || "system");
+            return { output: `### OpenFinancialProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustergraph_5wbn_logic": {
+          try {
+            const { OpenCrossClusterGraphService } = await import("../liberty/opencross-clustergraph_5wbn.service.js");
+            const res = await OpenCrossClusterGraphService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpucluster_22zl_logic": {
+          try {
+            const { OpenGPUClusterService } = await import("../liberty/opengpucluster_22zl.service.js");
+            const res = await OpenGPUClusterService.execute(args.target || "system");
+            return { output: `### OpenGPUCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUCluster failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedengine_3g6y_logic": {
           try {
             const { OpenDistributedEngineService } = await import("../liberty/opendistributedengine_3g6y.service.js");
