@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisemesh_a0in_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseMesh) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicpipeline_g8xz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicPipeline) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partychain_ltzr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyChain) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgegrid_kf59_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeGrid) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyvortex_fmfa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyVortex) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgenode_zwfb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeNode) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10052,6 +10092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisemesh_a0in_logic": {
+          try {
+            const { OpenEnterpriseMeshService } = await import("../liberty/openenterprisemesh_a0in.service.js");
+            const res = await OpenEnterpriseMeshService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicpipeline_g8xz_logic": {
+          try {
+            const { OpenHomomorphicPipelineService } = await import("../liberty/openhomomorphicpipeline_g8xz.service.js");
+            const res = await OpenHomomorphicPipelineService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partychain_ltzr_logic": {
+          try {
+            const { OpenMultiPartyChainService } = await import("../liberty/openmulti-partychain_ltzr.service.js");
+            const res = await OpenMultiPartyChainService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgegrid_kf59_logic": {
+          try {
+            const { OpenEdgeGridService } = await import("../liberty/openedgegrid_kf59.service.js");
+            const res = await OpenEdgeGridService.execute(args.target || "system");
+            return { output: `### OpenEdgeGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyvortex_fmfa_logic": {
+          try {
+            const { OpenMultiPartyVortexService } = await import("../liberty/openmulti-partyvortex_fmfa.service.js");
+            const res = await OpenMultiPartyVortexService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openedgenode_zwfb_logic": {
           try {
             const { OpenEdgeNodeService } = await import("../liberty/openedgenode_zwfb.service.js");
