@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialchain_0l8w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialChain) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisevortex_lv9p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseVortex) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencystream_c0yl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyStream) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractsync_et59_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractSync) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpchain_jc8d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPChain) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openabstractdaemon_s8ds_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAbstractDaemon) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17492,6 +17532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialchain_0l8w_logic": {
+          try {
+            const { OpenFinancialChainService } = await import("../liberty/openfinancialchain_0l8w.service.js");
+            const res = await OpenFinancialChainService.execute(args.target || "system");
+            return { output: `### OpenFinancialChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisevortex_lv9p_logic": {
+          try {
+            const { OpenEnterpriseVortexService } = await import("../liberty/openenterprisevortex_lv9p.service.js");
+            const res = await OpenEnterpriseVortexService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencystream_c0yl_logic": {
+          try {
+            const { OpenHighFrequencyStreamService } = await import("../liberty/openhigh-frequencystream_c0yl.service.js");
+            const res = await OpenHighFrequencyStreamService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractsync_et59_logic": {
+          try {
+            const { OpenAbstractSyncService } = await import("../liberty/openabstractsync_et59.service.js");
+            const res = await OpenAbstractSyncService.execute(args.target || "system");
+            return { output: `### OpenAbstractSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpchain_jc8d_logic": {
+          try {
+            const { OpenBGPChainService } = await import("../liberty/openbgpchain_jc8d.service.js");
+            const res = await OpenBGPChainService.execute(args.target || "system");
+            return { output: `### OpenBGPChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPChain failed: ${err.message}` };
+          }
+        }
         case "execute_openabstractdaemon_s8ds_logic": {
           try {
             const { OpenAbstractDaemonService } = await import("../liberty/openabstractdaemon_s8ds.service.js");
