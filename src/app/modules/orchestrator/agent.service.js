@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativeledger_tb55_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeLedger) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicsync_tve6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicSync) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscompiler_xnyg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCompiler) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessfabric_lohe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessFabric) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicmesh_bhm8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMesh) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelmatrix_7qk6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMatrix) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20452,6 +20492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativeledger_tb55_logic": {
+          try {
+            const { OpenCloudNativeLedgerService } = await import("../liberty/opencloud-nativeledger_tb55.service.js");
+            const res = await OpenCloudNativeLedgerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicsync_tve6_logic": {
+          try {
+            const { OpenNeuromorphicSyncService } = await import("../liberty/openneuromorphicsync_tve6.service.js");
+            const res = await OpenNeuromorphicSyncService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscompiler_xnyg_logic": {
+          try {
+            const { OpenChaosCompilerService } = await import("../liberty/openchaoscompiler_xnyg.service.js");
+            const res = await OpenChaosCompilerService.execute(args.target || "system");
+            return { output: `### OpenChaosCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessfabric_lohe_logic": {
+          try {
+            const { OpenHeadlessFabricService } = await import("../liberty/openheadlessfabric_lohe.service.js");
+            const res = await OpenHeadlessFabricService.execute(args.target || "system");
+            return { output: `### OpenHeadlessFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicmesh_bhm8_logic": {
+          try {
+            const { OpenHomomorphicMeshService } = await import("../liberty/openhomomorphicmesh_bhm8.service.js");
+            const res = await OpenHomomorphicMeshService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelmatrix_7qk6_logic": {
           try {
             const { OpenMicroKernelMatrixService } = await import("../liberty/openmicro-kernelmatrix_7qk6.service.js");
