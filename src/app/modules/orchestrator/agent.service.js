@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterpipeline_s5a8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterPipeline) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedswarm_6zje_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSwarm) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticgraph_0gxm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticGraph) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessoracle_ejhv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessOracle) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednexus_lip1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNexus) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedvault_4r1s_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVault) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7292,6 +7332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterpipeline_s5a8_logic": {
+          try {
+            const { OpenCrossClusterPipelineService } = await import("../liberty/opencross-clusterpipeline_s5a8.service.js");
+            const res = await OpenCrossClusterPipelineService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedswarm_6zje_logic": {
+          try {
+            const { OpenDecentralizedSwarmService } = await import("../liberty/opendecentralizedswarm_6zje.service.js");
+            const res = await OpenDecentralizedSwarmService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticgraph_0gxm_logic": {
+          try {
+            const { OpenSemanticGraphService } = await import("../liberty/opensemanticgraph_0gxm.service.js");
+            const res = await OpenSemanticGraphService.execute(args.target || "system");
+            return { output: `### OpenSemanticGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessoracle_ejhv_logic": {
+          try {
+            const { OpenServerlessOracleService } = await import("../liberty/openserverlessoracle_ejhv.service.js");
+            const res = await OpenServerlessOracleService.execute(args.target || "system");
+            return { output: `### OpenServerlessOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednexus_lip1_logic": {
+          try {
+            const { OpenDecentralizedNexusService } = await import("../liberty/opendecentralizednexus_lip1.service.js");
+            const res = await OpenDecentralizedNexusService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNexus failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedvault_4r1s_logic": {
           try {
             const { OpenDecentralizedVaultService } = await import("../liberty/opendecentralizedvault_4r1s.service.js");
