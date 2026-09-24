@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumchain_728j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumChain) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractnet_x3x2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractNet) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessnode_5c2v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessNode) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyswarm_97xj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartySwarm) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepgraph_apjg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepGraph) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectorrouter_17so_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorRouter) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11732,6 +11772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumchain_728j_logic": {
+          try {
+            const { OpenQuantumChainService } = await import("../liberty/openquantumchain_728j.service.js");
+            const res = await OpenQuantumChainService.execute(args.target || "system");
+            return { output: `### OpenQuantumChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractnet_x3x2_logic": {
+          try {
+            const { OpenAbstractNetService } = await import("../liberty/openabstractnet_x3x2.service.js");
+            const res = await OpenAbstractNetService.execute(args.target || "system");
+            return { output: `### OpenAbstractNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessnode_5c2v_logic": {
+          try {
+            const { OpenServerlessNodeService } = await import("../liberty/openserverlessnode_5c2v.service.js");
+            const res = await OpenServerlessNodeService.execute(args.target || "system");
+            return { output: `### OpenServerlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyswarm_97xj_logic": {
+          try {
+            const { OpenMultiPartySwarmService } = await import("../liberty/openmulti-partyswarm_97xj.service.js");
+            const res = await OpenMultiPartySwarmService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartySwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartySwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepgraph_apjg_logic": {
+          try {
+            const { OpenDeepGraphService } = await import("../liberty/opendeepgraph_apjg.service.js");
+            const res = await OpenDeepGraphService.execute(args.target || "system");
+            return { output: `### OpenDeepGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openvectorrouter_17so_logic": {
           try {
             const { OpenVectorRouterService } = await import("../liberty/openvectorrouter_17so.service.js");
