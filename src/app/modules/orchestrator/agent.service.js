@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedrouter_logic",
+      description: "Use the Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy Decentralized Auth architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogmatrix_logic",
+      description: "Use the Aphura Engine (OpenLogMatrix) to Autonomously deploy Log Aggregation architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecore_logic",
+      description: "Use the Aphura Engine (OpenCloud-NativeCore) to Autonomously deploy Cloud-Native Networking architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogmesh_logic",
+      description: "Use the Aphura Engine (OpenLogMesh) to Autonomously deploy Log Aggregation architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedcompiler_logic",
+      description: "Use the Aphura Engine (OpenDistributedCompiler) to Autonomously deploy Distributed Caching architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticgrid_logic",
       description: "Use the Aphura Engine (OpenStaticGrid) to Autonomously deploy Static Code Analysis architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1972,6 +2012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedrouter_logic": {
+          try {
+            const { OpendecentralizedrouterService } = await import("../enterprise/opendecentralizedrouter.service.js");
+            const res = await OpendecentralizedrouterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRouter Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogmatrix_logic": {
+          try {
+            const { OpenlogmatrixService } = await import("../enterprise/openlogmatrix.service.js");
+            const res = await OpenlogmatrixService.execute(args.target || "system");
+            return { output: `### OpenLogMatrix Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecore_logic": {
+          try {
+            const { Opencloud-nativecoreService } = await import("../enterprise/opencloud-nativecore.service.js");
+            const res = await Opencloud-nativecoreService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCore Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogmesh_logic": {
+          try {
+            const { OpenlogmeshService } = await import("../enterprise/openlogmesh.service.js");
+            const res = await OpenlogmeshService.execute(args.target || "system");
+            return { output: `### OpenLogMesh Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedcompiler_logic": {
+          try {
+            const { OpendistributedcompilerService } = await import("../enterprise/opendistributedcompiler.service.js");
+            const res = await OpendistributedcompilerService.execute(args.target || "system");
+            return { output: `### OpenDistributedCompiler Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticgrid_logic": {
           try {
             const { OpenstaticgridService } = await import("../enterprise/openstaticgrid.service.js");
