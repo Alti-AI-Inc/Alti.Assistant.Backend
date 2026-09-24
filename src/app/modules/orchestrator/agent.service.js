@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablefabric_bnv1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableFabric) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumengine_56nk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumEngine) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictiveproxy_u9ir_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveProxy) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancednode_ect2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNode) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticgraph_5lya_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticGraph) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablegraph_psw5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableGraph) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6452,6 +6492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablefabric_bnv1_logic": {
+          try {
+            const { OpenImmutableFabricService } = await import("../liberty/openimmutablefabric_bnv1.service.js");
+            const res = await OpenImmutableFabricService.execute(args.target || "system");
+            return { output: `### OpenImmutableFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumengine_56nk_logic": {
+          try {
+            const { OpenQuantumEngineService } = await import("../liberty/openquantumengine_56nk.service.js");
+            const res = await OpenQuantumEngineService.execute(args.target || "system");
+            return { output: `### OpenQuantumEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictiveproxy_u9ir_logic": {
+          try {
+            const { OpenPredictiveProxyService } = await import("../liberty/openpredictiveproxy_u9ir.service.js");
+            const res = await OpenPredictiveProxyService.execute(args.target || "system");
+            return { output: `### OpenPredictiveProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancednode_ect2_logic": {
+          try {
+            const { OpenAdvancedNodeService } = await import("../liberty/openadvancednode_ect2.service.js");
+            const res = await OpenAdvancedNodeService.execute(args.target || "system");
+            return { output: `### OpenAdvancedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticgraph_5lya_logic": {
+          try {
+            const { OpenSemanticGraphService } = await import("../liberty/opensemanticgraph_5lya.service.js");
+            const res = await OpenSemanticGraphService.execute(args.target || "system");
+            return { output: `### OpenSemanticGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablegraph_psw5_logic": {
           try {
             const { OpenImmutableGraphService } = await import("../liberty/openimmutablegraph_psw5.service.js");
