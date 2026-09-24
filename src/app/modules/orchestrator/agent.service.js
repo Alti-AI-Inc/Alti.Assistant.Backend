@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengraphrouter_r2em_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphRouter) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepswarm_wlro_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepSwarm) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractvault_59tl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractVault) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativeproxy_o70s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeProxy) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecluster_17k9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCluster) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgefabric_fu6x_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeFabric) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6332,6 +6372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengraphrouter_r2em_logic": {
+          try {
+            const { OpenGraphRouterService } = await import("../liberty/opengraphrouter_r2em.service.js");
+            const res = await OpenGraphRouterService.execute(args.target || "system");
+            return { output: `### OpenGraphRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepswarm_wlro_logic": {
+          try {
+            const { OpenDeepSwarmService } = await import("../liberty/opendeepswarm_wlro.service.js");
+            const res = await OpenDeepSwarmService.execute(args.target || "system");
+            return { output: `### OpenDeepSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractvault_59tl_logic": {
+          try {
+            const { OpenAbstractVaultService } = await import("../liberty/openabstractvault_59tl.service.js");
+            const res = await OpenAbstractVaultService.execute(args.target || "system");
+            return { output: `### OpenAbstractVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativeproxy_o70s_logic": {
+          try {
+            const { OpenCloudNativeProxyService } = await import("../liberty/opencloud-nativeproxy_o70s.service.js");
+            const res = await OpenCloudNativeProxyService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecluster_17k9_logic": {
+          try {
+            const { OpenCloudNativeClusterService } = await import("../liberty/opencloud-nativecluster_17k9.service.js");
+            const res = await OpenCloudNativeClusterService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openedgefabric_fu6x_logic": {
           try {
             const { OpenEdgeFabricService } = await import("../liberty/openedgefabric_fu6x.service.js");
