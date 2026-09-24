@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedsync_ey3r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedSync) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticdaemon_6sj1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticDaemon) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventchain_dx8w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventChain) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgenexus_rt7b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeNexus) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivesync_jviz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveSync) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatednet_fxjw_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedNet) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15012,6 +15052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedsync_ey3r_logic": {
+          try {
+            const { OpenAutomatedSyncService } = await import("../liberty/openautomatedsync_ey3r.service.js");
+            const res = await OpenAutomatedSyncService.execute(args.target || "system");
+            return { output: `### OpenAutomatedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticdaemon_6sj1_logic": {
+          try {
+            const { OpenStaticDaemonService } = await import("../liberty/openstaticdaemon_6sj1.service.js");
+            const res = await OpenStaticDaemonService.execute(args.target || "system");
+            return { output: `### OpenStaticDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventchain_dx8w_logic": {
+          try {
+            const { OpenEventChainService } = await import("../liberty/openeventchain_dx8w.service.js");
+            const res = await OpenEventChainService.execute(args.target || "system");
+            return { output: `### OpenEventChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgenexus_rt7b_logic": {
+          try {
+            const { OpenZeroKnowledgeNexusService } = await import("../liberty/openzero-knowledgenexus_rt7b.service.js");
+            const res = await OpenZeroKnowledgeNexusService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivesync_jviz_logic": {
+          try {
+            const { OpenPredictiveSyncService } = await import("../liberty/openpredictivesync_jviz.service.js");
+            const res = await OpenPredictiveSyncService.execute(args.target || "system");
+            return { output: `### OpenPredictiveSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveSync failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatednet_fxjw_logic": {
           try {
             const { OpenAutomatedNetService } = await import("../liberty/openautomatednet_fxjw.service.js");
