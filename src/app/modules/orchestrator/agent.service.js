@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialoracle_nvkd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialOracle) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgering_jayn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeRing) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialpipeline_i9i6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialPipeline) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedplane_0du0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedPlane) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecluster_p2o7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareCluster) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepnode_dzb0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepNode) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6092,6 +6132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialoracle_nvkd_logic": {
+          try {
+            const { OpenFinancialOracleService } = await import("../liberty/openfinancialoracle_nvkd.service.js");
+            const res = await OpenFinancialOracleService.execute(args.target || "system");
+            return { output: `### OpenFinancialOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgering_jayn_logic": {
+          try {
+            const { OpenEdgeRingService } = await import("../liberty/openedgering_jayn.service.js");
+            const res = await OpenEdgeRingService.execute(args.target || "system");
+            return { output: `### OpenEdgeRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialpipeline_i9i6_logic": {
+          try {
+            const { OpenFinancialPipelineService } = await import("../liberty/openfinancialpipeline_i9i6.service.js");
+            const res = await OpenFinancialPipelineService.execute(args.target || "system");
+            return { output: `### OpenFinancialPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedplane_0du0_logic": {
+          try {
+            const { OpenDecentralizedPlaneService } = await import("../liberty/opendecentralizedplane_0du0.service.js");
+            const res = await OpenDecentralizedPlaneService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecluster_p2o7_logic": {
+          try {
+            const { OpenHardwareClusterService } = await import("../liberty/openhardwarecluster_p2o7.service.js");
+            const res = await OpenHardwareClusterService.execute(args.target || "system");
+            return { output: `### OpenHardwareCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareCluster failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepnode_dzb0_logic": {
           try {
             const { OpenDeepNodeService } = await import("../liberty/opendeepnode_dzb0.service.js");
