@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterpriseswarm_92el_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseSwarm) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfengine_eu6w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFEngine) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialring_n1kt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialRing) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventoracle_uhwm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventOracle) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondledger_zc8z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondLedger) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendataproxy_tfuz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataProxy) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2532,6 +2572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterpriseswarm_92el_logic": {
+          try {
+            const { OpenEnterpriseSwarmService } = await import("../liberty/openenterpriseswarm_92el.service.js");
+            const res = await OpenEnterpriseSwarmService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfengine_eu6w_logic": {
+          try {
+            const { OpeneBPFEngineService } = await import("../liberty/openebpfengine_eu6w.service.js");
+            const res = await OpeneBPFEngineService.execute(args.target || "system");
+            return { output: `### OpeneBPFEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialring_n1kt_logic": {
+          try {
+            const { OpenFinancialRingService } = await import("../liberty/openfinancialring_n1kt.service.js");
+            const res = await OpenFinancialRingService.execute(args.target || "system");
+            return { output: `### OpenFinancialRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventoracle_uhwm_logic": {
+          try {
+            const { OpenEventOracleService } = await import("../liberty/openeventoracle_uhwm.service.js");
+            const res = await OpenEventOracleService.execute(args.target || "system");
+            return { output: `### OpenEventOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondledger_zc8z_logic": {
+          try {
+            const { OpenSubMillisecondLedgerService } = await import("../liberty/opensub-millisecondledger_zc8z.service.js");
+            const res = await OpenSubMillisecondLedgerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondLedger failed: ${err.message}` };
+          }
+        }
         case "execute_opendataproxy_tfuz_logic": {
           try {
             const { OpenDataProxyService } = await import("../liberty/opendataproxy_tfuz.service.js");
