@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarycontroller_3pn9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryController) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryfabric_ip0u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryFabric) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedmesh_fta3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedMesh) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenexus_zoln_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNexus) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterengine_5xfe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterEngine) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialnet_xwyx_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialNet) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11372,6 +11412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarycontroller_3pn9_logic": {
+          try {
+            const { OpenPlanetaryControllerService } = await import("../liberty/openplanetarycontroller_3pn9.service.js");
+            const res = await OpenPlanetaryControllerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryController failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryfabric_ip0u_logic": {
+          try {
+            const { OpenPlanetaryFabricService } = await import("../liberty/openplanetaryfabric_ip0u.service.js");
+            const res = await OpenPlanetaryFabricService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedmesh_fta3_logic": {
+          try {
+            const { OpenAdvancedMeshService } = await import("../liberty/openadvancedmesh_fta3.service.js");
+            const res = await OpenAdvancedMeshService.execute(args.target || "system");
+            return { output: `### OpenAdvancedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenexus_zoln_logic": {
+          try {
+            const { OpenCloudNativeNexusService } = await import("../liberty/opencloud-nativenexus_zoln.service.js");
+            const res = await OpenCloudNativeNexusService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterengine_5xfe_logic": {
+          try {
+            const { OpenCrossClusterEngineService } = await import("../liberty/opencross-clusterengine_5xfe.service.js");
+            const res = await OpenCrossClusterEngineService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialnet_xwyx_logic": {
           try {
             const { OpenFinancialNetService } = await import("../liberty/openfinancialnet_xwyx.service.js");
