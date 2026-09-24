@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativecluster_jdp2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCluster) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableoracle_wz9h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableOracle) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryoracle_f4qv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryOracle) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustledger_d00o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustLedger) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesspipeline_03gz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessPipeline) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgering_nse4_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeRing) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12972,6 +13012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativecluster_jdp2_logic": {
+          try {
+            const { OpenCloudNativeClusterService } = await import("../liberty/opencloud-nativecluster_jdp2.service.js");
+            const res = await OpenCloudNativeClusterService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableoracle_wz9h_logic": {
+          try {
+            const { OpenImmutableOracleService } = await import("../liberty/openimmutableoracle_wz9h.service.js");
+            const res = await OpenImmutableOracleService.execute(args.target || "system");
+            return { output: `### OpenImmutableOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryoracle_f4qv_logic": {
+          try {
+            const { OpenPlanetaryOracleService } = await import("../liberty/openplanetaryoracle_f4qv.service.js");
+            const res = await OpenPlanetaryOracleService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustledger_d00o_logic": {
+          try {
+            const { OpenZeroTrustLedgerService } = await import("../liberty/openzero-trustledger_d00o.service.js");
+            const res = await OpenZeroTrustLedgerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesspipeline_03gz_logic": {
+          try {
+            const { OpenServerlessPipelineService } = await import("../liberty/openserverlesspipeline_03gz.service.js");
+            const res = await OpenServerlessPipelineService.execute(args.target || "system");
+            return { output: `### OpenServerlessPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgering_nse4_logic": {
           try {
             const { OpenZeroKnowledgeRingService } = await import("../liberty/openzero-knowledgering_nse4.service.js");
