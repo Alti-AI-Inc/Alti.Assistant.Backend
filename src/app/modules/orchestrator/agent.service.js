@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengraphfabric_le6v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphFabric) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpnet_v2h8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPNet) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedfabric_p7qm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedFabric) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalgrid_z951_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalGrid) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelproxy_5sa1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelProxy) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticnexus_6xb7_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticNexus) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19252,6 +19292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengraphfabric_le6v_logic": {
+          try {
+            const { OpenGraphFabricService } = await import("../liberty/opengraphfabric_le6v.service.js");
+            const res = await OpenGraphFabricService.execute(args.target || "system");
+            return { output: `### OpenGraphFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpnet_v2h8_logic": {
+          try {
+            const { OpenBGPNetService } = await import("../liberty/openbgpnet_v2h8.service.js");
+            const res = await OpenBGPNetService.execute(args.target || "system");
+            return { output: `### OpenBGPNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedfabric_p7qm_logic": {
+          try {
+            const { OpenAutomatedFabricService } = await import("../liberty/openautomatedfabric_p7qm.service.js");
+            const res = await OpenAutomatedFabricService.execute(args.target || "system");
+            return { output: `### OpenAutomatedFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalgrid_z951_logic": {
+          try {
+            const { OpenHyperDimensionalGridService } = await import("../liberty/openhyper-dimensionalgrid_z951.service.js");
+            const res = await OpenHyperDimensionalGridService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelproxy_5sa1_logic": {
+          try {
+            const { OpenMicroKernelProxyService } = await import("../liberty/openmicro-kernelproxy_5sa1.service.js");
+            const res = await OpenMicroKernelProxyService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelProxy failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticnexus_6xb7_logic": {
           try {
             const { OpenSemanticNexusService } = await import("../liberty/opensemanticnexus_6xb7.service.js");
