@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialnet_xwyx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialNet) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscore_lz5j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCore) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentledger_3o9q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentLedger) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpustream_p0bn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUStream) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpplane_p49d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPPlane) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosgrid_dpug_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosGrid) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11332,6 +11372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialnet_xwyx_logic": {
+          try {
+            const { OpenFinancialNetService } = await import("../liberty/openfinancialnet_xwyx.service.js");
+            const res = await OpenFinancialNetService.execute(args.target || "system");
+            return { output: `### OpenFinancialNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscore_lz5j_logic": {
+          try {
+            const { OpenChaosCoreService } = await import("../liberty/openchaoscore_lz5j.service.js");
+            const res = await OpenChaosCoreService.execute(args.target || "system");
+            return { output: `### OpenChaosCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentledger_3o9q_logic": {
+          try {
+            const { OpenPersistentLedgerService } = await import("../liberty/openpersistentledger_3o9q.service.js");
+            const res = await OpenPersistentLedgerService.execute(args.target || "system");
+            return { output: `### OpenPersistentLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpustream_p0bn_logic": {
+          try {
+            const { OpenGPUStreamService } = await import("../liberty/opengpustream_p0bn.service.js");
+            const res = await OpenGPUStreamService.execute(args.target || "system");
+            return { output: `### OpenGPUStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpplane_p49d_logic": {
+          try {
+            const { OpenBGPPlaneService } = await import("../liberty/openbgpplane_p49d.service.js");
+            const res = await OpenBGPPlaneService.execute(args.target || "system");
+            return { output: `### OpenBGPPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosgrid_dpug_logic": {
           try {
             const { OpenChaosGridService } = await import("../liberty/openchaosgrid_dpug.service.js");
