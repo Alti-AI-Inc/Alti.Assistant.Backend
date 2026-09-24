@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventengine_l6u5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventEngine) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesnexus_mha8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNexus) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicledger_eh58_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicLedger) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedsync_uy8s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedSync) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedswarm_w5yc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedSwarm) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetaryvortex_dtdb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryVortex) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11172,6 +11212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventengine_l6u5_logic": {
+          try {
+            const { OpenEventEngineService } = await import("../liberty/openeventengine_l6u5.service.js");
+            const res = await OpenEventEngineService.execute(args.target || "system");
+            return { output: `### OpenEventEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesnexus_mha8_logic": {
+          try {
+            const { OpenTimeSeriesNexusService } = await import("../liberty/opentime-seriesnexus_mha8.service.js");
+            const res = await OpenTimeSeriesNexusService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicledger_eh58_logic": {
+          try {
+            const { OpenNeuromorphicLedgerService } = await import("../liberty/openneuromorphicledger_eh58.service.js");
+            const res = await OpenNeuromorphicLedgerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedsync_uy8s_logic": {
+          try {
+            const { OpenAutomatedSyncService } = await import("../liberty/openautomatedsync_uy8s.service.js");
+            const res = await OpenAutomatedSyncService.execute(args.target || "system");
+            return { output: `### OpenAutomatedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedswarm_w5yc_logic": {
+          try {
+            const { OpenDistributedSwarmService } = await import("../liberty/opendistributedswarm_w5yc.service.js");
+            const res = await OpenDistributedSwarmService.execute(args.target || "system");
+            return { output: `### OpenDistributedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetaryvortex_dtdb_logic": {
           try {
             const { OpenPlanetaryVortexService } = await import("../liberty/openplanetaryvortex_dtdb.service.js");
