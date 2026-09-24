@@ -26078,3 +26078,68 @@ services:
       - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
       - LICENSE_VALIDATION="Apache 2.0"
     restart: always
+
+  engine-openmicro-kernelmatrix_gazy:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENMICRO-KERNELMATRIX
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-openebpfstream_bgp0:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENEBPFSTREAM
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always
+
+  engine-opendistributedswarm_yhtj:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENDISTRIBUTEDSWARM
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always
+
+  engine-opencloud-nativegrid_5m7q:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENCLOUD-NATIVEGRID
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always
+
+  engine-openheadlesscore_53df:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENHEADLESSCORE
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always

@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlesscore_53df_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCore) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativegrid_5m7q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeGrid) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedswarm_yhtj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedSwarm) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfstream_bgp0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFStream) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelmatrix_gazy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMatrix) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clustervortex_5dwj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterVortex) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16732,6 +16772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlesscore_53df_logic": {
+          try {
+            const { OpenHeadlessCoreService } = await import("../liberty/openheadlesscore_53df.service.js");
+            const res = await OpenHeadlessCoreService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativegrid_5m7q_logic": {
+          try {
+            const { OpenCloudNativeGridService } = await import("../liberty/opencloud-nativegrid_5m7q.service.js");
+            const res = await OpenCloudNativeGridService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedswarm_yhtj_logic": {
+          try {
+            const { OpenDistributedSwarmService } = await import("../liberty/opendistributedswarm_yhtj.service.js");
+            const res = await OpenDistributedSwarmService.execute(args.target || "system");
+            return { output: `### OpenDistributedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfstream_bgp0_logic": {
+          try {
+            const { OpeneBPFStreamService } = await import("../liberty/openebpfstream_bgp0.service.js");
+            const res = await OpeneBPFStreamService.execute(args.target || "system");
+            return { output: `### OpeneBPFStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelmatrix_gazy_logic": {
+          try {
+            const { OpenMicroKernelMatrixService } = await import("../liberty/openmicro-kernelmatrix_gazy.service.js");
+            const res = await OpenMicroKernelMatrixService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clustervortex_5dwj_logic": {
           try {
             const { OpenCrossClusterVortexService } = await import("../liberty/opencross-clustervortex_5dwj.service.js");
