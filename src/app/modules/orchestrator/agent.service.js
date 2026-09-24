@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentswarm_hmi0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentSwarm) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepproxy_fy6q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepProxy) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisebroker_2p07_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseBroker) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicledger_4a0z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicLedger) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicnode_1q8z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicNode) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancedchain_zy85_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedChain) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10692,6 +10732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentswarm_hmi0_logic": {
+          try {
+            const { OpenPersistentSwarmService } = await import("../liberty/openpersistentswarm_hmi0.service.js");
+            const res = await OpenPersistentSwarmService.execute(args.target || "system");
+            return { output: `### OpenPersistentSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepproxy_fy6q_logic": {
+          try {
+            const { OpenDeepProxyService } = await import("../liberty/opendeepproxy_fy6q.service.js");
+            const res = await OpenDeepProxyService.execute(args.target || "system");
+            return { output: `### OpenDeepProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisebroker_2p07_logic": {
+          try {
+            const { OpenEnterpriseBrokerService } = await import("../liberty/openenterprisebroker_2p07.service.js");
+            const res = await OpenEnterpriseBrokerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicledger_4a0z_logic": {
+          try {
+            const { OpenNeuromorphicLedgerService } = await import("../liberty/openneuromorphicledger_4a0z.service.js");
+            const res = await OpenNeuromorphicLedgerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicnode_1q8z_logic": {
+          try {
+            const { OpenNeuromorphicNodeService } = await import("../liberty/openneuromorphicnode_1q8z.service.js");
+            const res = await OpenNeuromorphicNodeService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicNode failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancedchain_zy85_logic": {
           try {
             const { OpenAdvancedChainService } = await import("../liberty/openadvancedchain_zy85.service.js");
