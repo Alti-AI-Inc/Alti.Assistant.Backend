@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticnet_ub3y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticNet) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgefabric_0wnx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeFabric) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterplane_etvx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterPlane) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partycontroller_3tt1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyController) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedchain_cq29_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedChain) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarycontroller_3pn9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryController) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11412,6 +11452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticnet_ub3y_logic": {
+          try {
+            const { OpenSemanticNetService } = await import("../liberty/opensemanticnet_ub3y.service.js");
+            const res = await OpenSemanticNetService.execute(args.target || "system");
+            return { output: `### OpenSemanticNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgefabric_0wnx_logic": {
+          try {
+            const { OpenEdgeFabricService } = await import("../liberty/openedgefabric_0wnx.service.js");
+            const res = await OpenEdgeFabricService.execute(args.target || "system");
+            return { output: `### OpenEdgeFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterplane_etvx_logic": {
+          try {
+            const { OpenCrossClusterPlaneService } = await import("../liberty/opencross-clusterplane_etvx.service.js");
+            const res = await OpenCrossClusterPlaneService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partycontroller_3tt1_logic": {
+          try {
+            const { OpenMultiPartyControllerService } = await import("../liberty/openmulti-partycontroller_3tt1.service.js");
+            const res = await OpenMultiPartyControllerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyController failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedchain_cq29_logic": {
+          try {
+            const { OpenAdvancedChainService } = await import("../liberty/openadvancedchain_cq29.service.js");
+            const res = await OpenAdvancedChainService.execute(args.target || "system");
+            return { output: `### OpenAdvancedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedChain failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarycontroller_3pn9_logic": {
           try {
             const { OpenPlanetaryControllerService } = await import("../liberty/openplanetarycontroller_3pn9.service.js");
