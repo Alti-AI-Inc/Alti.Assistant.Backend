@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumrouter_js8x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumRouter) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendring_trq5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRing) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatednet_2087_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedNet) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgemesh_xf8a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeMesh) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticengine_svhd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticEngine) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendproxy_8bw1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendProxy) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14612,6 +14652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumrouter_js8x_logic": {
+          try {
+            const { OpenQuantumRouterService } = await import("../liberty/openquantumrouter_js8x.service.js");
+            const res = await OpenQuantumRouterService.execute(args.target || "system");
+            return { output: `### OpenQuantumRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendring_trq5_logic": {
+          try {
+            const { OpenMicroFrontendRingService } = await import("../liberty/openmicro-frontendring_trq5.service.js");
+            const res = await OpenMicroFrontendRingService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatednet_2087_logic": {
+          try {
+            const { OpenFederatedNetService } = await import("../liberty/openfederatednet_2087.service.js");
+            const res = await OpenFederatedNetService.execute(args.target || "system");
+            return { output: `### OpenFederatedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgemesh_xf8a_logic": {
+          try {
+            const { OpenEdgeMeshService } = await import("../liberty/openedgemesh_xf8a.service.js");
+            const res = await OpenEdgeMeshService.execute(args.target || "system");
+            return { output: `### OpenEdgeMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticengine_svhd_logic": {
+          try {
+            const { OpenStaticEngineService } = await import("../liberty/openstaticengine_svhd.service.js");
+            const res = await OpenStaticEngineService.execute(args.target || "system");
+            return { output: `### OpenStaticEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendproxy_8bw1_logic": {
           try {
             const { OpenMicroFrontendProxyService } = await import("../liberty/openmicro-frontendproxy_8bw1.service.js");
