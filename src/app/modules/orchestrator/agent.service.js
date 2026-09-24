@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgecontroller_1nuf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeController) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgebroker_8d27_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeBroker) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorpipeline_l2f3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorPipeline) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarenet_37yv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareNet) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarerouter_4fqn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareRouter) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustdaemon_tq5y_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustDaemon) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13652,6 +13692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgecontroller_1nuf_logic": {
+          try {
+            const { OpenEdgeControllerService } = await import("../liberty/openedgecontroller_1nuf.service.js");
+            const res = await OpenEdgeControllerService.execute(args.target || "system");
+            return { output: `### OpenEdgeController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeController failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgebroker_8d27_logic": {
+          try {
+            const { OpenZeroKnowledgeBrokerService } = await import("../liberty/openzero-knowledgebroker_8d27.service.js");
+            const res = await OpenZeroKnowledgeBrokerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorpipeline_l2f3_logic": {
+          try {
+            const { OpenVectorPipelineService } = await import("../liberty/openvectorpipeline_l2f3.service.js");
+            const res = await OpenVectorPipelineService.execute(args.target || "system");
+            return { output: `### OpenVectorPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarenet_37yv_logic": {
+          try {
+            const { OpenHardwareNetService } = await import("../liberty/openhardwarenet_37yv.service.js");
+            const res = await OpenHardwareNetService.execute(args.target || "system");
+            return { output: `### OpenHardwareNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarerouter_4fqn_logic": {
+          try {
+            const { OpenHardwareRouterService } = await import("../liberty/openhardwarerouter_4fqn.service.js");
+            const res = await OpenHardwareRouterService.execute(args.target || "system");
+            return { output: `### OpenHardwareRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustdaemon_tq5y_logic": {
           try {
             const { OpenZeroTrustDaemonService } = await import("../liberty/openzero-trustdaemon_tq5y.service.js");
