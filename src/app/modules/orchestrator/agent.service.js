@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelnet_c8rb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNet) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphmatrix_1gdm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphMatrix) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablesync_p54s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableSync) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencystream_vt5w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyStream) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticgrid_xps4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticGrid) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgeswarm_5bhx_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeSwarm) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9012,6 +9052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelnet_c8rb_logic": {
+          try {
+            const { OpenMicroKernelNetService } = await import("../liberty/openmicro-kernelnet_c8rb.service.js");
+            const res = await OpenMicroKernelNetService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphmatrix_1gdm_logic": {
+          try {
+            const { OpenGraphMatrixService } = await import("../liberty/opengraphmatrix_1gdm.service.js");
+            const res = await OpenGraphMatrixService.execute(args.target || "system");
+            return { output: `### OpenGraphMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablesync_p54s_logic": {
+          try {
+            const { OpenImmutableSyncService } = await import("../liberty/openimmutablesync_p54s.service.js");
+            const res = await OpenImmutableSyncService.execute(args.target || "system");
+            return { output: `### OpenImmutableSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencystream_vt5w_logic": {
+          try {
+            const { OpenHighFrequencyStreamService } = await import("../liberty/openhigh-frequencystream_vt5w.service.js");
+            const res = await OpenHighFrequencyStreamService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticgrid_xps4_logic": {
+          try {
+            const { OpenSemanticGridService } = await import("../liberty/opensemanticgrid_xps4.service.js");
+            const res = await OpenSemanticGridService.execute(args.target || "system");
+            return { output: `### OpenSemanticGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgeswarm_5bhx_logic": {
           try {
             const { OpenZeroKnowledgeSwarmService } = await import("../liberty/openzero-knowledgeswarm_5bhx.service.js");
