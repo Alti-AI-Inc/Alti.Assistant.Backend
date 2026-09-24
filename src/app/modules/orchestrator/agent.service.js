@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectordaemon_854s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorDaemon) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesoracle_3r83_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesOracle) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableplane_1131_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutablePlane) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedbroker_nys5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedBroker) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogmatrix_fcu6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogMatrix) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openin-memoryrouter_ed29_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryRouter) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14892,6 +14932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectordaemon_854s_logic": {
+          try {
+            const { OpenVectorDaemonService } = await import("../liberty/openvectordaemon_854s.service.js");
+            const res = await OpenVectorDaemonService.execute(args.target || "system");
+            return { output: `### OpenVectorDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesoracle_3r83_logic": {
+          try {
+            const { OpenTimeSeriesOracleService } = await import("../liberty/opentime-seriesoracle_3r83.service.js");
+            const res = await OpenTimeSeriesOracleService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableplane_1131_logic": {
+          try {
+            const { OpenImmutablePlaneService } = await import("../liberty/openimmutableplane_1131.service.js");
+            const res = await OpenImmutablePlaneService.execute(args.target || "system");
+            return { output: `### OpenImmutablePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutablePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedbroker_nys5_logic": {
+          try {
+            const { OpenFederatedBrokerService } = await import("../liberty/openfederatedbroker_nys5.service.js");
+            const res = await OpenFederatedBrokerService.execute(args.target || "system");
+            return { output: `### OpenFederatedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogmatrix_fcu6_logic": {
+          try {
+            const { OpenLogMatrixService } = await import("../liberty/openlogmatrix_fcu6.service.js");
+            const res = await OpenLogMatrixService.execute(args.target || "system");
+            return { output: `### OpenLogMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openin-memoryrouter_ed29_logic": {
           try {
             const { OpenInMemoryRouterService } = await import("../liberty/openin-memoryrouter_ed29.service.js");
