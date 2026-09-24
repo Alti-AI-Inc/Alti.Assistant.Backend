@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhigh-frequencyproxy_4pfs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyProxy) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticvault_o04j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticVault) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicvortex_folu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicVortex) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpugraph_50f0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUGraph) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorystream_p2b9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryStream) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwarestream_vbfe_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareStream) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5892,6 +5932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhigh-frequencyproxy_4pfs_logic": {
+          try {
+            const { OpenHighFrequencyProxyService } = await import("../liberty/openhigh-frequencyproxy_4pfs.service.js");
+            const res = await OpenHighFrequencyProxyService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticvault_o04j_logic": {
+          try {
+            const { OpenSemanticVaultService } = await import("../liberty/opensemanticvault_o04j.service.js");
+            const res = await OpenSemanticVaultService.execute(args.target || "system");
+            return { output: `### OpenSemanticVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicvortex_folu_logic": {
+          try {
+            const { OpenNeuromorphicVortexService } = await import("../liberty/openneuromorphicvortex_folu.service.js");
+            const res = await OpenNeuromorphicVortexService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpugraph_50f0_logic": {
+          try {
+            const { OpenGPUGraphService } = await import("../liberty/opengpugraph_50f0.service.js");
+            const res = await OpenGPUGraphService.execute(args.target || "system");
+            return { output: `### OpenGPUGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorystream_p2b9_logic": {
+          try {
+            const { OpenInMemoryStreamService } = await import("../liberty/openin-memorystream_p2b9.service.js");
+            const res = await OpenInMemoryStreamService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryStream failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwarestream_vbfe_logic": {
           try {
             const { OpenHardwareStreamService } = await import("../liberty/openhardwarestream_vbfe.service.js");
