@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengraphcontroller_hkp6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphController) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablegraph_zrcv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableGraph) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnexus_qqyi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNexus) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryplane_9zaj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryPlane) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatanexus_mndk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataNexus) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarymatrix_iif5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryMatrix) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18972,6 +19012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengraphcontroller_hkp6_logic": {
+          try {
+            const { OpenGraphControllerService } = await import("../liberty/opengraphcontroller_hkp6.service.js");
+            const res = await OpenGraphControllerService.execute(args.target || "system");
+            return { output: `### OpenGraphController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphController failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablegraph_zrcv_logic": {
+          try {
+            const { OpenImmutableGraphService } = await import("../liberty/openimmutablegraph_zrcv.service.js");
+            const res = await OpenImmutableGraphService.execute(args.target || "system");
+            return { output: `### OpenImmutableGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnexus_qqyi_logic": {
+          try {
+            const { OpenGraphNexusService } = await import("../liberty/opengraphnexus_qqyi.service.js");
+            const res = await OpenGraphNexusService.execute(args.target || "system");
+            return { output: `### OpenGraphNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryplane_9zaj_logic": {
+          try {
+            const { OpenInMemoryPlaneService } = await import("../liberty/openin-memoryplane_9zaj.service.js");
+            const res = await OpenInMemoryPlaneService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatanexus_mndk_logic": {
+          try {
+            const { OpenDataNexusService } = await import("../liberty/opendatanexus_mndk.service.js");
+            const res = await OpenDataNexusService.execute(args.target || "system");
+            return { output: `### OpenDataNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarymatrix_iif5_logic": {
           try {
             const { OpenPlanetaryMatrixService } = await import("../liberty/openplanetarymatrix_iif5.service.js");
