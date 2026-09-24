@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicmatrix_q7s5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMatrix) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepbroker_ukta_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepBroker) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentvortex_o31z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentVortex) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphfabric_lxw1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphFabric) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalcompiler_reap_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalCompiler) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectorvault_k0cp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorVault) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7132,6 +7172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicmatrix_q7s5_logic": {
+          try {
+            const { OpenHomomorphicMatrixService } = await import("../liberty/openhomomorphicmatrix_q7s5.service.js");
+            const res = await OpenHomomorphicMatrixService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepbroker_ukta_logic": {
+          try {
+            const { OpenDeepBrokerService } = await import("../liberty/opendeepbroker_ukta.service.js");
+            const res = await OpenDeepBrokerService.execute(args.target || "system");
+            return { output: `### OpenDeepBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentvortex_o31z_logic": {
+          try {
+            const { OpenPersistentVortexService } = await import("../liberty/openpersistentvortex_o31z.service.js");
+            const res = await OpenPersistentVortexService.execute(args.target || "system");
+            return { output: `### OpenPersistentVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphfabric_lxw1_logic": {
+          try {
+            const { OpenGraphFabricService } = await import("../liberty/opengraphfabric_lxw1.service.js");
+            const res = await OpenGraphFabricService.execute(args.target || "system");
+            return { output: `### OpenGraphFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalcompiler_reap_logic": {
+          try {
+            const { OpenHyperDimensionalCompilerService } = await import("../liberty/openhyper-dimensionalcompiler_reap.service.js");
+            const res = await OpenHyperDimensionalCompilerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openvectorvault_k0cp_logic": {
           try {
             const { OpenVectorVaultService } = await import("../liberty/openvectorvault_k0cp.service.js");
