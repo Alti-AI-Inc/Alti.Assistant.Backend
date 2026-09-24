@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openabstractfabric_logic",
+      description: "Use the Aphura Engine (OpenAbstractFabric) to Autonomously deploy Abstract Syntax Trees architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicengine_logic",
+      description: "Use the Aphura Engine (OpenHomomorphicEngine) to Autonomously deploy Homomorphic Encryption architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessgrid_logic",
+      description: "Use the Aphura Engine (OpenHeadlessGrid) to Autonomously deploy Headless CMS Routing architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatavault_logic",
+      description: "Use the Aphura Engine (OpenDataVault) to Autonomously deploy Data Lineage architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatavortex_logic",
+      description: "Use the Aphura Engine (OpenDataVortex) to Autonomously deploy Data Lineage architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventproxy_logic",
       description: "Use the Aphura Engine (OpenEventProxy) to Autonomously deploy Event Streaming architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1692,6 +1732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openabstractfabric_logic": {
+          try {
+            const { OpenabstractfabricService } = await import("../enterprise/openabstractfabric.service.js");
+            const res = await OpenabstractfabricService.execute(args.target || "system");
+            return { output: `### OpenAbstractFabric Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicengine_logic": {
+          try {
+            const { OpenhomomorphicengineService } = await import("../enterprise/openhomomorphicengine.service.js");
+            const res = await OpenhomomorphicengineService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicEngine Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessgrid_logic": {
+          try {
+            const { OpenheadlessgridService } = await import("../enterprise/openheadlessgrid.service.js");
+            const res = await OpenheadlessgridService.execute(args.target || "system");
+            return { output: `### OpenHeadlessGrid Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatavault_logic": {
+          try {
+            const { OpendatavaultService } = await import("../enterprise/opendatavault.service.js");
+            const res = await OpendatavaultService.execute(args.target || "system");
+            return { output: `### OpenDataVault Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatavortex_logic": {
+          try {
+            const { OpendatavortexService } = await import("../enterprise/opendatavortex.service.js");
+            const res = await OpendatavortexService.execute(args.target || "system");
+            return { output: `### OpenDataVortex Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openeventproxy_logic": {
           try {
             const { OpeneventproxyService } = await import("../enterprise/openeventproxy.service.js");
