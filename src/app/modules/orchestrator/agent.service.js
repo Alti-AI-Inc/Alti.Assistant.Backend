@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clustermesh_ufs5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterMesh) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisebroker_75uc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseBroker) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticgraph_9te8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticGraph) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedcompiler_xy8o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedCompiler) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcluster_yniv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPCluster) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgebroker_3zhg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeBroker) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8812,6 +8852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clustermesh_ufs5_logic": {
+          try {
+            const { OpenCrossClusterMeshService } = await import("../liberty/opencross-clustermesh_ufs5.service.js");
+            const res = await OpenCrossClusterMeshService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisebroker_75uc_logic": {
+          try {
+            const { OpenEnterpriseBrokerService } = await import("../liberty/openenterprisebroker_75uc.service.js");
+            const res = await OpenEnterpriseBrokerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticgraph_9te8_logic": {
+          try {
+            const { OpenStaticGraphService } = await import("../liberty/openstaticgraph_9te8.service.js");
+            const res = await OpenStaticGraphService.execute(args.target || "system");
+            return { output: `### OpenStaticGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedcompiler_xy8o_logic": {
+          try {
+            const { OpenDistributedCompilerService } = await import("../liberty/opendistributedcompiler_xy8o.service.js");
+            const res = await OpenDistributedCompilerService.execute(args.target || "system");
+            return { output: `### OpenDistributedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcluster_yniv_logic": {
+          try {
+            const { OpenBGPClusterService } = await import("../liberty/openbgpcluster_yniv.service.js");
+            const res = await OpenBGPClusterService.execute(args.target || "system");
+            return { output: `### OpenBGPCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openedgebroker_3zhg_logic": {
           try {
             const { OpenEdgeBrokerService } = await import("../liberty/openedgebroker_3zhg.service.js");
