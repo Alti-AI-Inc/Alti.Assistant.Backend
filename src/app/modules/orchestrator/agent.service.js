@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openabstractdaemon_s8ds_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractDaemon) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatarouter_dbpz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataRouter) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticgrid_83i1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticGrid) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcompiler_dkmb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedCompiler) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphproxy_3xm9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphProxy) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterdaemon_03i9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterDaemon) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17452,6 +17492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openabstractdaemon_s8ds_logic": {
+          try {
+            const { OpenAbstractDaemonService } = await import("../liberty/openabstractdaemon_s8ds.service.js");
+            const res = await OpenAbstractDaemonService.execute(args.target || "system");
+            return { output: `### OpenAbstractDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatarouter_dbpz_logic": {
+          try {
+            const { OpenDataRouterService } = await import("../liberty/opendatarouter_dbpz.service.js");
+            const res = await OpenDataRouterService.execute(args.target || "system");
+            return { output: `### OpenDataRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticgrid_83i1_logic": {
+          try {
+            const { OpenStaticGridService } = await import("../liberty/openstaticgrid_83i1.service.js");
+            const res = await OpenStaticGridService.execute(args.target || "system");
+            return { output: `### OpenStaticGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcompiler_dkmb_logic": {
+          try {
+            const { OpenAdvancedCompilerService } = await import("../liberty/openadvancedcompiler_dkmb.service.js");
+            const res = await OpenAdvancedCompilerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphproxy_3xm9_logic": {
+          try {
+            const { OpenGraphProxyService } = await import("../liberty/opengraphproxy_3xm9.service.js");
+            const res = await OpenGraphProxyService.execute(args.target || "system");
+            return { output: `### OpenGraphProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphProxy failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterdaemon_03i9_logic": {
           try {
             const { OpenCrossClusterDaemonService } = await import("../liberty/opencross-clusterdaemon_03i9.service.js");
