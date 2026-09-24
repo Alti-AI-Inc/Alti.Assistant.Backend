@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfmatrix_sgb5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFMatrix) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfledger_vg37_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFLedger) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryring_m94b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryRing) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisevortex_irqo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseVortex) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractledger_kgjo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractLedger) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendataplane_hhdg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataPlane) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21812,6 +21852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfmatrix_sgb5_logic": {
+          try {
+            const { OpeneBPFMatrixService } = await import("../liberty/openebpfmatrix_sgb5.service.js");
+            const res = await OpeneBPFMatrixService.execute(args.target || "system");
+            return { output: `### OpeneBPFMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfledger_vg37_logic": {
+          try {
+            const { OpeneBPFLedgerService } = await import("../liberty/openebpfledger_vg37.service.js");
+            const res = await OpeneBPFLedgerService.execute(args.target || "system");
+            return { output: `### OpeneBPFLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryring_m94b_logic": {
+          try {
+            const { OpenInMemoryRingService } = await import("../liberty/openin-memoryring_m94b.service.js");
+            const res = await OpenInMemoryRingService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisevortex_irqo_logic": {
+          try {
+            const { OpenEnterpriseVortexService } = await import("../liberty/openenterprisevortex_irqo.service.js");
+            const res = await OpenEnterpriseVortexService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractledger_kgjo_logic": {
+          try {
+            const { OpenAbstractLedgerService } = await import("../liberty/openabstractledger_kgjo.service.js");
+            const res = await OpenAbstractLedgerService.execute(args.target || "system");
+            return { output: `### OpenAbstractLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractLedger failed: ${err.message}` };
+          }
+        }
         case "execute_opendataplane_hhdg_logic": {
           try {
             const { OpenDataPlaneService } = await import("../liberty/opendataplane_hhdg.service.js");
