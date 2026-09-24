@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivecluster_3l3y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveCluster) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednexus_q7o4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNexus) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryring_ytht_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryRing) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventnet_9x1n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventNet) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesscontroller_116s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessController) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectorvault_y53n_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorVault) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12012,6 +12052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivecluster_3l3y_logic": {
+          try {
+            const { OpenPredictiveClusterService } = await import("../liberty/openpredictivecluster_3l3y.service.js");
+            const res = await OpenPredictiveClusterService.execute(args.target || "system");
+            return { output: `### OpenPredictiveCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednexus_q7o4_logic": {
+          try {
+            const { OpenDecentralizedNexusService } = await import("../liberty/opendecentralizednexus_q7o4.service.js");
+            const res = await OpenDecentralizedNexusService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryring_ytht_logic": {
+          try {
+            const { OpenInMemoryRingService } = await import("../liberty/openin-memoryring_ytht.service.js");
+            const res = await OpenInMemoryRingService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventnet_9x1n_logic": {
+          try {
+            const { OpenEventNetService } = await import("../liberty/openeventnet_9x1n.service.js");
+            const res = await OpenEventNetService.execute(args.target || "system");
+            return { output: `### OpenEventNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesscontroller_116s_logic": {
+          try {
+            const { OpenServerlessControllerService } = await import("../liberty/openserverlesscontroller_116s.service.js");
+            const res = await OpenServerlessControllerService.execute(args.target || "system");
+            return { output: `### OpenServerlessController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessController failed: ${err.message}` };
+          }
+        }
         case "execute_openvectorvault_y53n_logic": {
           try {
             const { OpenVectorVaultService } = await import("../liberty/openvectorvault_y53n.service.js");
