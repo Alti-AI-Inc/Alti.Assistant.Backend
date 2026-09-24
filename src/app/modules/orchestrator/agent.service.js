@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaoscompiler_30nn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCompiler) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesslayer_id2f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessLayer) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventcluster_5rp4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventCluster) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscore_35oe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCore) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessvortex_gdlo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessVortex) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwarecontroller_qp6a_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareController) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6532,6 +6572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaoscompiler_30nn_logic": {
+          try {
+            const { OpenChaosCompilerService } = await import("../liberty/openchaoscompiler_30nn.service.js");
+            const res = await OpenChaosCompilerService.execute(args.target || "system");
+            return { output: `### OpenChaosCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesslayer_id2f_logic": {
+          try {
+            const { OpenHeadlessLayerService } = await import("../liberty/openheadlesslayer_id2f.service.js");
+            const res = await OpenHeadlessLayerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventcluster_5rp4_logic": {
+          try {
+            const { OpenEventClusterService } = await import("../liberty/openeventcluster_5rp4.service.js");
+            const res = await OpenEventClusterService.execute(args.target || "system");
+            return { output: `### OpenEventCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscore_35oe_logic": {
+          try {
+            const { OpenChaosCoreService } = await import("../liberty/openchaoscore_35oe.service.js");
+            const res = await OpenChaosCoreService.execute(args.target || "system");
+            return { output: `### OpenChaosCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessvortex_gdlo_logic": {
+          try {
+            const { OpenServerlessVortexService } = await import("../liberty/openserverlessvortex_gdlo.service.js");
+            const res = await OpenServerlessVortexService.execute(args.target || "system");
+            return { output: `### OpenServerlessVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwarecontroller_qp6a_logic": {
           try {
             const { OpenHardwareControllerService } = await import("../liberty/openhardwarecontroller_qp6a.service.js");
