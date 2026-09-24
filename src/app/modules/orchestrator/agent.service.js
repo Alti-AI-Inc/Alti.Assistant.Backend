@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutableoracle_jqry_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableOracle) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractcluster_5nod_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractCluster) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcluster_jdc9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCluster) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedring_f9y0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedRing) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessplane_prch_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessPlane) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelengine_di7c_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelEngine) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15652,6 +15692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutableoracle_jqry_logic": {
+          try {
+            const { OpenImmutableOracleService } = await import("../liberty/openimmutableoracle_jqry.service.js");
+            const res = await OpenImmutableOracleService.execute(args.target || "system");
+            return { output: `### OpenImmutableOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractcluster_5nod_logic": {
+          try {
+            const { OpenAbstractClusterService } = await import("../liberty/openabstractcluster_5nod.service.js");
+            const res = await OpenAbstractClusterService.execute(args.target || "system");
+            return { output: `### OpenAbstractCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcluster_jdc9_logic": {
+          try {
+            const { OpenDecentralizedClusterService } = await import("../liberty/opendecentralizedcluster_jdc9.service.js");
+            const res = await OpenDecentralizedClusterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedring_f9y0_logic": {
+          try {
+            const { OpenAutomatedRingService } = await import("../liberty/openautomatedring_f9y0.service.js");
+            const res = await OpenAutomatedRingService.execute(args.target || "system");
+            return { output: `### OpenAutomatedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessplane_prch_logic": {
+          try {
+            const { OpenHeadlessPlaneService } = await import("../liberty/openheadlessplane_prch.service.js");
+            const res = await OpenHeadlessPlaneService.execute(args.target || "system");
+            return { output: `### OpenHeadlessPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelengine_di7c_logic": {
           try {
             const { OpenMicroKernelEngineService } = await import("../liberty/openmicro-kernelengine_di7c.service.js");
