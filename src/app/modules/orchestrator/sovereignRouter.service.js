@@ -284,7 +284,7 @@ OUTPUT FORMAT DIRECTIVES:
     let fullReply = '';
     const allReferences = [];
     const streamStart = Date.now();
-
+      PostHogService.captureEvent("admin_user", "agent_prompt_initiated", { promptLength: prompt.length }).catch(e => logger.warn(e));
     try {
       const stream = AgentService.runAgentStream(messages, {
         model: config.llm?.model || 'gpt-oss-120b',
