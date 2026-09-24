@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openabstractgraph_418x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractGraph) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentnode_6x2k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentNode) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractdaemon_3b0o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractDaemon) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partycontroller_cwup_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyController) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialpipeline_sk35_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialPipeline) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessgraph_9jc8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessGraph) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20012,6 +20052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openabstractgraph_418x_logic": {
+          try {
+            const { OpenAbstractGraphService } = await import("../liberty/openabstractgraph_418x.service.js");
+            const res = await OpenAbstractGraphService.execute(args.target || "system");
+            return { output: `### OpenAbstractGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentnode_6x2k_logic": {
+          try {
+            const { OpenPersistentNodeService } = await import("../liberty/openpersistentnode_6x2k.service.js");
+            const res = await OpenPersistentNodeService.execute(args.target || "system");
+            return { output: `### OpenPersistentNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractdaemon_3b0o_logic": {
+          try {
+            const { OpenAbstractDaemonService } = await import("../liberty/openabstractdaemon_3b0o.service.js");
+            const res = await OpenAbstractDaemonService.execute(args.target || "system");
+            return { output: `### OpenAbstractDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partycontroller_cwup_logic": {
+          try {
+            const { OpenMultiPartyControllerService } = await import("../liberty/openmulti-partycontroller_cwup.service.js");
+            const res = await OpenMultiPartyControllerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyController failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialpipeline_sk35_logic": {
+          try {
+            const { OpenFinancialPipelineService } = await import("../liberty/openfinancialpipeline_sk35.service.js");
+            const res = await OpenFinancialPipelineService.execute(args.target || "system");
+            return { output: `### OpenFinancialPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessgraph_9jc8_logic": {
           try {
             const { OpenServerlessGraphService } = await import("../liberty/openserverlessgraph_9jc8.service.js");
