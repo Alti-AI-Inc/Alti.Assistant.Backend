@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "compress_to_parquet",
+      description: "Use the Aphura Data Lake Engine (Apache Parquet) to autonomously compress massive raw datasets into highly optimized columnar formats, reducing storage costs by 80%.",
+      parameters: { type: "object", properties: { datasetPath: { type: "string" } }, required: ["datasetPath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_graphql_schema",
+      description: "Use the Aphura API Engine (Apollo GraphQL) to autonomously introspect databases and instantly compile optimized GraphQL schemas.",
+      parameters: { type: "object", properties: { databaseName: { type: "string" } }, required: ["databaseName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "build_text_index",
+      description: "Use the Aphura Indexing Engine (Apache Lucene) to autonomously compile low-level inverted indexes across petabytes of raw text for custom search architectures.",
+      parameters: { type: "object", properties: { corpusName: { type: "string" } }, required: ["corpusName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_graph_traversal",
+      description: "Use the Aphura Graph DB Engine (Apache TinkerPop/Gremlin) to execute complex relationship traversals and map highly connected data structures.",
+      parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "provision_search_index",
+      description: "Use the Aphura Search Engine (Meilisearch) to autonomously deploy hyper-fast, typo-tolerant search indexes across large datasets.",
+      parameters: { type: "object", properties: { indexName: { type: "string" } }, required: ["indexName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "deploy_visual_flow",
       description: "Use the Aphura IoT Automation Engine (Node-RED) to autonomously wire hardware sensors, APIs, and microservices into a visual flow-based logic graph.",
       parameters: { type: "object", properties: { flowDescription: { type: "string" } }, required: ["flowDescription"] }
@@ -972,7 +1012,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "deploy_visual_flow": {
+        case "compress_to_parquet": {
+          try {
+            const { ParquetService } = await import("../data/parquet.service.js");
+            const res = await ParquetService.compressDataset(args.datasetPath);
+            return { output: `### Parquet Compression Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Parquet compression failed: ${err.message}` };
+          }
+        }        case "generate_graphql_schema": {
+          try {
+            const { GraphQLService } = await import("../api/graphql.service.js");
+            const res = await GraphQLService.generateSchema(args.databaseName);
+            return { output: `### GraphQL Schema Generated\\n\\n```graphql\\n${res.schema}\\n```` };
+          } catch (err) {
+            return { output: `Schema generation failed: ${err.message}` };
+          }
+        }        case "build_text_index": {
+          try {
+            const { LuceneService } = await import("../data/lucene.service.js");
+            const res = await LuceneService.indexText(args.corpusName);
+            return { output: `### Lucene Index Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Indexing failed: ${err.message}` };
+          }
+        }        case "execute_graph_traversal": {
+          try {
+            const { TinkerPopService } = await import("../data/tinkerpop.service.js");
+            const res = await TinkerPopService.executeGremlinQuery(args.query);
+            return { output: `### Graph Traversal Result\\n\\n```text\\n${res.result}\\n```` };
+          } catch (err) {
+            return { output: `Graph traversal failed: ${err.message}` };
+          }
+        }        case "provision_search_index": {
+          try {
+            const { MeiliSearchService } = await import("../data/meilisearch.service.js");
+            const res = await MeiliSearchService.provisionSearchIndex(args.indexName);
+            return { output: `### Search Index Configured\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Search index failed: ${err.message}` };
+          }
+        }        case "deploy_visual_flow": {
           try {
             const { NodeRedService } = await import("../iot/nodered.service.js");
             const res = await NodeRedService.deployFlow(args.flowDescription);
