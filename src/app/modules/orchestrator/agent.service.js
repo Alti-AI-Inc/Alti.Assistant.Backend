@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendataoracle_ie50_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataOracle) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessvortex_1zhw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessVortex) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnexus_apqm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNexus) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesslayer_dciv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessLayer) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeoracle_vbl9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeOracle) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentswarm_hmi0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentSwarm) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10732,6 +10772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendataoracle_ie50_logic": {
+          try {
+            const { OpenDataOracleService } = await import("../liberty/opendataoracle_ie50.service.js");
+            const res = await OpenDataOracleService.execute(args.target || "system");
+            return { output: `### OpenDataOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessvortex_1zhw_logic": {
+          try {
+            const { OpenServerlessVortexService } = await import("../liberty/openserverlessvortex_1zhw.service.js");
+            const res = await OpenServerlessVortexService.execute(args.target || "system");
+            return { output: `### OpenServerlessVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnexus_apqm_logic": {
+          try {
+            const { OpenGraphNexusService } = await import("../liberty/opengraphnexus_apqm.service.js");
+            const res = await OpenGraphNexusService.execute(args.target || "system");
+            return { output: `### OpenGraphNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesslayer_dciv_logic": {
+          try {
+            const { OpenServerlessLayerService } = await import("../liberty/openserverlesslayer_dciv.service.js");
+            const res = await OpenServerlessLayerService.execute(args.target || "system");
+            return { output: `### OpenServerlessLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeoracle_vbl9_logic": {
+          try {
+            const { OpenEdgeOracleService } = await import("../liberty/openedgeoracle_vbl9.service.js");
+            const res = await OpenEdgeOracleService.execute(args.target || "system");
+            return { output: `### OpenEdgeOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentswarm_hmi0_logic": {
           try {
             const { OpenPersistentSwarmService } = await import("../liberty/openpersistentswarm_hmi0.service.js");
