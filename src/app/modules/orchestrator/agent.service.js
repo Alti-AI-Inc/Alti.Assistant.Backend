@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondsync_itg5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondSync) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecluster_2z68_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareCluster) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivenexus_v12u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNexus) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentnexus_myfy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentNexus) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatavault_we07_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataVault) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectorcore_57xu_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorCore) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9252,6 +9292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondsync_itg5_logic": {
+          try {
+            const { OpenSubMillisecondSyncService } = await import("../liberty/opensub-millisecondsync_itg5.service.js");
+            const res = await OpenSubMillisecondSyncService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecluster_2z68_logic": {
+          try {
+            const { OpenHardwareClusterService } = await import("../liberty/openhardwarecluster_2z68.service.js");
+            const res = await OpenHardwareClusterService.execute(args.target || "system");
+            return { output: `### OpenHardwareCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivenexus_v12u_logic": {
+          try {
+            const { OpenPredictiveNexusService } = await import("../liberty/openpredictivenexus_v12u.service.js");
+            const res = await OpenPredictiveNexusService.execute(args.target || "system");
+            return { output: `### OpenPredictiveNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentnexus_myfy_logic": {
+          try {
+            const { OpenPersistentNexusService } = await import("../liberty/openpersistentnexus_myfy.service.js");
+            const res = await OpenPersistentNexusService.execute(args.target || "system");
+            return { output: `### OpenPersistentNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatavault_we07_logic": {
+          try {
+            const { OpenDataVaultService } = await import("../liberty/opendatavault_we07.service.js");
+            const res = await OpenDataVaultService.execute(args.target || "system");
+            return { output: `### OpenDataVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataVault failed: ${err.message}` };
+          }
+        }
         case "execute_openvectorcore_57xu_logic": {
           try {
             const { OpenVectorCoreService } = await import("../liberty/openvectorcore_57xu.service.js");
