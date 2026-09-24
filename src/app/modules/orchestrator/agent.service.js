@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentpipeline_p7gq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentPipeline) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticgraph_s3ce_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticGraph) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedoracle_gke8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedOracle) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialrouter_2gkx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialRouter) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernellayer_zg01_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelLayer) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedgraph_18vd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedGraph) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9652,6 +9692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentpipeline_p7gq_logic": {
+          try {
+            const { OpenPersistentPipelineService } = await import("../liberty/openpersistentpipeline_p7gq.service.js");
+            const res = await OpenPersistentPipelineService.execute(args.target || "system");
+            return { output: `### OpenPersistentPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticgraph_s3ce_logic": {
+          try {
+            const { OpenSemanticGraphService } = await import("../liberty/opensemanticgraph_s3ce.service.js");
+            const res = await OpenSemanticGraphService.execute(args.target || "system");
+            return { output: `### OpenSemanticGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedoracle_gke8_logic": {
+          try {
+            const { OpenAutomatedOracleService } = await import("../liberty/openautomatedoracle_gke8.service.js");
+            const res = await OpenAutomatedOracleService.execute(args.target || "system");
+            return { output: `### OpenAutomatedOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialrouter_2gkx_logic": {
+          try {
+            const { OpenFinancialRouterService } = await import("../liberty/openfinancialrouter_2gkx.service.js");
+            const res = await OpenFinancialRouterService.execute(args.target || "system");
+            return { output: `### OpenFinancialRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernellayer_zg01_logic": {
+          try {
+            const { OpenMicroKernelLayerService } = await import("../liberty/openmicro-kernellayer_zg01.service.js");
+            const res = await OpenMicroKernelLayerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedgraph_18vd_logic": {
           try {
             const { OpenFederatedGraphService } = await import("../liberty/openfederatedgraph_18vd.service.js");
