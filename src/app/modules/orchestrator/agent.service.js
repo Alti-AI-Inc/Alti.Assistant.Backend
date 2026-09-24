@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "provision_cloud_ide",
+      description: "Provision a full OpenVSCode Server cloud IDE instance for the user. Use this when the user wants to work on a large software project collaboratively.",
+      parameters: { type: "object", properties: { workspaceName: { type: "string" } }, required: ["workspaceName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_saas_action",
       description: "Use the Aphura Workflow Engine (Activepieces) to execute an action on any enterprise SaaS platform (e.g. Salesforce, Google Drive, Slack, HubSpot).",
       parameters: { type: "object", properties: { appName: { type: "string" }, actionName: { type: "string" }, payload: { type: "object" } }, required: ["appName", "actionName", "payload"] }
@@ -564,7 +572,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "execute_saas_action": {
+        case "provision_cloud_ide": {
+          try {
+            const { VSCodeService } = await import("../ide/vscode.service.js");
+            const res = await VSCodeService.provisionWorkspace("admin_user", args.workspaceName);
+            return { output: `Cloud IDE Provisioned:\nURL: ${res.url}` };
+          } catch (err) {
+            return { output: `IDE provisioning failed: ${err.message}` };
+          }
+        }        case "execute_saas_action": {
           try {
             const { ActivepiecesService } = await import("../workflows/activepieces.service.js");
             const res = await ActivepiecesService.executeSaaSAction(args.appName, args.actionName, args.payload);
