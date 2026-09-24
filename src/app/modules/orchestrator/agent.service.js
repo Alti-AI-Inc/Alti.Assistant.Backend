@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizednode_2l4b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNode) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpunode_m5q9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUNode) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessfabric_sjs9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessFabric) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcore_fq0d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCore) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcompiler_uhc0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCompiler) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openabstractmesh_uojj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAbstractMesh) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11572,6 +11612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizednode_2l4b_logic": {
+          try {
+            const { OpenDecentralizedNodeService } = await import("../liberty/opendecentralizednode_2l4b.service.js");
+            const res = await OpenDecentralizedNodeService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpunode_m5q9_logic": {
+          try {
+            const { OpenGPUNodeService } = await import("../liberty/opengpunode_m5q9.service.js");
+            const res = await OpenGPUNodeService.execute(args.target || "system");
+            return { output: `### OpenGPUNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessfabric_sjs9_logic": {
+          try {
+            const { OpenServerlessFabricService } = await import("../liberty/openserverlessfabric_sjs9.service.js");
+            const res = await OpenServerlessFabricService.execute(args.target || "system");
+            return { output: `### OpenServerlessFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcore_fq0d_logic": {
+          try {
+            const { OpenDecentralizedCoreService } = await import("../liberty/opendecentralizedcore_fq0d.service.js");
+            const res = await OpenDecentralizedCoreService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcompiler_uhc0_logic": {
+          try {
+            const { OpenDecentralizedCompilerService } = await import("../liberty/opendecentralizedcompiler_uhc0.service.js");
+            const res = await OpenDecentralizedCompilerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openabstractmesh_uojj_logic": {
           try {
             const { OpenAbstractMeshService } = await import("../liberty/openabstractmesh_uojj.service.js");
