@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablenode_1hvi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableNode) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableengine_wfwb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableEngine) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventoracle_qjg2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventOracle) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentnexus_8tzj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentNexus) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgemesh_q6js_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeMesh) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedvortex_sdt4_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedVortex) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7532,6 +7572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablenode_1hvi_logic": {
+          try {
+            const { OpenImmutableNodeService } = await import("../liberty/openimmutablenode_1hvi.service.js");
+            const res = await OpenImmutableNodeService.execute(args.target || "system");
+            return { output: `### OpenImmutableNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableengine_wfwb_logic": {
+          try {
+            const { OpenImmutableEngineService } = await import("../liberty/openimmutableengine_wfwb.service.js");
+            const res = await OpenImmutableEngineService.execute(args.target || "system");
+            return { output: `### OpenImmutableEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventoracle_qjg2_logic": {
+          try {
+            const { OpenEventOracleService } = await import("../liberty/openeventoracle_qjg2.service.js");
+            const res = await OpenEventOracleService.execute(args.target || "system");
+            return { output: `### OpenEventOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentnexus_8tzj_logic": {
+          try {
+            const { OpenPersistentNexusService } = await import("../liberty/openpersistentnexus_8tzj.service.js");
+            const res = await OpenPersistentNexusService.execute(args.target || "system");
+            return { output: `### OpenPersistentNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgemesh_q6js_logic": {
+          try {
+            const { OpenZeroKnowledgeMeshService } = await import("../liberty/openzero-knowledgemesh_q6js.service.js");
+            const res = await OpenZeroKnowledgeMeshService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeMesh failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedvortex_sdt4_logic": {
           try {
             const { OpenDistributedVortexService } = await import("../liberty/opendistributedvortex_sdt4.service.js");
