@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicswarm_zt2o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicSwarm) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativerouter_t3z7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeRouter) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesslayer_45w6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessLayer) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatapipeline_01aa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataPipeline) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendmatrix_taph_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendMatrix) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedring_ssx9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedRing) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21132,6 +21172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicswarm_zt2o_logic": {
+          try {
+            const { OpenHomomorphicSwarmService } = await import("../liberty/openhomomorphicswarm_zt2o.service.js");
+            const res = await OpenHomomorphicSwarmService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativerouter_t3z7_logic": {
+          try {
+            const { OpenCloudNativeRouterService } = await import("../liberty/opencloud-nativerouter_t3z7.service.js");
+            const res = await OpenCloudNativeRouterService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesslayer_45w6_logic": {
+          try {
+            const { OpenServerlessLayerService } = await import("../liberty/openserverlesslayer_45w6.service.js");
+            const res = await OpenServerlessLayerService.execute(args.target || "system");
+            return { output: `### OpenServerlessLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatapipeline_01aa_logic": {
+          try {
+            const { OpenDataPipelineService } = await import("../liberty/opendatapipeline_01aa.service.js");
+            const res = await OpenDataPipelineService.execute(args.target || "system");
+            return { output: `### OpenDataPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendmatrix_taph_logic": {
+          try {
+            const { OpenMicroFrontendMatrixService } = await import("../liberty/openmicro-frontendmatrix_taph.service.js");
+            const res = await OpenMicroFrontendMatrixService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedring_ssx9_logic": {
           try {
             const { OpenFederatedRingService } = await import("../liberty/openfederatedring_ssx9.service.js");
