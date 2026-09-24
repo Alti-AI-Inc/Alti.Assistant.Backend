@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustdaemon_guth_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustDaemon) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepnode_0ksh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepNode) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partygrid_spjg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyGrid) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondcompiler_47af_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondCompiler) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisebroker_0sd8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseBroker) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriespipeline_inc3_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesPipeline) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13892,6 +13932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustdaemon_guth_logic": {
+          try {
+            const { OpenZeroTrustDaemonService } = await import("../liberty/openzero-trustdaemon_guth.service.js");
+            const res = await OpenZeroTrustDaemonService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepnode_0ksh_logic": {
+          try {
+            const { OpenDeepNodeService } = await import("../liberty/opendeepnode_0ksh.service.js");
+            const res = await OpenDeepNodeService.execute(args.target || "system");
+            return { output: `### OpenDeepNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partygrid_spjg_logic": {
+          try {
+            const { OpenMultiPartyGridService } = await import("../liberty/openmulti-partygrid_spjg.service.js");
+            const res = await OpenMultiPartyGridService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondcompiler_47af_logic": {
+          try {
+            const { OpenSubMillisecondCompilerService } = await import("../liberty/opensub-millisecondcompiler_47af.service.js");
+            const res = await OpenSubMillisecondCompilerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisebroker_0sd8_logic": {
+          try {
+            const { OpenEnterpriseBrokerService } = await import("../liberty/openenterprisebroker_0sd8.service.js");
+            const res = await OpenEnterpriseBrokerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseBroker failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriespipeline_inc3_logic": {
           try {
             const { OpenTimeSeriesPipelineService } = await import("../liberty/opentime-seriespipeline_inc3.service.js");
