@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "deploy_seaweedfs_cluster",
+      description: "Use the Aphura Engine (SeaweedFS) to Deploy hyper-fast, distributed file systems for billions of small files and images.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deploy_openebs_cas",
+      description: "Use the Aphura Engine (OpenEBS) to Deploy container-attached storage architecture for stateful microservices.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "provision_longhorn_volumes",
+      description: "Use the Aphura Engine (Longhorn) to Provision highly available, distributed block storage for Kubernetes persistent volumes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deploy_ozone_object_store",
+      description: "Use the Aphura Engine (Apache Ozone) to Deploy highly scalable object stores for massive Data Lake architectures.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "orchestrate_rook_storage",
+      description: "Use the Aphura Engine (Rook) to Autonomously orchestrate distributed storage systems natively within Kubernetes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "deploy_bookkeeper_wal",
       description: "Use the Aphura Engine (Apache BookKeeper) to Deploy distributed, fault-tolerant write-ahead logging streams for data consistency.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1532,6 +1572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "deploy_seaweedfs_cluster": {
+          try {
+            const { SeaweedfsService } = await import("../data/seaweedfs.service.js");
+            const res = await SeaweedfsService.execute(args.target || "system");
+            return { output: `### SeaweedFS Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `SeaweedFS failed: ${err.message}` };
+          }
+        }
+        case "deploy_openebs_cas": {
+          try {
+            const { OpenebsService } = await import("../devops/openebs.service.js");
+            const res = await OpenebsService.execute(args.target || "system");
+            return { output: `### OpenEBS Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEBS failed: ${err.message}` };
+          }
+        }
+        case "provision_longhorn_volumes": {
+          try {
+            const { LonghornService } = await import("../devops/longhorn.service.js");
+            const res = await LonghornService.execute(args.target || "system");
+            return { output: `### Longhorn Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Longhorn failed: ${err.message}` };
+          }
+        }
+        case "deploy_ozone_object_store": {
+          try {
+            const { OzoneService } = await import("../data/ozone.service.js");
+            const res = await OzoneService.execute(args.target || "system");
+            return { output: `### Apache Ozone Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Apache Ozone failed: ${err.message}` };
+          }
+        }
+        case "orchestrate_rook_storage": {
+          try {
+            const { RookService } = await import("../devops/rook.service.js");
+            const res = await RookService.execute(args.target || "system");
+            return { output: `### Rook Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Rook failed: ${err.message}` };
+          }
+        }
         case "deploy_bookkeeper_wal": {
           try {
             const { BookkeeperService } = await import("../data/bookkeeper.service.js");
