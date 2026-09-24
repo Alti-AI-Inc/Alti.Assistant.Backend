@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizednet_juks_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNet) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalgraph_1zvr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalGraph) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventgrid_x2x1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventGrid) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisenode_171q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNode) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosnexus_37c8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNexus) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedchain_j679_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedChain) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9372,6 +9412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizednet_juks_logic": {
+          try {
+            const { OpenDecentralizedNetService } = await import("../liberty/opendecentralizednet_juks.service.js");
+            const res = await OpenDecentralizedNetService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalgraph_1zvr_logic": {
+          try {
+            const { OpenHyperDimensionalGraphService } = await import("../liberty/openhyper-dimensionalgraph_1zvr.service.js");
+            const res = await OpenHyperDimensionalGraphService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventgrid_x2x1_logic": {
+          try {
+            const { OpenEventGridService } = await import("../liberty/openeventgrid_x2x1.service.js");
+            const res = await OpenEventGridService.execute(args.target || "system");
+            return { output: `### OpenEventGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisenode_171q_logic": {
+          try {
+            const { OpenEnterpriseNodeService } = await import("../liberty/openenterprisenode_171q.service.js");
+            const res = await OpenEnterpriseNodeService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosnexus_37c8_logic": {
+          try {
+            const { OpenChaosNexusService } = await import("../liberty/openchaosnexus_37c8.service.js");
+            const res = await OpenChaosNexusService.execute(args.target || "system");
+            return { output: `### OpenChaosNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedchain_j679_logic": {
           try {
             const { OpenFederatedChainService } = await import("../liberty/openfederatedchain_j679.service.js");
