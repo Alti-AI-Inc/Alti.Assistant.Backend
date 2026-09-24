@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openneuromorphicgraph_b1sl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicGraph) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelledger_fk32_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelLedger) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivecontroller_oqap_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveController) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfgraph_pc4k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFGraph) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpswarm_vje8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPSwarm) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlessnet_5dzb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNet) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16572,6 +16612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openneuromorphicgraph_b1sl_logic": {
+          try {
+            const { OpenNeuromorphicGraphService } = await import("../liberty/openneuromorphicgraph_b1sl.service.js");
+            const res = await OpenNeuromorphicGraphService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelledger_fk32_logic": {
+          try {
+            const { OpenMicroKernelLedgerService } = await import("../liberty/openmicro-kernelledger_fk32.service.js");
+            const res = await OpenMicroKernelLedgerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivecontroller_oqap_logic": {
+          try {
+            const { OpenPredictiveControllerService } = await import("../liberty/openpredictivecontroller_oqap.service.js");
+            const res = await OpenPredictiveControllerService.execute(args.target || "system");
+            return { output: `### OpenPredictiveController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveController failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfgraph_pc4k_logic": {
+          try {
+            const { OpeneBPFGraphService } = await import("../liberty/openebpfgraph_pc4k.service.js");
+            const res = await OpeneBPFGraphService.execute(args.target || "system");
+            return { output: `### OpeneBPFGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpswarm_vje8_logic": {
+          try {
+            const { OpenBGPSwarmService } = await import("../liberty/openbgpswarm_vje8.service.js");
+            const res = await OpenBGPSwarmService.execute(args.target || "system");
+            return { output: `### OpenBGPSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlessnet_5dzb_logic": {
           try {
             const { OpenHeadlessNetService } = await import("../liberty/openheadlessnet_5dzb.service.js");
