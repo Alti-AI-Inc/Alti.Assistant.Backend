@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partyengine_a1j2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyEngine) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentcore_ybaj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentCore) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecluster_5bk2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCluster) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablebroker_voml_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableBroker) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatavortex_ds5w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataVortex) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterpriseswarm_92el_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseSwarm) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2572,6 +2612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partyengine_a1j2_logic": {
+          try {
+            const { OpenMultiPartyEngineService } = await import("../liberty/openmulti-partyengine_a1j2.service.js");
+            const res = await OpenMultiPartyEngineService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentcore_ybaj_logic": {
+          try {
+            const { OpenPersistentCoreService } = await import("../liberty/openpersistentcore_ybaj.service.js");
+            const res = await OpenPersistentCoreService.execute(args.target || "system");
+            return { output: `### OpenPersistentCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecluster_5bk2_logic": {
+          try {
+            const { OpenCloudNativeClusterService } = await import("../liberty/opencloud-nativecluster_5bk2.service.js");
+            const res = await OpenCloudNativeClusterService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablebroker_voml_logic": {
+          try {
+            const { OpenImmutableBrokerService } = await import("../liberty/openimmutablebroker_voml.service.js");
+            const res = await OpenImmutableBrokerService.execute(args.target || "system");
+            return { output: `### OpenImmutableBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatavortex_ds5w_logic": {
+          try {
+            const { OpenDataVortexService } = await import("../liberty/opendatavortex_ds5w.service.js");
+            const res = await OpenDataVortexService.execute(args.target || "system");
+            return { output: `### OpenDataVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openenterpriseswarm_92el_logic": {
           try {
             const { OpenEnterpriseSwarmService } = await import("../liberty/openenterpriseswarm_92el.service.js");
