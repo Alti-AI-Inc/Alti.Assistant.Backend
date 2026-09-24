@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessrouter_rz7q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessRouter) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecontroller_jntz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeController) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicchain_zr04_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicChain) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumcompiler_rrel_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumCompiler) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarycore_1znj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCore) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partycluster_om6h_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyCluster) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4612,6 +4652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessrouter_rz7q_logic": {
+          try {
+            const { OpenServerlessRouterService } = await import("../liberty/openserverlessrouter_rz7q.service.js");
+            const res = await OpenServerlessRouterService.execute(args.target || "system");
+            return { output: `### OpenServerlessRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecontroller_jntz_logic": {
+          try {
+            const { OpenZeroKnowledgeControllerService } = await import("../liberty/openzero-knowledgecontroller_jntz.service.js");
+            const res = await OpenZeroKnowledgeControllerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeController failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicchain_zr04_logic": {
+          try {
+            const { OpenNeuromorphicChainService } = await import("../liberty/openneuromorphicchain_zr04.service.js");
+            const res = await OpenNeuromorphicChainService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumcompiler_rrel_logic": {
+          try {
+            const { OpenQuantumCompilerService } = await import("../liberty/openquantumcompiler_rrel.service.js");
+            const res = await OpenQuantumCompilerService.execute(args.target || "system");
+            return { output: `### OpenQuantumCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarycore_1znj_logic": {
+          try {
+            const { OpenPlanetaryCoreService } = await import("../liberty/openplanetarycore_1znj.service.js");
+            const res = await OpenPlanetaryCoreService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryCore failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partycluster_om6h_logic": {
           try {
             const { OpenMultiPartyClusterService } = await import("../liberty/openmulti-partycluster_om6h.service.js");
