@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgering_zmg2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeRing) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendataplane_78b7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataPlane) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticstream_zmgk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticStream) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendcluster_pgnu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCluster) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernellayer_27vo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelLayer) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisemesh_a0in_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseMesh) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10092,6 +10132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgering_zmg2_logic": {
+          try {
+            const { OpenZeroKnowledgeRingService } = await import("../liberty/openzero-knowledgering_zmg2.service.js");
+            const res = await OpenZeroKnowledgeRingService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opendataplane_78b7_logic": {
+          try {
+            const { OpenDataPlaneService } = await import("../liberty/opendataplane_78b7.service.js");
+            const res = await OpenDataPlaneService.execute(args.target || "system");
+            return { output: `### OpenDataPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticstream_zmgk_logic": {
+          try {
+            const { OpenSemanticStreamService } = await import("../liberty/opensemanticstream_zmgk.service.js");
+            const res = await OpenSemanticStreamService.execute(args.target || "system");
+            return { output: `### OpenSemanticStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendcluster_pgnu_logic": {
+          try {
+            const { OpenMicroFrontendClusterService } = await import("../liberty/openmicro-frontendcluster_pgnu.service.js");
+            const res = await OpenMicroFrontendClusterService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernellayer_27vo_logic": {
+          try {
+            const { OpenMicroKernelLayerService } = await import("../liberty/openmicro-kernellayer_27vo.service.js");
+            const res = await OpenMicroKernelLayerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisemesh_a0in_logic": {
           try {
             const { OpenEnterpriseMeshService } = await import("../liberty/openenterprisemesh_a0in.service.js");
