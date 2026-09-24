@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpsync_dxg2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPSync) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosgraph_6vne_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosGraph) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgppipeline_usjv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPPipeline) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeledger_by1l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeLedger) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedledger_u9g4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedLedger) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openabstractdaemon_5yhz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAbstractDaemon) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10332,6 +10372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpsync_dxg2_logic": {
+          try {
+            const { OpenBGPSyncService } = await import("../liberty/openbgpsync_dxg2.service.js");
+            const res = await OpenBGPSyncService.execute(args.target || "system");
+            return { output: `### OpenBGPSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosgraph_6vne_logic": {
+          try {
+            const { OpenChaosGraphService } = await import("../liberty/openchaosgraph_6vne.service.js");
+            const res = await OpenChaosGraphService.execute(args.target || "system");
+            return { output: `### OpenChaosGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgppipeline_usjv_logic": {
+          try {
+            const { OpenBGPPipelineService } = await import("../liberty/openbgppipeline_usjv.service.js");
+            const res = await OpenBGPPipelineService.execute(args.target || "system");
+            return { output: `### OpenBGPPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeledger_by1l_logic": {
+          try {
+            const { OpenEdgeLedgerService } = await import("../liberty/openedgeledger_by1l.service.js");
+            const res = await OpenEdgeLedgerService.execute(args.target || "system");
+            return { output: `### OpenEdgeLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedledger_u9g4_logic": {
+          try {
+            const { OpenDistributedLedgerService } = await import("../liberty/opendistributedledger_u9g4.service.js");
+            const res = await OpenDistributedLedgerService.execute(args.target || "system");
+            return { output: `### OpenDistributedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedLedger failed: ${err.message}` };
+          }
+        }
         case "execute_openabstractdaemon_5yhz_logic": {
           try {
             const { OpenAbstractDaemonService } = await import("../liberty/openabstractdaemon_5yhz.service.js");
