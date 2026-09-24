@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { logger } from '../shared/logger.js';
+import { logger } from '../../shared/logger.js';
 import ipRangeCheck from 'ip-range-check';
 
 let cloudflareIps = [];

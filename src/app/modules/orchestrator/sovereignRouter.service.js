@@ -1,6 +1,6 @@
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
-import { llmChat, llmStream, llmLightChat } from '../../services/llm.client.js';
+import { llmChat, llmChatStream } from '../../services/llm.client.js';
 import Chat from '../chat/chat.model.js';
 import UserModel from '../auth/auth.model.js';
 import { IntentClassifier, ROUTE_TYPES } from './classifier.js';

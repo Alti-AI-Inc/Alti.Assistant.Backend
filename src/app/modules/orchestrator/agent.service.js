@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "browser_use_action",
+      description: "Use the ultrafast Browser-Use framework to physically control a headless browser. Use this to scrape modern web apps, click buttons, or extract dynamic data that simple GET requests cannot handle.",
+      parameters: { type: "object", properties: { action: { type: "string", enum: ["launch", "click", "type", "scroll", "close"] }, url_or_target: { type: "string" }, sessionId: { type: "string" } }, required: ["action", "url_or_target", "sessionId"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "query_knowledgebase",
       description: "Perform a semantic RAG vector search against the user's massive private document database (Enterprise Memory). Use this when the user asks about their own PDFs, codebases, or uploaded files.",
       parameters: { type: "object", properties: { query: { type: "string" }, collectionId: { type: "string" } }, required: ["query"] }
@@ -532,7 +540,23 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "query_knowledgebase": {
+        case "browser_use_action": {
+          try {
+            const { BrowserUseService } = await import("../browser/browser.service.js");
+            if (args.action === "launch") {
+              const res = await BrowserUseService.launchBrowser(args.sessionId, args.url_or_target);
+              return { output: `Browser launched at ${args.url_or_target}. DOM loaded.` };
+            } else if (args.action === "close") {
+              await BrowserUseService.closeBrowser(args.sessionId);
+              return { output: "Browser closed." };
+            } else {
+              const res = await BrowserUseService.executeAction(args.sessionId, args.action, args.url_or_target);
+              return { output: `Action ${args.action} completed. New DOM state observed.` };
+            }
+          } catch (err) {
+            return { output: `Browser action failed: ${err.message}` };
+          }
+        }        case "query_knowledgebase": {
           try {
             const { VectorStoreService } = await import("../rag/vectorstore.service.js");
             const { llmEmbed } = await import("../../services/llm.client.js");

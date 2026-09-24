@@ -1,6 +1,6 @@
 import Together from 'together-ai';
 import config from '../../../config/index.js';
-import { logger } from '../shared/logger.js';
+import { logger } from '../../shared/logger.js';
 
 // 🛑 OEM HARD LAW: EXCLUSIVE PROVIDER LOCK
 // Aphura is strictly bound to Together.ai as the sole inference engine.
@@ -183,7 +183,6 @@ export async function llmToolCall(messages, tools, options = {}) {
   });
 }
 
-export const llmStream = llmChatStream;
 
 export async function llmImageToImage() { throw new Error("Not implemented in OEM backend yet"); }
 export async function llmGenerateVideo() { throw new Error("Not implemented in OEM backend yet"); }
@@ -209,3 +208,54 @@ export async function llmEmbed(text) {
     throw error;
   }
 }
+
+export function getLlmClient() {
+  return llmClient;
+}
+
+export async function llmComplete(prompt, options = {}) {
+  const model = options.model || TOGETHER_AI_FACTORY.CHAT_SPEED;
+  try {
+    const response = await llmClient.completions.create({
+      model,
+      prompt,
+      max_tokens: options.max_tokens || 1024,
+      temperature: options.temperature ?? 0.7,
+    });
+    return response.choices[0].text;
+  } catch (error) {
+    logger.error(`[Together AI Complete] failed:`, error);
+    throw error;
+  }
+}
+
+
+export async function llmListBatches() { throw new Error("Not implemented"); }
+export async function llmGetBatch() { throw new Error("Not implemented"); }
+export async function llmCreateBatch() { throw new Error("Not implemented"); }
+export async function llmCancelBatch() { throw new Error("Not implemented"); }
+
+export const llmStream = llmChatStream;
+export const llmLightChat = llmChat;
+export const llmLightStream = llmChatStream;
+export const llmLightToolCall = llmToolCall;
+export async function llmListModels() { throw new Error("Not implemented"); }
+export async function llmWhoami() { throw new Error("Not implemented"); }
+export async function llmGetBillingUsage() { throw new Error("Not implemented"); }
+export async function llmListEndpoints() { throw new Error("Not implemented"); }
+export async function llmCreateEndpoint() { throw new Error("Not implemented"); }
+export async function llmCreateFineTune() { throw new Error("Not implemented"); }
+export async function llmListFineTunes() { throw new Error("Not implemented"); }
+export async function llmGetFineTune() { throw new Error("Not implemented"); }
+export async function llmCancelFineTune() { throw new Error("Not implemented"); }
+export async function llmEstimateFineTunePrice() { throw new Error("Not implemented"); }
+export async function llmGetFineTuneMetrics() { throw new Error("Not implemented"); }
+export async function llmListEvals() { throw new Error("Not implemented"); }
+export async function llmCreateEval() { throw new Error("Not implemented"); }
+export async function llmGetEval() { throw new Error("Not implemented"); }
+export async function llmUploadFile() { throw new Error("Not implemented"); }
+export async function llmListFiles() { throw new Error("Not implemented"); }
+export async function llmGetFile() { throw new Error("Not implemented"); }
+export async function llmDeleteFile() { throw new Error("Not implemented"); }
+export async function llmUploadModel() { throw new Error("Not implemented"); }
+export async function llmGetModelLimits() { throw new Error("Not implemented"); }

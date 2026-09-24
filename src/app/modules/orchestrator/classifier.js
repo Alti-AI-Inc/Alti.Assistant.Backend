@@ -1,4 +1,4 @@
-import { llmLightToolCall } from '../../services/llm.client.js';
+import { llmToolCall } from '../../services/llm.client.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -276,7 +276,7 @@ export const IntentClassifier = {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), maxLatencyMs);
 
-      const response = await llmLightToolCall(messages, CLASSIFICATION_TOOLS, {
+      const response = await llmToolCall(messages, CLASSIFICATION_TOOLS, {
         model: config.llm?.lightModel || 'gpt-oss-20b',
         temperature: 0.0,
         max_tokens: 512,
