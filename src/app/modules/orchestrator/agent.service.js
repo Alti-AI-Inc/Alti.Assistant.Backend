@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustgrid_9i7k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustGrid) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpumesh_gg2j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUMesh) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessvault_xvyf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessVault) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiccontroller_fq1a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicController) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticdaemon_mgks_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticDaemon) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventmatrix_d35k_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventMatrix) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12492,6 +12532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustgrid_9i7k_logic": {
+          try {
+            const { OpenZeroTrustGridService } = await import("../liberty/openzero-trustgrid_9i7k.service.js");
+            const res = await OpenZeroTrustGridService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpumesh_gg2j_logic": {
+          try {
+            const { OpenGPUMeshService } = await import("../liberty/opengpumesh_gg2j.service.js");
+            const res = await OpenGPUMeshService.execute(args.target || "system");
+            return { output: `### OpenGPUMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessvault_xvyf_logic": {
+          try {
+            const { OpenHeadlessVaultService } = await import("../liberty/openheadlessvault_xvyf.service.js");
+            const res = await OpenHeadlessVaultService.execute(args.target || "system");
+            return { output: `### OpenHeadlessVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiccontroller_fq1a_logic": {
+          try {
+            const { OpenNeuromorphicControllerService } = await import("../liberty/openneuromorphiccontroller_fq1a.service.js");
+            const res = await OpenNeuromorphicControllerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicController failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticdaemon_mgks_logic": {
+          try {
+            const { OpenStaticDaemonService } = await import("../liberty/openstaticdaemon_mgks.service.js");
+            const res = await OpenStaticDaemonService.execute(args.target || "system");
+            return { output: `### OpenStaticDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticDaemon failed: ${err.message}` };
+          }
+        }
         case "execute_openeventmatrix_d35k_logic": {
           try {
             const { OpenEventMatrixService } = await import("../liberty/openeventmatrix_d35k.service.js");
