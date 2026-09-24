@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessgraph_9jc8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessGraph) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenode_1kl3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNode) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondcompiler_npdv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondCompiler) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentproxy_98ef_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentProxy) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarynexus_5w98_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNexus) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlesscompiler_z7v1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCompiler) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19972,6 +20012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessgraph_9jc8_logic": {
+          try {
+            const { OpenServerlessGraphService } = await import("../liberty/openserverlessgraph_9jc8.service.js");
+            const res = await OpenServerlessGraphService.execute(args.target || "system");
+            return { output: `### OpenServerlessGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenode_1kl3_logic": {
+          try {
+            const { OpenCloudNativeNodeService } = await import("../liberty/opencloud-nativenode_1kl3.service.js");
+            const res = await OpenCloudNativeNodeService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondcompiler_npdv_logic": {
+          try {
+            const { OpenSubMillisecondCompilerService } = await import("../liberty/opensub-millisecondcompiler_npdv.service.js");
+            const res = await OpenSubMillisecondCompilerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentproxy_98ef_logic": {
+          try {
+            const { OpenPersistentProxyService } = await import("../liberty/openpersistentproxy_98ef.service.js");
+            const res = await OpenPersistentProxyService.execute(args.target || "system");
+            return { output: `### OpenPersistentProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarynexus_5w98_logic": {
+          try {
+            const { OpenPlanetaryNexusService } = await import("../liberty/openplanetarynexus_5w98.service.js");
+            const res = await OpenPlanetaryNexusService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlesscompiler_z7v1_logic": {
           try {
             const { OpenHeadlessCompilerService } = await import("../liberty/openheadlesscompiler_z7v1.service.js");
