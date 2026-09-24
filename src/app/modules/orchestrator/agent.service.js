@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarymatrix_iif5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryMatrix) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriespipeline_uumz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesPipeline) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryplane_xot9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryPlane) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeoracle_8nac_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeOracle) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedsync_zvcn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedSync) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpudaemon_7ewi_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUDaemon) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18932,6 +18972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarymatrix_iif5_logic": {
+          try {
+            const { OpenPlanetaryMatrixService } = await import("../liberty/openplanetarymatrix_iif5.service.js");
+            const res = await OpenPlanetaryMatrixService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriespipeline_uumz_logic": {
+          try {
+            const { OpenTimeSeriesPipelineService } = await import("../liberty/opentime-seriespipeline_uumz.service.js");
+            const res = await OpenTimeSeriesPipelineService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryplane_xot9_logic": {
+          try {
+            const { OpenPlanetaryPlaneService } = await import("../liberty/openplanetaryplane_xot9.service.js");
+            const res = await OpenPlanetaryPlaneService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeoracle_8nac_logic": {
+          try {
+            const { OpenEdgeOracleService } = await import("../liberty/openedgeoracle_8nac.service.js");
+            const res = await OpenEdgeOracleService.execute(args.target || "system");
+            return { output: `### OpenEdgeOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedsync_zvcn_logic": {
+          try {
+            const { OpenAdvancedSyncService } = await import("../liberty/openadvancedsync_zvcn.service.js");
+            const res = await OpenAdvancedSyncService.execute(args.target || "system");
+            return { output: `### OpenAdvancedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedSync failed: ${err.message}` };
+          }
+        }
         case "execute_opengpudaemon_7ewi_logic": {
           try {
             const { OpenGPUDaemonService } = await import("../liberty/opengpudaemon_7ewi.service.js");
