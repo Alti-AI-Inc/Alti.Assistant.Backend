@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlesscluster_m6m6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCluster) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedrouter_nk2p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedRouter) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphengine_qw8b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphEngine) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticgrid_dj2l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticGrid) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticlayer_d4k9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticLayer) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivecluster_3l3y_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveCluster) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12052,6 +12092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlesscluster_m6m6_logic": {
+          try {
+            const { OpenHeadlessClusterService } = await import("../liberty/openheadlesscluster_m6m6.service.js");
+            const res = await OpenHeadlessClusterService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedrouter_nk2p_logic": {
+          try {
+            const { OpenDistributedRouterService } = await import("../liberty/opendistributedrouter_nk2p.service.js");
+            const res = await OpenDistributedRouterService.execute(args.target || "system");
+            return { output: `### OpenDistributedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphengine_qw8b_logic": {
+          try {
+            const { OpenGraphEngineService } = await import("../liberty/opengraphengine_qw8b.service.js");
+            const res = await OpenGraphEngineService.execute(args.target || "system");
+            return { output: `### OpenGraphEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticgrid_dj2l_logic": {
+          try {
+            const { OpenStaticGridService } = await import("../liberty/openstaticgrid_dj2l.service.js");
+            const res = await OpenStaticGridService.execute(args.target || "system");
+            return { output: `### OpenStaticGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticlayer_d4k9_logic": {
+          try {
+            const { OpenSemanticLayerService } = await import("../liberty/opensemanticlayer_d4k9.service.js");
+            const res = await OpenSemanticLayerService.execute(args.target || "system");
+            return { output: `### OpenSemanticLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivecluster_3l3y_logic": {
           try {
             const { OpenPredictiveClusterService } = await import("../liberty/openpredictivecluster_3l3y.service.js");
