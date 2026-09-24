@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhigh-frequencyoracle_30wz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyOracle) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnode_za0m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNode) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosvault_s5t8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosVault) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustnet_ssh4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustNet) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessmatrix_kwko_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessMatrix) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticnet_btma_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticNet) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18172,6 +18212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhigh-frequencyoracle_30wz_logic": {
+          try {
+            const { OpenHighFrequencyOracleService } = await import("../liberty/openhigh-frequencyoracle_30wz.service.js");
+            const res = await OpenHighFrequencyOracleService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnode_za0m_logic": {
+          try {
+            const { OpenGraphNodeService } = await import("../liberty/opengraphnode_za0m.service.js");
+            const res = await OpenGraphNodeService.execute(args.target || "system");
+            return { output: `### OpenGraphNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosvault_s5t8_logic": {
+          try {
+            const { OpenChaosVaultService } = await import("../liberty/openchaosvault_s5t8.service.js");
+            const res = await OpenChaosVaultService.execute(args.target || "system");
+            return { output: `### OpenChaosVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustnet_ssh4_logic": {
+          try {
+            const { OpenZeroTrustNetService } = await import("../liberty/openzero-trustnet_ssh4.service.js");
+            const res = await OpenZeroTrustNetService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessmatrix_kwko_logic": {
+          try {
+            const { OpenHeadlessMatrixService } = await import("../liberty/openheadlessmatrix_kwko.service.js");
+            const res = await OpenHeadlessMatrixService.execute(args.target || "system");
+            return { output: `### OpenHeadlessMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticnet_btma_logic": {
           try {
             const { OpenSemanticNetService } = await import("../liberty/opensemanticnet_btma.service.js");
