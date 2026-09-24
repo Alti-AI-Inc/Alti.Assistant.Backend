@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgesync_1qew_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSync) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondchain_u9dc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondChain) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeeplayer_xxyw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepLayer) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumgraph_qckk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumGraph) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusternode_j7ir_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterNode) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizednexus_coy5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNexus) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10852,6 +10892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgesync_1qew_logic": {
+          try {
+            const { OpenEdgeSyncService } = await import("../liberty/openedgesync_1qew.service.js");
+            const res = await OpenEdgeSyncService.execute(args.target || "system");
+            return { output: `### OpenEdgeSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondchain_u9dc_logic": {
+          try {
+            const { OpenSubMillisecondChainService } = await import("../liberty/opensub-millisecondchain_u9dc.service.js");
+            const res = await OpenSubMillisecondChainService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeeplayer_xxyw_logic": {
+          try {
+            const { OpenDeepLayerService } = await import("../liberty/opendeeplayer_xxyw.service.js");
+            const res = await OpenDeepLayerService.execute(args.target || "system");
+            return { output: `### OpenDeepLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumgraph_qckk_logic": {
+          try {
+            const { OpenQuantumGraphService } = await import("../liberty/openquantumgraph_qckk.service.js");
+            const res = await OpenQuantumGraphService.execute(args.target || "system");
+            return { output: `### OpenQuantumGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusternode_j7ir_logic": {
+          try {
+            const { OpenCrossClusterNodeService } = await import("../liberty/opencross-clusternode_j7ir.service.js");
+            const res = await OpenCrossClusterNodeService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterNode failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizednexus_coy5_logic": {
           try {
             const { OpenDecentralizedNexusService } = await import("../liberty/opendecentralizednexus_coy5.service.js");
