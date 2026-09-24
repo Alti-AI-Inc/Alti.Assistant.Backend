@@ -9,6 +9,7 @@ const MODELS = {
   CHAT_SMART: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
   CHAT_SPEED: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
   VISION: 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo',
+  GUARDRAIL: 'meta-llama/Meta-Llama-Guard-3-8B',
 };
 
 // Fallback logic for high-availability
@@ -69,6 +70,37 @@ export const InferenceGateway = {
    * Handles dynamic routing, streaming, and automatic fallbacks.
    */
   async streamChatCompletion(reqBody, res) {
+    const TOGETHER_API_KEY = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const TOGETHER_ENDPOINT = 'https://api.together.xyz/v1/chat/completions';
+
+    // 🛡️ GLOBAL GUARDRAIL: ZERO-TOLERANCE PRE-FLIGHT CHECK
+    // Run the user's prompt through Llama Guard 3 before ANY routing occurs.
+    try {
+      const guardRes = await fetch(TOGETHER_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${TOGETHER_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: MODELS.GUARDRAIL,
+          messages: reqBody.messages,
+        }),
+      });
+      const guardData = await guardRes.json();
+      const safetyOutput = guardData.choices?.[0]?.message?.content?.toLowerCase() || '';
+      
+      if (safetyOutput.includes('unsafe')) {
+        logger.warn(`[Llama Guard 3] 🛑 BLOCKED: Malicious/Harmful intent detected.`);
+        return res.status(403).json({ 
+          error: 'Content policy violation. Your request was blocked by the Liberty Center One Sovereign Guardrail.' 
+        });
+      }
+    } catch (e) {
+      logger.error(`[Llama Guard 3] Pre-flight check failed, failing closed: ${e.message}`);
+      return res.status(500).json({ error: 'Safety verification failed.' });
+    }
+
     // 🧠 ADVANCED MoE ROUTING:
     // If the client explicitly requests JSON output, we force the Llama 70B engine 
     // because it has the highest strict-schema compliance rate without the latency of 405B.
@@ -83,15 +115,9 @@ export const InferenceGateway = {
     }
     
     let attempts = [originalModel, ...(FALLBACK_CHAIN[originalModel] || [])];
-    
-    const TOGETHER_API_KEY = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
 
     for (let i = 0; i < attempts.length; i++) {
       const targetModel = attempts[i];
-      
-      // 🛑 OEM HARD LAW: EXCLUSIVE PROVIDER LOCK
-      // Ensure that under no circumstances can the target model be routed outside Together AI.
-      const TOGETHER_ENDPOINT = 'https://api.together.xyz/v1/chat/completions';
       
       logger.info(`[Inference Gateway] Routing to: ${targetModel} on Together.ai (Attempt ${i + 1}/${attempts.length})`);
 

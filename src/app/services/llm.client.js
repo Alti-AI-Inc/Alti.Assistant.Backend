@@ -35,6 +35,9 @@ const TOGETHER_AI_FACTORY = {
 
   // 🎨 Image Generation
   IMAGE_GEN: 'black-forest-labs/FLUX.1-schnell',
+  
+  // 🛡️ Global Safety Guardrails
+  GUARDRAIL: 'meta-llama/Meta-Llama-Guard-3-8B',
 };
 
 function routeToExpert(messages, options = {}) {
