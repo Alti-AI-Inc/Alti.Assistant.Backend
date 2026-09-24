@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablelayer_knw5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableLayer) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosoracle_242u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosOracle) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepgrid_1h38_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepGrid) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscore_96p7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCore) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgematrix_gwsj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeMatrix) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizeddaemon_ourg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedDaemon) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9132,6 +9172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablelayer_knw5_logic": {
+          try {
+            const { OpenImmutableLayerService } = await import("../liberty/openimmutablelayer_knw5.service.js");
+            const res = await OpenImmutableLayerService.execute(args.target || "system");
+            return { output: `### OpenImmutableLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosoracle_242u_logic": {
+          try {
+            const { OpenChaosOracleService } = await import("../liberty/openchaosoracle_242u.service.js");
+            const res = await OpenChaosOracleService.execute(args.target || "system");
+            return { output: `### OpenChaosOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepgrid_1h38_logic": {
+          try {
+            const { OpenDeepGridService } = await import("../liberty/opendeepgrid_1h38.service.js");
+            const res = await OpenDeepGridService.execute(args.target || "system");
+            return { output: `### OpenDeepGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscore_96p7_logic": {
+          try {
+            const { OpenHeadlessCoreService } = await import("../liberty/openheadlesscore_96p7.service.js");
+            const res = await OpenHeadlessCoreService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgematrix_gwsj_logic": {
+          try {
+            const { OpenEdgeMatrixService } = await import("../liberty/openedgematrix_gwsj.service.js");
+            const res = await OpenEdgeMatrixService.execute(args.target || "system");
+            return { output: `### OpenEdgeMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizeddaemon_ourg_logic": {
           try {
             const { OpenDecentralizedDaemonService } = await import("../liberty/opendecentralizeddaemon_ourg.service.js");
