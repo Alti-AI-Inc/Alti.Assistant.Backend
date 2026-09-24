@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicnode_rzrc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNode) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfnexus_kx54_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFNexus) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedmatrix_ft7a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedMatrix) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumproxy_hgwg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumProxy) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessdaemon_9bdx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessDaemon) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendataoracle_ie50_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataOracle) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10772,6 +10812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicnode_rzrc_logic": {
+          try {
+            const { OpenHomomorphicNodeService } = await import("../liberty/openhomomorphicnode_rzrc.service.js");
+            const res = await OpenHomomorphicNodeService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfnexus_kx54_logic": {
+          try {
+            const { OpeneBPFNexusService } = await import("../liberty/openebpfnexus_kx54.service.js");
+            const res = await OpeneBPFNexusService.execute(args.target || "system");
+            return { output: `### OpeneBPFNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedmatrix_ft7a_logic": {
+          try {
+            const { OpenDecentralizedMatrixService } = await import("../liberty/opendecentralizedmatrix_ft7a.service.js");
+            const res = await OpenDecentralizedMatrixService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumproxy_hgwg_logic": {
+          try {
+            const { OpenQuantumProxyService } = await import("../liberty/openquantumproxy_hgwg.service.js");
+            const res = await OpenQuantumProxyService.execute(args.target || "system");
+            return { output: `### OpenQuantumProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessdaemon_9bdx_logic": {
+          try {
+            const { OpenHeadlessDaemonService } = await import("../liberty/openheadlessdaemon_9bdx.service.js");
+            const res = await OpenHeadlessDaemonService.execute(args.target || "system");
+            return { output: `### OpenHeadlessDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessDaemon failed: ${err.message}` };
+          }
+        }
         case "execute_opendataoracle_ie50_logic": {
           try {
             const { OpenDataOracleService } = await import("../liberty/opendataoracle_ie50.service.js");
