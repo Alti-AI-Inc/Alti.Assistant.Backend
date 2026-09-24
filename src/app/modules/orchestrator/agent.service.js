@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedgrid_oy08_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedGrid) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicfabric_dtfy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicFabric) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelfabric_67v2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelFabric) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractengine_ns7p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractEngine) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgerouter_uvoq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeRouter) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriesnode_jx13_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNode) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16132,6 +16172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedgrid_oy08_logic": {
+          try {
+            const { OpenDistributedGridService } = await import("../liberty/opendistributedgrid_oy08.service.js");
+            const res = await OpenDistributedGridService.execute(args.target || "system");
+            return { output: `### OpenDistributedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicfabric_dtfy_logic": {
+          try {
+            const { OpenHomomorphicFabricService } = await import("../liberty/openhomomorphicfabric_dtfy.service.js");
+            const res = await OpenHomomorphicFabricService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelfabric_67v2_logic": {
+          try {
+            const { OpenMicroKernelFabricService } = await import("../liberty/openmicro-kernelfabric_67v2.service.js");
+            const res = await OpenMicroKernelFabricService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractengine_ns7p_logic": {
+          try {
+            const { OpenAbstractEngineService } = await import("../liberty/openabstractengine_ns7p.service.js");
+            const res = await OpenAbstractEngineService.execute(args.target || "system");
+            return { output: `### OpenAbstractEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgerouter_uvoq_logic": {
+          try {
+            const { OpenEdgeRouterService } = await import("../liberty/openedgerouter_uvoq.service.js");
+            const res = await OpenEdgeRouterService.execute(args.target || "system");
+            return { output: `### OpenEdgeRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeRouter failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriesnode_jx13_logic": {
           try {
             const { OpenTimeSeriesNodeService } = await import("../liberty/opentime-seriesnode_jx13.service.js");
