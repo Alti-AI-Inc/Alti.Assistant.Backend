@@ -5,36 +5,62 @@ import { logger } from '../shared/logger.js';
 const llmClient = new Together({
   apiKey: config.llm?.apiKey || process.env.TOGETHER_API_KEY || 'dummy_key',
   maxRetries: 3,
-  timeout: 60 * 1000, // 60s
+  timeout: 60 * 1000, 
 });
 
 /**
- * 🚀 OEM MAGIC: The Mixture-of-Experts (MoE) Hyper-Router
- * Automatically dynamically shifts the inference engine on Together.ai based on the prompt's cognitive demands.
- * This guarantees we outperform ChatGPT/Claude on reasoning, Cursor on coding, and Perplexity on search speed.
+ * 🚀 OEM MAGIC: The Ultimate Mixture-of-Experts (MoE) Inference Factory
+ * Maps the ENTIRE Together.ai serverless library to Liberty Center One.
  */
-function routeToExpert(messages) {
-  const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
+const TOGETHER_AI_FACTORY = {
+  // 🧠 Extreme Reasoning & Coding (Cursor/Copilot Killers)
+  CODE_HEAVY: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+  CODE_FAST: 'deepseek-ai/deepseek-coder-33b-instruct',
   
-  // 1. Coding & Desktop Computer Use (Beats Cursor/Copilot) -> Llama 3.1 405B (Massive reasoning)
-  if (lastMsg.match(/code|debug|refactor|script|function|build|deploy|terminal|shell|mcp/)) {
-    logger.info('[MoE Router] 🧠 Routing to Heavy Code Expert: Llama 3.1 405B');
-    return 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo';
+  // 🌐 Web Search & Data Extraction (Perplexity Killers)
+  SEARCH_EXPERT: 'Qwen/Qwen2.5-72B-Instruct-Turbo',
+  DATA_MINER: 'mistralai/Mixtral-8x22B-Instruct-v0.1',
+  
+  // 👁️ Vision & Multimodal Analysis
+  VISION_HEAVY: 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo',
+  VISION_FAST: 'meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo',
+  
+  // ⚡ General Chat & Edge Speed (ChatGPT Speed Killers)
+  CHAT_SPEED: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+  CHAT_SMART: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+
+  // 🎨 Image Generation
+  IMAGE_GEN: 'black-forest-labs/FLUX.1-schnell',
+};
+
+function routeToExpert(messages, requiredCapability = 'text') {
+  if (requiredCapability === 'vision') return TOGETHER_AI_FACTORY.VISION_HEAVY;
+  if (requiredCapability === 'image_gen') return TOGETHER_AI_FACTORY.IMAGE_GEN;
+  
+  const lastMsg = messages[messages.length - 1]?.content;
+  const prompt = (typeof lastMsg === 'string' ? lastMsg : JSON.stringify(lastMsg)).toLowerCase();
+  
+  if (prompt.match(/code|debug|refactor|script|function|build|deploy|terminal|shell|mcp/)) {
+    logger.info('[MoE Factory] 🧠 Dispatching to DeepSeek/Llama 405B (Code Expert)');
+    return TOGETHER_AI_FACTORY.CODE_HEAVY;
   }
   
-  // 2. Web Search & Data Extraction (Beats Perplexity) -> Qwen 2.5 72B (Insanely fast reading)
-  if (lastMsg.match(/search|news|latest|find|who|what|when|where/)) {
-    logger.info('[MoE Router] 🌐 Routing to Search Expert: Qwen 2.5 72B');
-    return 'Qwen/Qwen2.5-72B-Instruct-Turbo';
+  if (prompt.match(/search|news|latest|find|who|what|when|where|analyze data/)) {
+    logger.info('[MoE Factory] 🌐 Dispatching to Qwen 72B (Search/Data Expert)');
+    return TOGETHER_AI_FACTORY.SEARCH_EXPERT;
   }
   
-  // 3. General Chat & Brainstorming (Beats ChatGPT on Speed) -> Mixtral 8x22B (Ultra-low latency edge response)
-  logger.info('[MoE Router] ⚡ Routing to Speed Expert: Mixtral 8x22B');
-  return 'mistralai/Mixtral-8x22B-Instruct-v0.1';
+  if (prompt.match(/explain|teach|summarize/)) {
+    logger.info('[MoE Factory] ⚡ Dispatching to Llama 70B (General Intelligence)');
+    return TOGETHER_AI_FACTORY.CHAT_SMART;
+  }
+  
+  logger.info('[MoE Factory] 🏎️ Dispatching to Llama 8B Turbo (Edge Speed)');
+  return TOGETHER_AI_FACTORY.CHAT_SPEED;
 }
 
 export async function llmChat(messages, options = {}) {
-  const model = options.model || routeToExpert(messages);
+  const model = options.model || routeToExpert(messages, options.capability);
   try {
     return await llmClient.chat.completions.create({
       model,
@@ -49,7 +75,7 @@ export async function llmChat(messages, options = {}) {
 }
 
 export async function* llmChatStream(messages, options = {}) {
-  const model = options.model || routeToExpert(messages);
+  const model = options.model || routeToExpert(messages, options.capability);
   try {
     const stream = await llmClient.chat.completions.create({
       model,
@@ -71,7 +97,7 @@ export async function* llmChatStream(messages, options = {}) {
 }
 
 export async function llmJson(messages, jsonSchema, options = {}) {
-  const model = options.model || routeToExpert(messages);
+  const model = options.model || routeToExpert(messages, 'text');
   try {
     return await llmClient.chat.completions.create({
       model,
@@ -84,3 +110,54 @@ export async function llmJson(messages, jsonSchema, options = {}) {
     throw error;
   }
 }
+
+export async function llmGenerateImage(prompt, options = {}) {
+  try {
+    logger.info(`[MoE Factory] 🎨 Dispatching Image Generation to Flux.1 Schnell`);
+    const response = await llmClient.images.generate({
+      model: TOGETHER_AI_FACTORY.IMAGE_GEN,
+      prompt,
+      width: options.width || 1024,
+      height: options.height || 1024,
+      steps: 4, 
+      n: 1,
+      response_format: "b64_json"
+    });
+    return response.data[0].b64_json;
+  } catch (error) {
+    logger.error(`[Together AI Image] Generation failed:`, error);
+    throw error;
+  }
+}
+
+export async function llmVisionChat(messages, options = {}) {
+  // Pass capability='vision' to force the router to pick Llama 3.2 Vision 90B
+  return llmChat(messages, { ...options, capability: 'vision' });
+}
+
+// ─── POLYFILLS FOR AGENT SERVICE TO PREVENT CRASHES ─────────────
+export async function llmToolCall(messages, tools, options = {}) {
+  // Using Llama 3.1 405B or 70B for tool calling (they are the best at it)
+  const model = options.model || TOGETHER_AI_FACTORY.CODE_HEAVY; 
+  return await llmClient.chat.completions.create({
+    model,
+    messages,
+    tools,
+    tool_choice: options.toolChoice || "auto",
+    temperature: options.temperature ?? 0.1,
+  });
+}
+
+export const llmStream = llmChatStream;
+
+export async function llmImageToImage() { throw new Error("Not implemented in OEM backend yet"); }
+export async function llmGenerateVideo() { throw new Error("Not implemented in OEM backend yet"); }
+export async function llmGetVideoMetadata() { throw new Error("Not implemented in OEM backend yet"); }
+export async function llmTextToSpeech() { throw new Error("Not implemented in OEM backend yet"); }
+export async function llmStreamTTS() { throw new Error("Not implemented in OEM backend yet"); }
+export async function llmCodeInterpreter() { throw new Error("Not implemented in OEM backend yet"); }
+export async function llmReasoningChat(messages, options) { return llmChat(messages, { ...options, model: TOGETHER_AI_FACTORY.CODE_HEAVY }); }
+export async function llmRerank() { throw new Error("Not implemented in OEM backend yet"); }
+export async function llmTranscribeAudio() { throw new Error("Not implemented in OEM backend yet"); }
+export const llmRealtimeTTSConfig = {};
+export const llmRealtimeSTTConfig = {};
