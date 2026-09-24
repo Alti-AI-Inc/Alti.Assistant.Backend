@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessstream_8t1g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessStream) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustnet_qrx9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustNet) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicnode_w8pj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNode) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphoracle_illv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphOracle) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesoracle_t6h7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesOracle) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedmesh_02ke_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedMesh) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8092,6 +8132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessstream_8t1g_logic": {
+          try {
+            const { OpenHeadlessStreamService } = await import("../liberty/openheadlessstream_8t1g.service.js");
+            const res = await OpenHeadlessStreamService.execute(args.target || "system");
+            return { output: `### OpenHeadlessStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustnet_qrx9_logic": {
+          try {
+            const { OpenZeroTrustNetService } = await import("../liberty/openzero-trustnet_qrx9.service.js");
+            const res = await OpenZeroTrustNetService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicnode_w8pj_logic": {
+          try {
+            const { OpenHomomorphicNodeService } = await import("../liberty/openhomomorphicnode_w8pj.service.js");
+            const res = await OpenHomomorphicNodeService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphoracle_illv_logic": {
+          try {
+            const { OpenGraphOracleService } = await import("../liberty/opengraphoracle_illv.service.js");
+            const res = await OpenGraphOracleService.execute(args.target || "system");
+            return { output: `### OpenGraphOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesoracle_t6h7_logic": {
+          try {
+            const { OpenTimeSeriesOracleService } = await import("../liberty/opentime-seriesoracle_t6h7.service.js");
+            const res = await OpenTimeSeriesOracleService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedmesh_02ke_logic": {
           try {
             const { OpenAutomatedMeshService } = await import("../liberty/openautomatedmesh_02ke.service.js");
