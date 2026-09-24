@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentgraph_9pmv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentGraph) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedoracle_iome_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedOracle) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativegraph_2mvl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeGraph) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatagrid_wxs4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataGrid) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicengine_cjhr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicEngine) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedplane_y5r8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedPlane) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13412,6 +13452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentgraph_9pmv_logic": {
+          try {
+            const { OpenPersistentGraphService } = await import("../liberty/openpersistentgraph_9pmv.service.js");
+            const res = await OpenPersistentGraphService.execute(args.target || "system");
+            return { output: `### OpenPersistentGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedoracle_iome_logic": {
+          try {
+            const { OpenFederatedOracleService } = await import("../liberty/openfederatedoracle_iome.service.js");
+            const res = await OpenFederatedOracleService.execute(args.target || "system");
+            return { output: `### OpenFederatedOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativegraph_2mvl_logic": {
+          try {
+            const { OpenCloudNativeGraphService } = await import("../liberty/opencloud-nativegraph_2mvl.service.js");
+            const res = await OpenCloudNativeGraphService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatagrid_wxs4_logic": {
+          try {
+            const { OpenDataGridService } = await import("../liberty/opendatagrid_wxs4.service.js");
+            const res = await OpenDataGridService.execute(args.target || "system");
+            return { output: `### OpenDataGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicengine_cjhr_logic": {
+          try {
+            const { OpenNeuromorphicEngineService } = await import("../liberty/openneuromorphicengine_cjhr.service.js");
+            const res = await OpenNeuromorphicEngineService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedplane_y5r8_logic": {
           try {
             const { OpenAutomatedPlaneService } = await import("../liberty/openautomatedplane_y5r8.service.js");
