@@ -42,7 +42,7 @@ export const SovereignRouterController = {
 
     if (isStreamEndpoint) {
       return SovereignRouterService.handlePromptStream({
-        prompt,
+        prompt: req.body.knowledgebaseId ? `[Context: Actively analyzing knowledgebase collection ID: ${req.body.knowledgebaseId}]\n\n${prompt}` : prompt,
         sessionId,
         userId,
         userContext,
@@ -53,7 +53,7 @@ export const SovereignRouterController = {
 
     // Otherwise JSON response
     const result = await SovereignRouterService.handlePromptJson({
-      prompt,
+      prompt: req.body.knowledgebaseId ? `[Context: Actively analyzing knowledgebase collection ID: ${req.body.knowledgebaseId}]\n\n${prompt}` : prompt,
       sessionId,
       userId,
       userContext,

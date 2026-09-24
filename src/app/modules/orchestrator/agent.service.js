@@ -36,6 +36,14 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  {
+    type: "function",
+    function: {
+      name: "query_knowledgebase",
+      description: "Perform a semantic RAG vector search against the user's massive private document database (Enterprise Memory). Use this when the user asks about their own PDFs, codebases, or uploaded files.",
+      parameters: { type: "object", properties: { query: { type: "string" }, collectionId: { type: "string" } }, required: ["query"] }
+    }
+  },
       {
         type: "function",
         function: {
@@ -524,7 +532,19 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case 'execute_edge_command': {
+        case "query_knowledgebase": {
+          try {
+            const { VectorStoreService } = await import("../rag/vectorstore.service.js");
+            const { llmEmbed } = await import("../../services/llm.client.js");
+            const embedding = await llmEmbed(args.query);
+            const collectionId = args.collectionId || "default_tenant_collection";
+            const results = await VectorStoreService.search(embedding, { collectionId, topK: 10 });
+            const context = results.map(r => `[Source: ${r.document_title || "Unknown"}]n${r.content}`).join("\n\n");
+            return { output: `RAG Context Retrieved:\n${context}`, references: results.map(r => ({ title: r.document_title, url: r.document_source, snippet: r.content.substring(0, 100), source: "Enterprise Memory" })) };
+          } catch (err) {
+            return { output: `RAG query failed: ${err.message}`, references: [] };
+          }
+        }        case 'execute_edge_command': {
           const res = await OpenClawService.queueEdgeCommand(args.machineId, args.command, args.payload);
           return {
             output: `Command successfully queued to edge node ${args.machineId}. Command ID: ${res.commandId}. Status: ${res.status}. Note: Execution is async, awaiting results via polling.`,

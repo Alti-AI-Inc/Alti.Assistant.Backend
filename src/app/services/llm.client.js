@@ -196,3 +196,16 @@ export async function llmRerank() { throw new Error("Not implemented in OEM back
 export async function llmTranscribeAudio() { throw new Error("Not implemented in OEM backend yet"); }
 export const llmRealtimeTTSConfig = {};
 export const llmRealtimeSTTConfig = {};
+
+export async function llmEmbed(text) {
+  try {
+    const response = await llmClient.embeddings.create({
+      model: 'togethercomputer/m2-bert-80M-8k-retrieval',
+      input: text,
+    });
+    return response.data[0].embedding;
+  } catch (error) {
+    logger.error(`[Together AI Embeddings] failed:`, error);
+    throw error;
+  }
+}
