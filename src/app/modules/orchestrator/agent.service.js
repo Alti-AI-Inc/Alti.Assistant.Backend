@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedchain_j679_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedChain) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorring_nv96_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorRing) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarycompiler_jccj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCompiler) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizeddaemon_acaw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedDaemon) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfmesh_ojfn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFMesh) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticoracle_d50o_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticOracle) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9332,6 +9372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedchain_j679_logic": {
+          try {
+            const { OpenFederatedChainService } = await import("../liberty/openfederatedchain_j679.service.js");
+            const res = await OpenFederatedChainService.execute(args.target || "system");
+            return { output: `### OpenFederatedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorring_nv96_logic": {
+          try {
+            const { OpenVectorRingService } = await import("../liberty/openvectorring_nv96.service.js");
+            const res = await OpenVectorRingService.execute(args.target || "system");
+            return { output: `### OpenVectorRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarycompiler_jccj_logic": {
+          try {
+            const { OpenPlanetaryCompilerService } = await import("../liberty/openplanetarycompiler_jccj.service.js");
+            const res = await OpenPlanetaryCompilerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizeddaemon_acaw_logic": {
+          try {
+            const { OpenDecentralizedDaemonService } = await import("../liberty/opendecentralizeddaemon_acaw.service.js");
+            const res = await OpenDecentralizedDaemonService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfmesh_ojfn_logic": {
+          try {
+            const { OpeneBPFMeshService } = await import("../liberty/openebpfmesh_ojfn.service.js");
+            const res = await OpeneBPFMeshService.execute(args.target || "system");
+            return { output: `### OpeneBPFMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticoracle_d50o_logic": {
           try {
             const { OpenStaticOracleService } = await import("../liberty/openstaticoracle_d50o.service.js");
