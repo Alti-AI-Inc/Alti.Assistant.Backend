@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisecluster_zmpc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseCluster) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatednode_20pv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedNode) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesmatrix_ux1u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesMatrix) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryengine_rl76_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryEngine) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosengine_vo6e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosEngine) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventcontroller_80is_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventController) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20812,6 +20852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisecluster_zmpc_logic": {
+          try {
+            const { OpenEnterpriseClusterService } = await import("../liberty/openenterprisecluster_zmpc.service.js");
+            const res = await OpenEnterpriseClusterService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatednode_20pv_logic": {
+          try {
+            const { OpenFederatedNodeService } = await import("../liberty/openfederatednode_20pv.service.js");
+            const res = await OpenFederatedNodeService.execute(args.target || "system");
+            return { output: `### OpenFederatedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesmatrix_ux1u_logic": {
+          try {
+            const { OpenTimeSeriesMatrixService } = await import("../liberty/opentime-seriesmatrix_ux1u.service.js");
+            const res = await OpenTimeSeriesMatrixService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryengine_rl76_logic": {
+          try {
+            const { OpenInMemoryEngineService } = await import("../liberty/openin-memoryengine_rl76.service.js");
+            const res = await OpenInMemoryEngineService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosengine_vo6e_logic": {
+          try {
+            const { OpenChaosEngineService } = await import("../liberty/openchaosengine_vo6e.service.js");
+            const res = await OpenChaosEngineService.execute(args.target || "system");
+            return { output: `### OpenChaosEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openeventcontroller_80is_logic": {
           try {
             const { OpenEventControllerService } = await import("../liberty/openeventcontroller_80is.service.js");
