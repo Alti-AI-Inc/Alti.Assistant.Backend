@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwarerouter_bkjw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareRouter) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustvault_8ve0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustVault) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedmesh_bu0p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedMesh) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partypipeline_b1fg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyPipeline) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgenet_4ruy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeNet) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentvault_utif_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentVault) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2972,6 +3012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwarerouter_bkjw_logic": {
+          try {
+            const { OpenHardwareRouterService } = await import("../liberty/openhardwarerouter_bkjw.service.js");
+            const res = await OpenHardwareRouterService.execute(args.target || "system");
+            return { output: `### OpenHardwareRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustvault_8ve0_logic": {
+          try {
+            const { OpenZeroTrustVaultService } = await import("../liberty/openzero-trustvault_8ve0.service.js");
+            const res = await OpenZeroTrustVaultService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedmesh_bu0p_logic": {
+          try {
+            const { OpenDecentralizedMeshService } = await import("../liberty/opendecentralizedmesh_bu0p.service.js");
+            const res = await OpenDecentralizedMeshService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partypipeline_b1fg_logic": {
+          try {
+            const { OpenMultiPartyPipelineService } = await import("../liberty/openmulti-partypipeline_b1fg.service.js");
+            const res = await OpenMultiPartyPipelineService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgenet_4ruy_logic": {
+          try {
+            const { OpenEdgeNetService } = await import("../liberty/openedgenet_4ruy.service.js");
+            const res = await OpenEdgeNetService.execute(args.target || "system");
+            return { output: `### OpenEdgeNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeNet failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentvault_utif_logic": {
           try {
             const { OpenPersistentVaultService } = await import("../liberty/openpersistentvault_utif.service.js");
