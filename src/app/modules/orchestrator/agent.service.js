@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventproxy_logic",
+      description: "Use the Aphura Engine (OpenEventProxy) to Autonomously deploy Event Streaming architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogsync_logic",
+      description: "Use the Aphura Engine (OpenLogSync) to Autonomously deploy Log Aggregation architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogcompiler_logic",
+      description: "Use the Aphura Engine (OpenLogCompiler) to Autonomously deploy Log Aggregation architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentnexus_logic",
+      description: "Use the Aphura Engine (OpenPersistentNexus) to Autonomously deploy Persistent Memory architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedvortex_logic",
+      description: "Use the Aphura Engine (OpenFederatedVortex) to Autonomously deploy Federated GraphQL architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterbroker_logic",
       description: "Use the Aphura Engine (OpenCross-ClusterBroker) to Autonomously deploy Cross-Cluster Replication architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1652,6 +1692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventproxy_logic": {
+          try {
+            const { OpeneventproxyService } = await import("../enterprise/openeventproxy.service.js");
+            const res = await OpeneventproxyService.execute(args.target || "system");
+            return { output: `### OpenEventProxy Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogsync_logic": {
+          try {
+            const { OpenlogsyncService } = await import("../enterprise/openlogsync.service.js");
+            const res = await OpenlogsyncService.execute(args.target || "system");
+            return { output: `### OpenLogSync Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogcompiler_logic": {
+          try {
+            const { OpenlogcompilerService } = await import("../enterprise/openlogcompiler.service.js");
+            const res = await OpenlogcompilerService.execute(args.target || "system");
+            return { output: `### OpenLogCompiler Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentnexus_logic": {
+          try {
+            const { OpenpersistentnexusService } = await import("../enterprise/openpersistentnexus.service.js");
+            const res = await OpenpersistentnexusService.execute(args.target || "system");
+            return { output: `### OpenPersistentNexus Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedvortex_logic": {
+          try {
+            const { OpenfederatedvortexService } = await import("../enterprise/openfederatedvortex.service.js");
+            const res = await OpenfederatedvortexService.execute(args.target || "system");
+            return { output: `### OpenFederatedVortex Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedVortex failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterbroker_logic": {
           try {
             const { Opencross-clusterbrokerService } = await import("../enterprise/opencross-clusterbroker.service.js");
