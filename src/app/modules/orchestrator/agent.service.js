@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancednet_o6t5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNet) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventpipeline_6u22_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventPipeline) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyproxy_ca8o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyProxy) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalvortex_n8pf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalVortex) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventrouter_tl15_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventRouter) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialproxy_0ww1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialProxy) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3412,6 +3452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancednet_o6t5_logic": {
+          try {
+            const { OpenAdvancedNetService } = await import("../liberty/openadvancednet_o6t5.service.js");
+            const res = await OpenAdvancedNetService.execute(args.target || "system");
+            return { output: `### OpenAdvancedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventpipeline_6u22_logic": {
+          try {
+            const { OpenEventPipelineService } = await import("../liberty/openeventpipeline_6u22.service.js");
+            const res = await OpenEventPipelineService.execute(args.target || "system");
+            return { output: `### OpenEventPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyproxy_ca8o_logic": {
+          try {
+            const { OpenHighFrequencyProxyService } = await import("../liberty/openhigh-frequencyproxy_ca8o.service.js");
+            const res = await OpenHighFrequencyProxyService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalvortex_n8pf_logic": {
+          try {
+            const { OpenHyperDimensionalVortexService } = await import("../liberty/openhyper-dimensionalvortex_n8pf.service.js");
+            const res = await OpenHyperDimensionalVortexService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventrouter_tl15_logic": {
+          try {
+            const { OpenEventRouterService } = await import("../liberty/openeventrouter_tl15.service.js");
+            const res = await OpenEventRouterService.execute(args.target || "system");
+            return { output: `### OpenEventRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialproxy_0ww1_logic": {
           try {
             const { OpenFinancialProxyService } = await import("../liberty/openfinancialproxy_0ww1.service.js");
