@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendnode_w286_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNode) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpumesh_z9r5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUMesh) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcontroller_q55j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedController) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalgraph_p8tj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalGraph) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialswarm_4jb5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialSwarm) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedlayer_6hsi_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLayer) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10492,6 +10532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendnode_w286_logic": {
+          try {
+            const { OpenMicroFrontendNodeService } = await import("../liberty/openmicro-frontendnode_w286.service.js");
+            const res = await OpenMicroFrontendNodeService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpumesh_z9r5_logic": {
+          try {
+            const { OpenGPUMeshService } = await import("../liberty/opengpumesh_z9r5.service.js");
+            const res = await OpenGPUMeshService.execute(args.target || "system");
+            return { output: `### OpenGPUMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcontroller_q55j_logic": {
+          try {
+            const { OpenDecentralizedControllerService } = await import("../liberty/opendecentralizedcontroller_q55j.service.js");
+            const res = await OpenDecentralizedControllerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalgraph_p8tj_logic": {
+          try {
+            const { OpenHyperDimensionalGraphService } = await import("../liberty/openhyper-dimensionalgraph_p8tj.service.js");
+            const res = await OpenHyperDimensionalGraphService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialswarm_4jb5_logic": {
+          try {
+            const { OpenFinancialSwarmService } = await import("../liberty/openfinancialswarm_4jb5.service.js");
+            const res = await OpenFinancialSwarmService.execute(args.target || "system");
+            return { output: `### OpenFinancialSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedlayer_6hsi_logic": {
           try {
             const { OpenDecentralizedLayerService } = await import("../liberty/opendecentralizedlayer_6hsi.service.js");
