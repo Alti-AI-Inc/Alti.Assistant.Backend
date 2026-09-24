@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelmatrix_7qk6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMatrix) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedgraph_mojx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedGraph) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessproxy_pku3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessProxy) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgrid_cnem_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGrid) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalvortex_k82z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalVortex) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedcore_1lg2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCore) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20412,6 +20452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelmatrix_7qk6_logic": {
+          try {
+            const { OpenMicroKernelMatrixService } = await import("../liberty/openmicro-kernelmatrix_7qk6.service.js");
+            const res = await OpenMicroKernelMatrixService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedgraph_mojx_logic": {
+          try {
+            const { OpenFederatedGraphService } = await import("../liberty/openfederatedgraph_mojx.service.js");
+            const res = await OpenFederatedGraphService.execute(args.target || "system");
+            return { output: `### OpenFederatedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessproxy_pku3_logic": {
+          try {
+            const { OpenServerlessProxyService } = await import("../liberty/openserverlessproxy_pku3.service.js");
+            const res = await OpenServerlessProxyService.execute(args.target || "system");
+            return { output: `### OpenServerlessProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgrid_cnem_logic": {
+          try {
+            const { OpenDecentralizedGridService } = await import("../liberty/opendecentralizedgrid_cnem.service.js");
+            const res = await OpenDecentralizedGridService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalvortex_k82z_logic": {
+          try {
+            const { OpenHyperDimensionalVortexService } = await import("../liberty/openhyper-dimensionalvortex_k82z.service.js");
+            const res = await OpenHyperDimensionalVortexService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalVortex failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedcore_1lg2_logic": {
           try {
             const { OpenDecentralizedCoreService } = await import("../liberty/opendecentralizedcore_1lg2.service.js");
