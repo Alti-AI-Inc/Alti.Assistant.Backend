@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openneuromorphicnexus_ru5h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicNexus) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialoracle_rt8d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialOracle) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessvault_vgzi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessVault) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicstream_ce0d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicStream) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentswarm_4bp4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentSwarm) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancedlayer_n8jj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedLayer) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3132,6 +3172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openneuromorphicnexus_ru5h_logic": {
+          try {
+            const { OpenNeuromorphicNexusService } = await import("../liberty/openneuromorphicnexus_ru5h.service.js");
+            const res = await OpenNeuromorphicNexusService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialoracle_rt8d_logic": {
+          try {
+            const { OpenFinancialOracleService } = await import("../liberty/openfinancialoracle_rt8d.service.js");
+            const res = await OpenFinancialOracleService.execute(args.target || "system");
+            return { output: `### OpenFinancialOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessvault_vgzi_logic": {
+          try {
+            const { OpenHeadlessVaultService } = await import("../liberty/openheadlessvault_vgzi.service.js");
+            const res = await OpenHeadlessVaultService.execute(args.target || "system");
+            return { output: `### OpenHeadlessVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicstream_ce0d_logic": {
+          try {
+            const { OpenHomomorphicStreamService } = await import("../liberty/openhomomorphicstream_ce0d.service.js");
+            const res = await OpenHomomorphicStreamService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentswarm_4bp4_logic": {
+          try {
+            const { OpenPersistentSwarmService } = await import("../liberty/openpersistentswarm_4bp4.service.js");
+            const res = await OpenPersistentSwarmService.execute(args.target || "system");
+            return { output: `### OpenPersistentSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancedlayer_n8jj_logic": {
           try {
             const { OpenAdvancedLayerService } = await import("../liberty/openadvancedlayer_n8jj.service.js");
