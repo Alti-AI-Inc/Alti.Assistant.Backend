@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpswarm_3gis_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPSwarm) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticcore_pd97_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticCore) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumsync_zebv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumSync) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfvortex_ldp8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFVortex) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogvault_026y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogVault) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfnexus_agb6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFNexus) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6892,6 +6932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpswarm_3gis_logic": {
+          try {
+            const { OpenBGPSwarmService } = await import("../liberty/openbgpswarm_3gis.service.js");
+            const res = await OpenBGPSwarmService.execute(args.target || "system");
+            return { output: `### OpenBGPSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticcore_pd97_logic": {
+          try {
+            const { OpenStaticCoreService } = await import("../liberty/openstaticcore_pd97.service.js");
+            const res = await OpenStaticCoreService.execute(args.target || "system");
+            return { output: `### OpenStaticCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumsync_zebv_logic": {
+          try {
+            const { OpenQuantumSyncService } = await import("../liberty/openquantumsync_zebv.service.js");
+            const res = await OpenQuantumSyncService.execute(args.target || "system");
+            return { output: `### OpenQuantumSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfvortex_ldp8_logic": {
+          try {
+            const { OpeneBPFVortexService } = await import("../liberty/openebpfvortex_ldp8.service.js");
+            const res = await OpeneBPFVortexService.execute(args.target || "system");
+            return { output: `### OpeneBPFVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogvault_026y_logic": {
+          try {
+            const { OpenLogVaultService } = await import("../liberty/openlogvault_026y.service.js");
+            const res = await OpenLogVaultService.execute(args.target || "system");
+            return { output: `### OpenLogVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogVault failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfnexus_agb6_logic": {
           try {
             const { OpeneBPFNexusService } = await import("../liberty/openebpfnexus_agb6.service.js");
