@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partydaemon_xdtb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyDaemon) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticmatrix_b91h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticMatrix) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessvortex_h4p3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessVortex) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeproxy_xz6i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeProxy) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepengine_tu2h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepEngine) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfvortex_i6rw_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFVortex) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6012,6 +6052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partydaemon_xdtb_logic": {
+          try {
+            const { OpenMultiPartyDaemonService } = await import("../liberty/openmulti-partydaemon_xdtb.service.js");
+            const res = await OpenMultiPartyDaemonService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticmatrix_b91h_logic": {
+          try {
+            const { OpenStaticMatrixService } = await import("../liberty/openstaticmatrix_b91h.service.js");
+            const res = await OpenStaticMatrixService.execute(args.target || "system");
+            return { output: `### OpenStaticMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessvortex_h4p3_logic": {
+          try {
+            const { OpenServerlessVortexService } = await import("../liberty/openserverlessvortex_h4p3.service.js");
+            const res = await OpenServerlessVortexService.execute(args.target || "system");
+            return { output: `### OpenServerlessVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeproxy_xz6i_logic": {
+          try {
+            const { OpenEdgeProxyService } = await import("../liberty/openedgeproxy_xz6i.service.js");
+            const res = await OpenEdgeProxyService.execute(args.target || "system");
+            return { output: `### OpenEdgeProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepengine_tu2h_logic": {
+          try {
+            const { OpenDeepEngineService } = await import("../liberty/opendeepengine_tu2h.service.js");
+            const res = await OpenDeepEngineService.execute(args.target || "system");
+            return { output: `### OpenDeepEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfvortex_i6rw_logic": {
           try {
             const { OpeneBPFVortexService } = await import("../liberty/openebpfvortex_i6rw.service.js");
