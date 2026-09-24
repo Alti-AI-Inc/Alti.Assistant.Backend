@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgegrid_logic",
+      description: "Use the Aphura Engine (OpenEdgeGrid) to Autonomously deploy Edge Proxy Gateways architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesstream_logic",
+      description: "Use the Aphura Engine (OpenTime-SeriesStream) to Autonomously deploy Time-Series Analytics architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosfabric_logic",
+      description: "Use the Aphura Engine (OpenChaosFabric) to Autonomously deploy Chaos Engineering architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisefabric_logic",
+      description: "Use the Aphura Engine (OpenEnterpriseFabric) to Autonomously deploy Enterprise Identity architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedengine_logic",
+      description: "Use the Aphura Engine (OpenDecentralizedEngine) to Autonomously deploy Decentralized Auth architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clustercontroller_logic",
       description: "Use the Aphura Engine (OpenCross-ClusterController) to Autonomously deploy Cross-Cluster Replication architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2132,6 +2172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgegrid_logic": {
+          try {
+            const { OpenedgegridService } = await import("../enterprise/openedgegrid.service.js");
+            const res = await OpenedgegridService.execute(args.target || "system");
+            return { output: `### OpenEdgeGrid Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesstream_logic": {
+          try {
+            const { Opentime-seriesstreamService } = await import("../enterprise/opentime-seriesstream.service.js");
+            const res = await Opentime-seriesstreamService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesStream Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosfabric_logic": {
+          try {
+            const { OpenchaosfabricService } = await import("../enterprise/openchaosfabric.service.js");
+            const res = await OpenchaosfabricService.execute(args.target || "system");
+            return { output: `### OpenChaosFabric Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisefabric_logic": {
+          try {
+            const { OpenenterprisefabricService } = await import("../enterprise/openenterprisefabric.service.js");
+            const res = await OpenenterprisefabricService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseFabric Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedengine_logic": {
+          try {
+            const { OpendecentralizedengineService } = await import("../enterprise/opendecentralizedengine.service.js");
+            const res = await OpendecentralizedengineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedEngine Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedEngine failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clustercontroller_logic": {
           try {
             const { Opencross-clustercontrollerService } = await import("../enterprise/opencross-clustercontroller.service.js");
