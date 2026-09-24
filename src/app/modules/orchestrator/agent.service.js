@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfvortex_i6rw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFVortex) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpnode_ez0i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPNode) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesschain_0ns7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessChain) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpfabric_zxfe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPFabric) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencygrid_d362_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyGrid) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clustercontroller_44og_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterController) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5972,6 +6012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfvortex_i6rw_logic": {
+          try {
+            const { OpeneBPFVortexService } = await import("../liberty/openebpfvortex_i6rw.service.js");
+            const res = await OpeneBPFVortexService.execute(args.target || "system");
+            return { output: `### OpeneBPFVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpnode_ez0i_logic": {
+          try {
+            const { OpenBGPNodeService } = await import("../liberty/openbgpnode_ez0i.service.js");
+            const res = await OpenBGPNodeService.execute(args.target || "system");
+            return { output: `### OpenBGPNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesschain_0ns7_logic": {
+          try {
+            const { OpenServerlessChainService } = await import("../liberty/openserverlesschain_0ns7.service.js");
+            const res = await OpenServerlessChainService.execute(args.target || "system");
+            return { output: `### OpenServerlessChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpfabric_zxfe_logic": {
+          try {
+            const { OpenBGPFabricService } = await import("../liberty/openbgpfabric_zxfe.service.js");
+            const res = await OpenBGPFabricService.execute(args.target || "system");
+            return { output: `### OpenBGPFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencygrid_d362_logic": {
+          try {
+            const { OpenHighFrequencyGridService } = await import("../liberty/openhigh-frequencygrid_d362.service.js");
+            const res = await OpenHighFrequencyGridService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clustercontroller_44og_logic": {
           try {
             const { OpenCrossClusterControllerService } = await import("../liberty/opencross-clustercontroller_44og.service.js");
