@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedlayer_uhb2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLayer) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogswarm_7jjg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogSwarm) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectornet_oqpm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorNet) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatacluster_9sin_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataCluster) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryplane_8b0z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryPlane) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openin-memoryledger_pku3_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryLedger) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12852,6 +12892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedlayer_uhb2_logic": {
+          try {
+            const { OpenDecentralizedLayerService } = await import("../liberty/opendecentralizedlayer_uhb2.service.js");
+            const res = await OpenDecentralizedLayerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogswarm_7jjg_logic": {
+          try {
+            const { OpenLogSwarmService } = await import("../liberty/openlogswarm_7jjg.service.js");
+            const res = await OpenLogSwarmService.execute(args.target || "system");
+            return { output: `### OpenLogSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectornet_oqpm_logic": {
+          try {
+            const { OpenVectorNetService } = await import("../liberty/openvectornet_oqpm.service.js");
+            const res = await OpenVectorNetService.execute(args.target || "system");
+            return { output: `### OpenVectorNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatacluster_9sin_logic": {
+          try {
+            const { OpenDataClusterService } = await import("../liberty/opendatacluster_9sin.service.js");
+            const res = await OpenDataClusterService.execute(args.target || "system");
+            return { output: `### OpenDataCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryplane_8b0z_logic": {
+          try {
+            const { OpenInMemoryPlaneService } = await import("../liberty/openin-memoryplane_8b0z.service.js");
+            const res = await OpenInMemoryPlaneService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openin-memoryledger_pku3_logic": {
           try {
             const { OpenInMemoryLedgerService } = await import("../liberty/openin-memoryledger_pku3.service.js");
