@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partynexus_gpgx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyNexus) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendengine_12ir_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendEngine) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepnet_8q73_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepNet) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedledger_b2bh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedLedger) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentcluster_cgag_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentCluster) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisering_gpxy_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseRing) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17692,6 +17732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partynexus_gpgx_logic": {
+          try {
+            const { OpenMultiPartyNexusService } = await import("../liberty/openmulti-partynexus_gpgx.service.js");
+            const res = await OpenMultiPartyNexusService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendengine_12ir_logic": {
+          try {
+            const { OpenMicroFrontendEngineService } = await import("../liberty/openmicro-frontendengine_12ir.service.js");
+            const res = await OpenMicroFrontendEngineService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepnet_8q73_logic": {
+          try {
+            const { OpenDeepNetService } = await import("../liberty/opendeepnet_8q73.service.js");
+            const res = await OpenDeepNetService.execute(args.target || "system");
+            return { output: `### OpenDeepNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedledger_b2bh_logic": {
+          try {
+            const { OpenAdvancedLedgerService } = await import("../liberty/openadvancedledger_b2bh.service.js");
+            const res = await OpenAdvancedLedgerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentcluster_cgag_logic": {
+          try {
+            const { OpenPersistentClusterService } = await import("../liberty/openpersistentcluster_cgag.service.js");
+            const res = await OpenPersistentClusterService.execute(args.target || "system");
+            return { output: `### OpenPersistentCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisering_gpxy_logic": {
           try {
             const { OpenEnterpriseRingService } = await import("../liberty/openenterprisering_gpxy.service.js");
