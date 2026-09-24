@@ -200,6 +200,14 @@ const tools = [
   {
     type: 'function',
     function: {
+      name: 'desktop_computer_use',
+      description: 'Executes an action directly on the user\'s local Desktop/Mobile device via Liberty Center One WebSocket Bridge (MCP Local Code/Mouse/File manipulation).',
+      parameters: { type: 'object', properties: { action: { type: 'string' }, payload: { type: 'object' } }, required: ['action', 'payload'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'get_weather',
       description: 'Get real-time weather forecasts for a specific location.',
       parameters: { type: 'object', properties: { location: { type: 'string' } }, required: ['location'] }
@@ -781,6 +789,18 @@ export const AgentService = {
             return { output: JSON.stringify(res), references: [] };
           } catch (err) {
             return { output: `Composio action failed: ${err.message}`, references: [] };
+          }
+        }
+        case 'desktop_computer_use': {
+          try {
+            // Note: In production, user context (userId) needs to be passed down through options to this handler
+            // For now, we simulate success if the gateway is running.
+            const { DesktopGateway } = await import('../desktop/desktop.gateway.js');
+            // Mock userId for demonstration, should be passed from req.user
+            await DesktopGateway.dispatchComputerUseAction('admin_user', { action: args.action, payload: args.payload });
+            return { output: 'Action successfully dispatched to local desktop app.', references: [] };
+          } catch (err) {
+            return { output: `Desktop link failed: ${err.message}. Make sure the Desktop App is running and connected.`, references: [] };
           }
         }
         case 'get_weather': {

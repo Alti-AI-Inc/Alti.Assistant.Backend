@@ -581,9 +581,16 @@ import { MassiveWebSocket } from './src/app/modules/massive/massive.websocket.js
 
 // Start server
 const port = process.env.PORT || config.port || 5100;
-const server = app.listen(port, '0.0.0.0', () => {
+const server = app.listen(port, '0.0.0.0', async () => {
   logger.info(`🚀 Server is running on port ${port} in ${config.env} mode`);
   
+  try {
+    const { DesktopGateway } = await import('./src/app/modules/desktop/desktop.gateway.js');
+    DesktopGateway.initialize(server);
+  } catch (err) {
+    logger.error(`Failed to initialize Desktop Gateway: ${err.message}`);
+  }
+
   // Initialize Massive WebSockets for Stocks, Crypto, Forex, etc.
   try {
     MassiveWebSocket.initializeAll();
