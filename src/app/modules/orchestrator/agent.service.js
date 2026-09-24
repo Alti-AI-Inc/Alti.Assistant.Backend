@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendcompiler_5vrv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCompiler) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativepipeline_9i1u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativePipeline) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorbroker_68ug_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorBroker) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessledger_rems_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessLedger) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryswarm_e725_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemorySwarm) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumgrid_pm31_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumGrid) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15172,6 +15212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendcompiler_5vrv_logic": {
+          try {
+            const { OpenMicroFrontendCompilerService } = await import("../liberty/openmicro-frontendcompiler_5vrv.service.js");
+            const res = await OpenMicroFrontendCompilerService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativepipeline_9i1u_logic": {
+          try {
+            const { OpenCloudNativePipelineService } = await import("../liberty/opencloud-nativepipeline_9i1u.service.js");
+            const res = await OpenCloudNativePipelineService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorbroker_68ug_logic": {
+          try {
+            const { OpenVectorBrokerService } = await import("../liberty/openvectorbroker_68ug.service.js");
+            const res = await OpenVectorBrokerService.execute(args.target || "system");
+            return { output: `### OpenVectorBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessledger_rems_logic": {
+          try {
+            const { OpenServerlessLedgerService } = await import("../liberty/openserverlessledger_rems.service.js");
+            const res = await OpenServerlessLedgerService.execute(args.target || "system");
+            return { output: `### OpenServerlessLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryswarm_e725_logic": {
+          try {
+            const { OpenInMemorySwarmService } = await import("../liberty/openin-memoryswarm_e725.service.js");
+            const res = await OpenInMemorySwarmService.execute(args.target || "system");
+            return { output: `### OpenIn-MemorySwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemorySwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumgrid_pm31_logic": {
           try {
             const { OpenQuantumGridService } = await import("../liberty/openquantumgrid_pm31.service.js");
