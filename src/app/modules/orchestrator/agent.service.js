@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionallayer_ihcn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalLayer) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwareswarm_r822_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareSwarm) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedcompiler_4sit_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedCompiler) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedfabric_dw4u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedFabric) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendcompiler_xczt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCompiler) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticvault_9yaa_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticVault) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5732,6 +5772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionallayer_ihcn_logic": {
+          try {
+            const { OpenHyperDimensionalLayerService } = await import("../liberty/openhyper-dimensionallayer_ihcn.service.js");
+            const res = await OpenHyperDimensionalLayerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwareswarm_r822_logic": {
+          try {
+            const { OpenHardwareSwarmService } = await import("../liberty/openhardwareswarm_r822.service.js");
+            const res = await OpenHardwareSwarmService.execute(args.target || "system");
+            return { output: `### OpenHardwareSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedcompiler_4sit_logic": {
+          try {
+            const { OpenFederatedCompilerService } = await import("../liberty/openfederatedcompiler_4sit.service.js");
+            const res = await OpenFederatedCompilerService.execute(args.target || "system");
+            return { output: `### OpenFederatedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedfabric_dw4u_logic": {
+          try {
+            const { OpenFederatedFabricService } = await import("../liberty/openfederatedfabric_dw4u.service.js");
+            const res = await OpenFederatedFabricService.execute(args.target || "system");
+            return { output: `### OpenFederatedFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendcompiler_xczt_logic": {
+          try {
+            const { OpenMicroFrontendCompilerService } = await import("../liberty/openmicro-frontendcompiler_xczt.service.js");
+            const res = await OpenMicroFrontendCompilerService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticvault_9yaa_logic": {
           try {
             const { OpenStaticVaultService } = await import("../liberty/openstaticvault_9yaa.service.js");
