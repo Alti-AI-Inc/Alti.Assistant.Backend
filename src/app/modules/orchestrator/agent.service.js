@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "validate_code_lsp",
+      description: "Use the Aphura LSP Bridge to statically analyze, lint, and type-check code in the background to ensure it is 100% error-free before outputting.",
+      parameters: { type: "object", properties: { code: { type: "string" }, language: { type: "string" } }, required: ["code", "language"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "run_database_migration",
       description: "Use the Aphura Database Engine (Atlas) to safely diff, inspect, and apply declarative schema changes to live production databases.",
       parameters: { type: "object", properties: { targetConnectionString: { type: "string" }, desiredSchema: { type: "string" } }, required: ["targetConnectionString", "desiredSchema"] }
@@ -700,7 +708,19 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "run_database_migration": {
+        case "validate_code_lsp": {
+          try {
+            const { LSPService } = await import("../ide/lsp.service.js");
+            const res = await LSPService.validateCode(args.code, args.language);
+            if (res.isValid) {
+               return { output: `### LSP Validation Passed\\n\\n```${args.language}\\n${args.code}\\n```` };
+            } else {
+               return { output: `### LSP Validation Failed\\n\\nErrors:\\n${res.errors.join("\\n")}\\n\\nPlease correct the code.` };
+            }
+          } catch (err) {
+            return { output: `LSP validation failed: ${err.message}` };
+          }
+        }        case "run_database_migration": {
           try {
             const { AtlasService } = await import("../database/atlas.service.js");
             const res = await AtlasService.inspectAndMigrate(args.targetConnectionString, args.desiredSchema);
