@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfnexus_8fac_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFNexus) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterring_pte7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterRing) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticledger_jxcz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticLedger) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventgrid_whvj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventGrid) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentstream_ecwz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentStream) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicnet_j4yq_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNet) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13292,6 +13332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfnexus_8fac_logic": {
+          try {
+            const { OpeneBPFNexusService } = await import("../liberty/openebpfnexus_8fac.service.js");
+            const res = await OpeneBPFNexusService.execute(args.target || "system");
+            return { output: `### OpeneBPFNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterring_pte7_logic": {
+          try {
+            const { OpenCrossClusterRingService } = await import("../liberty/opencross-clusterring_pte7.service.js");
+            const res = await OpenCrossClusterRingService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticledger_jxcz_logic": {
+          try {
+            const { OpenSemanticLedgerService } = await import("../liberty/opensemanticledger_jxcz.service.js");
+            const res = await OpenSemanticLedgerService.execute(args.target || "system");
+            return { output: `### OpenSemanticLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventgrid_whvj_logic": {
+          try {
+            const { OpenEventGridService } = await import("../liberty/openeventgrid_whvj.service.js");
+            const res = await OpenEventGridService.execute(args.target || "system");
+            return { output: `### OpenEventGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentstream_ecwz_logic": {
+          try {
+            const { OpenPersistentStreamService } = await import("../liberty/openpersistentstream_ecwz.service.js");
+            const res = await OpenPersistentStreamService.execute(args.target || "system");
+            return { output: `### OpenPersistentStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentStream failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicnet_j4yq_logic": {
           try {
             const { OpenHomomorphicNetService } = await import("../liberty/openhomomorphicnet_j4yq.service.js");
