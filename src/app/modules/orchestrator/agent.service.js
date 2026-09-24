@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialproxy_szg4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialProxy) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatarouter_cvp1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataRouter) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgppipeline_sv3p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPPipeline) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondpipeline_nueb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondPipeline) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterrouter_ebuu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterRouter) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfpipeline_ti40_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFPipeline) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19412,6 +19452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialproxy_szg4_logic": {
+          try {
+            const { OpenFinancialProxyService } = await import("../liberty/openfinancialproxy_szg4.service.js");
+            const res = await OpenFinancialProxyService.execute(args.target || "system");
+            return { output: `### OpenFinancialProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatarouter_cvp1_logic": {
+          try {
+            const { OpenDataRouterService } = await import("../liberty/opendatarouter_cvp1.service.js");
+            const res = await OpenDataRouterService.execute(args.target || "system");
+            return { output: `### OpenDataRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgppipeline_sv3p_logic": {
+          try {
+            const { OpenBGPPipelineService } = await import("../liberty/openbgppipeline_sv3p.service.js");
+            const res = await OpenBGPPipelineService.execute(args.target || "system");
+            return { output: `### OpenBGPPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondpipeline_nueb_logic": {
+          try {
+            const { OpenSubMillisecondPipelineService } = await import("../liberty/opensub-millisecondpipeline_nueb.service.js");
+            const res = await OpenSubMillisecondPipelineService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterrouter_ebuu_logic": {
+          try {
+            const { OpenCrossClusterRouterService } = await import("../liberty/opencross-clusterrouter_ebuu.service.js");
+            const res = await OpenCrossClusterRouterService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfpipeline_ti40_logic": {
           try {
             const { OpeneBPFPipelineService } = await import("../liberty/openebpfpipeline_ti40.service.js");
