@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openloggrid_logic",
+      description: "Use the Aphura Engine (OpenLogGrid) to Autonomously deploy Log Aggregation architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedproxy_logic",
+      description: "Use the Aphura Engine (OpenAutomatedProxy) to Autonomously deploy Automated Load Balancing architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyrouter_logic",
+      description: "Use the Aphura Engine (OpenMulti-PartyRouter) to Autonomously deploy Multi-Party Computation architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedrouter_logic",
+      description: "Use the Aphura Engine (OpenAutomatedRouter) to Autonomously deploy Automated Load Balancing architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatanexus_logic",
+      description: "Use the Aphura Engine (OpenDataNexus) to Autonomously deploy Data Lineage architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "deploy_seaweedfs_cluster",
       description: "Use the Aphura Engine (SeaweedFS) to Deploy hyper-fast, distributed file systems for billions of small files and images.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1572,6 +1612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openloggrid_logic": {
+          try {
+            const { OpenloggridService } = await import("../enterprise/openloggrid.service.js");
+            const res = await OpenloggridService.execute(args.target || "system");
+            return { output: `### OpenLogGrid Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedproxy_logic": {
+          try {
+            const { OpenautomatedproxyService } = await import("../enterprise/openautomatedproxy.service.js");
+            const res = await OpenautomatedproxyService.execute(args.target || "system");
+            return { output: `### OpenAutomatedProxy Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyrouter_logic": {
+          try {
+            const { Openmulti-partyrouterService } = await import("../enterprise/openmulti-partyrouter.service.js");
+            const res = await Openmulti-partyrouterService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyRouter Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedrouter_logic": {
+          try {
+            const { OpenautomatedrouterService } = await import("../enterprise/openautomatedrouter.service.js");
+            const res = await OpenautomatedrouterService.execute(args.target || "system");
+            return { output: `### OpenAutomatedRouter Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatanexus_logic": {
+          try {
+            const { OpendatanexusService } = await import("../enterprise/opendatanexus.service.js");
+            const res = await OpendatanexusService.execute(args.target || "system");
+            return { output: `### OpenDataNexus Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNexus failed: ${err.message}` };
+          }
+        }
         case "deploy_seaweedfs_cluster": {
           try {
             const { SeaweedfsService } = await import("../data/seaweedfs.service.js");
