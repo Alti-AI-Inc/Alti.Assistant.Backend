@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "compile_2d_webgl_canvas",
+      description: "Use the Aphura 2D Rendering Engine (PixiJS) to autonomously compile lightning-fast WebGL canvases capable of rendering 100,000 interactive sprites and particle systems at a perfect 60 FPS.",
+      parameters: { type: "object", properties: { canvasDescription: { type: "string" } }, required: ["canvasDescription"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_webgpu_scene",
+      description: "Use the Aphura AAA Graphics Engine (Babylon.js) to autonomously compile and render physically-based, hyper-realistic 3D scenes directly in the browser via native WebGPU.",
+      parameters: { type: "object", properties: { sceneDescription: { type: "string" } }, required: ["sceneDescription"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "calculate_multithreaded_collisions",
+      description: "Use the Aphura Rigid Body Engine (Jolt Physics) to mathematically calculate massive, multithreaded collision events for millions of physical objects simultaneously.",
+      parameters: { type: "object", properties: { objectCount: { type: "number" } }, required: ["objectCount"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "simulate_advanced_physics",
+      description: "Use the Aphura Physics Engine (MuJoCo) to autonomously construct and simulate highly advanced biomechanical joint constraints and contact dynamics for AI reinforcement learning.",
+      parameters: { type: "object", properties: { modelXml: { type: "string" } }, required: ["modelXml"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_game_binary",
+      description: "Use the Aphura Game Compilation Engine (Godot) to autonomously pack 2D/3D assets and scripts into a fully playable, native game binary.",
+      parameters: { type: "object", properties: { projectPath: { type: "string" }, targetPlatform: { type: "string" } }, required: ["projectPath", "targetPlatform"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "deploy_edge_vision",
       description: "Use the Aphura Edge AI Engine (MediaPipe) to autonomously deploy ultra-fast, on-device machine learning vision pipelines (like 3D hand tracking or pose estimation) that run entirely offline without cloud servers.",
       parameters: { type: "object", properties: { trackingMode: { type: "string" } }, required: ["trackingMode"] }
@@ -1212,7 +1252,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "deploy_edge_vision": {
+        case "compile_2d_webgl_canvas": {
+          try {
+            const { PixiService } = await import("../ui/pixi.service.js");
+            const res = await PixiService.renderCanvas(args.canvasDescription);
+            return { output: `### 2D WebGL Canvas Compiled\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `PixiJS compilation failed: ${err.message}` };
+          }
+        }        case "compile_webgpu_scene": {
+          try {
+            const { BabylonService } = await import("../ui/babylon.service.js");
+            const res = await BabylonService.renderScene(args.sceneDescription);
+            return { output: `### WebGPU Graphics Compiled\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Babylon compile failed: ${err.message}` };
+          }
+        }        case "calculate_multithreaded_collisions": {
+          try {
+            const { JoltService } = await import("../simulation/jolt.service.js");
+            const res = await JoltService.calculateCollisions(args.objectCount);
+            return { output: `### Rigid Body Collision Report\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Jolt failed: ${err.message}` };
+          }
+        }        case "simulate_advanced_physics": {
+          try {
+            const { MuJoCoService } = await import("../simulation/mujoco.service.js");
+            const res = await MuJoCoService.simulatePhysics(args.modelXml);
+            return { output: `### MuJoCo Physics Simulation\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `MuJoCo simulation failed: ${err.message}` };
+          }
+        }        case "compile_game_binary": {
+          try {
+            const { GodotService } = await import("../gaming/godot.service.js");
+            const res = await GodotService.compileGame(args.projectPath, args.targetPlatform);
+            return { output: `### Game Binary Compiled\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Godot compile failed: ${err.message}` };
+          }
+        }        case "deploy_edge_vision": {
           try {
             const { MediaPipeService } = await import("../ai/mediapipe.service.js");
             const res = await MediaPipeService.deployVisionPipeline(args.trackingMode);
