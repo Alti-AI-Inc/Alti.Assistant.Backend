@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentmatrix_mdu9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentMatrix) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessvault_l1p6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessVault) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaresync_jqbe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareSync) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeeporacle_1emo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepOracle) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorycompiler_arnh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryCompiler) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlesscluster_g664_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessCluster) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20172,6 +20212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentmatrix_mdu9_logic": {
+          try {
+            const { OpenPersistentMatrixService } = await import("../liberty/openpersistentmatrix_mdu9.service.js");
+            const res = await OpenPersistentMatrixService.execute(args.target || "system");
+            return { output: `### OpenPersistentMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessvault_l1p6_logic": {
+          try {
+            const { OpenHeadlessVaultService } = await import("../liberty/openheadlessvault_l1p6.service.js");
+            const res = await OpenHeadlessVaultService.execute(args.target || "system");
+            return { output: `### OpenHeadlessVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaresync_jqbe_logic": {
+          try {
+            const { OpenHardwareSyncService } = await import("../liberty/openhardwaresync_jqbe.service.js");
+            const res = await OpenHardwareSyncService.execute(args.target || "system");
+            return { output: `### OpenHardwareSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeeporacle_1emo_logic": {
+          try {
+            const { OpenDeepOracleService } = await import("../liberty/opendeeporacle_1emo.service.js");
+            const res = await OpenDeepOracleService.execute(args.target || "system");
+            return { output: `### OpenDeepOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorycompiler_arnh_logic": {
+          try {
+            const { OpenInMemoryCompilerService } = await import("../liberty/openin-memorycompiler_arnh.service.js");
+            const res = await OpenInMemoryCompilerService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlesscluster_g664_logic": {
           try {
             const { OpenServerlessClusterService } = await import("../liberty/openserverlesscluster_g664.service.js");
