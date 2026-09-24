@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarycore_8boc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCore) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumswarm_48z8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumSwarm) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorycluster_j21e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryCluster) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedbroker_fo3f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedBroker) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedvault_kl0i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedVault) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendatasync_jrkq_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataSync) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9492,6 +9532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarycore_8boc_logic": {
+          try {
+            const { OpenPlanetaryCoreService } = await import("../liberty/openplanetarycore_8boc.service.js");
+            const res = await OpenPlanetaryCoreService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumswarm_48z8_logic": {
+          try {
+            const { OpenQuantumSwarmService } = await import("../liberty/openquantumswarm_48z8.service.js");
+            const res = await OpenQuantumSwarmService.execute(args.target || "system");
+            return { output: `### OpenQuantumSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorycluster_j21e_logic": {
+          try {
+            const { OpenInMemoryClusterService } = await import("../liberty/openin-memorycluster_j21e.service.js");
+            const res = await OpenInMemoryClusterService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedbroker_fo3f_logic": {
+          try {
+            const { OpenDecentralizedBrokerService } = await import("../liberty/opendecentralizedbroker_fo3f.service.js");
+            const res = await OpenDecentralizedBrokerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedvault_kl0i_logic": {
+          try {
+            const { OpenAdvancedVaultService } = await import("../liberty/openadvancedvault_kl0i.service.js");
+            const res = await OpenAdvancedVaultService.execute(args.target || "system");
+            return { output: `### OpenAdvancedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedVault failed: ${err.message}` };
+          }
+        }
         case "execute_opendatasync_jrkq_logic": {
           try {
             const { OpenDataSyncService } = await import("../liberty/opendatasync_jrkq.service.js");
