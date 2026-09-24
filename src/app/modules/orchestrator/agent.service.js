@@ -39,6 +39,30 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "swe_execute_command",
+      description: "Execute a bash command in the Aphura Autonomous Engineering sandbox. Use this to run tests, grep for files, or compile code.",
+      parameters: { type: "object", properties: { command: { type: "string" } }, required: ["command"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "swe_edit_file",
+      description: "Edit a file natively in the Aphura sandbox by replacing an exact string.",
+      parameters: { type: "object", properties: { targetFile: { type: "string" }, searchString: { type: "string" }, replacementString: { type: "string" } }, required: ["targetFile", "searchString", "replacementString"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "swe_view_file",
+      description: "Read the contents of a file in the Aphura sandbox using line numbers to avoid context limits.",
+      parameters: { type: "object", properties: { targetFile: { type: "string" }, startLine: { type: "number" }, endLine: { type: "number" } }, required: ["targetFile"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "provision_cloud_ide",
       description: "Provision a full OpenVSCode Server cloud IDE instance for the user. Use this when the user wants to work on a large software project collaboratively.",
       parameters: { type: "object", properties: { workspaceName: { type: "string" } }, required: ["workspaceName"] }
@@ -572,7 +596,33 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "provision_cloud_ide": {
+        case "swe_execute_command": {
+          try {
+            const { SWEService } = await import("../agents/swe.service.js");
+            const res = await SWEService.executeCommand(args.command);
+            return { output: `Execution Result:\\n${res.output}` };
+          } catch (err) {
+            return { output: `Command failed: ${err.message}` };
+          }
+        }
+        case "swe_edit_file": {
+          try {
+            const { SWEService } = await import("../agents/swe.service.js");
+            const res = await SWEService.editFile(args.targetFile, args.searchString, args.replacementString);
+            return { output: `Edit Result:\\n${res.output}` };
+          } catch (err) {
+            return { output: `Edit failed: ${err.message}` };
+          }
+        }
+        case "swe_view_file": {
+          try {
+            const { SWEService } = await import("../agents/swe.service.js");
+            const res = await SWEService.viewFile(args.targetFile, args.startLine, args.endLine);
+            return { output: `File Contents (Lines ${args.startLine || 1}-${args.endLine || 100}):\\n${res.output}` };
+          } catch (err) {
+            return { output: `View failed: ${err.message}` };
+          }
+        }        case "provision_cloud_ide": {
           try {
             const { VSCodeService } = await import("../ide/vscode.service.js");
             const res = await VSCodeService.provisionWorkspace("admin_user", args.workspaceName);
