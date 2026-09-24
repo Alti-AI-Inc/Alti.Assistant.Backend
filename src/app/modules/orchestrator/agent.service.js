@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "generate_3d_model",
+      description: "Use the Aphura 3D Generation Engine (TripoSR) to create fully textured 3D models (.glb or .obj) from text prompts.",
+      parameters: { type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "generate_audio_track",
       description: "Use the Aphura Generative Audio Engine (MusicGen) to create high-quality songs, ambient tracks, or sound effects from text.",
       parameters: { type: "object", properties: { prompt: { type: "string" }, durationSec: { type: "number" } }, required: ["prompt"] }
@@ -684,7 +692,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "generate_audio_track": {
+        case "generate_3d_model": {
+          try {
+            const { TripoSRService } = await import("../3d/triposr.service.js");
+            const res = await TripoSRService.generate3DModel(args.prompt);
+            return { output: `### Generated 3D Asset\\n\\n[Download/View Model (.glb)](${res.url})` };
+          } catch (err) {
+            return { output: `3D generation failed: ${err.message}` };
+          }
+        }        case "generate_audio_track": {
           try {
             const { MusicGenService } = await import("../audio/musicgen.service.js");
             const res = await MusicGenService.generateAudio(args.prompt, args.durationSec);
