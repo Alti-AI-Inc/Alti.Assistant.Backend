@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticgrid_logic",
+      description: "Use the Aphura Engine (OpenStaticGrid) to Autonomously deploy Static Code Analysis architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessrouter_logic",
+      description: "Use the Aphura Engine (OpenHeadlessRouter) to Autonomously deploy Headless CMS Routing architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicmesh_logic",
+      description: "Use the Aphura Engine (OpenHomomorphicMesh) to Autonomously deploy Homomorphic Encryption architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgesync_logic",
+      description: "Use the Aphura Engine (OpenEdgeSync) to Autonomously deploy Edge Proxy Gateways architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentmesh_logic",
+      description: "Use the Aphura Engine (OpenPersistentMesh) to Autonomously deploy Persistent Memory architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosstream_logic",
       description: "Use the Aphura Engine (OpenChaosStream) to Autonomously deploy Chaos Engineering architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1932,6 +1972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticgrid_logic": {
+          try {
+            const { OpenstaticgridService } = await import("../enterprise/openstaticgrid.service.js");
+            const res = await OpenstaticgridService.execute(args.target || "system");
+            return { output: `### OpenStaticGrid Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessrouter_logic": {
+          try {
+            const { OpenheadlessrouterService } = await import("../enterprise/openheadlessrouter.service.js");
+            const res = await OpenheadlessrouterService.execute(args.target || "system");
+            return { output: `### OpenHeadlessRouter Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicmesh_logic": {
+          try {
+            const { OpenhomomorphicmeshService } = await import("../enterprise/openhomomorphicmesh.service.js");
+            const res = await OpenhomomorphicmeshService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMesh Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgesync_logic": {
+          try {
+            const { OpenedgesyncService } = await import("../enterprise/openedgesync.service.js");
+            const res = await OpenedgesyncService.execute(args.target || "system");
+            return { output: `### OpenEdgeSync Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentmesh_logic": {
+          try {
+            const { OpenpersistentmeshService } = await import("../enterprise/openpersistentmesh.service.js");
+            const res = await OpenpersistentmeshService.execute(args.target || "system");
+            return { output: `### OpenPersistentMesh Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosstream_logic": {
           try {
             const { OpenchaosstreamService } = await import("../enterprise/openchaosstream.service.js");
