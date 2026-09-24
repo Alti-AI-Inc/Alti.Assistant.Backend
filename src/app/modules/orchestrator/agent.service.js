@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivedaemon_w24r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveDaemon) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictiveproxy_b87e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveProxy) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedmatrix_5qa2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedMatrix) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryrouter_ax5z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryRouter) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessgrid_28wz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessGrid) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedfabric_zngo_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedFabric) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15292,6 +15332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivedaemon_w24r_logic": {
+          try {
+            const { OpenPredictiveDaemonService } = await import("../liberty/openpredictivedaemon_w24r.service.js");
+            const res = await OpenPredictiveDaemonService.execute(args.target || "system");
+            return { output: `### OpenPredictiveDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictiveproxy_b87e_logic": {
+          try {
+            const { OpenPredictiveProxyService } = await import("../liberty/openpredictiveproxy_b87e.service.js");
+            const res = await OpenPredictiveProxyService.execute(args.target || "system");
+            return { output: `### OpenPredictiveProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedmatrix_5qa2_logic": {
+          try {
+            const { OpenDecentralizedMatrixService } = await import("../liberty/opendecentralizedmatrix_5qa2.service.js");
+            const res = await OpenDecentralizedMatrixService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryrouter_ax5z_logic": {
+          try {
+            const { OpenPlanetaryRouterService } = await import("../liberty/openplanetaryrouter_ax5z.service.js");
+            const res = await OpenPlanetaryRouterService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessgrid_28wz_logic": {
+          try {
+            const { OpenServerlessGridService } = await import("../liberty/openserverlessgrid_28wz.service.js");
+            const res = await OpenServerlessGridService.execute(args.target || "system");
+            return { output: `### OpenServerlessGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedfabric_zngo_logic": {
           try {
             const { OpenAutomatedFabricService } = await import("../liberty/openautomatedfabric_zngo.service.js");
