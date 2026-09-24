@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumvault_7k7m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumVault) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumgrid_o5uh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumGrid) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partygrid_02dh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyGrid) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfrouter_o8u0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFRouter) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogmatrix_xd1n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogMatrix) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticstream_ohq1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticStream) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13492,6 +13532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumvault_7k7m_logic": {
+          try {
+            const { OpenQuantumVaultService } = await import("../liberty/openquantumvault_7k7m.service.js");
+            const res = await OpenQuantumVaultService.execute(args.target || "system");
+            return { output: `### OpenQuantumVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumgrid_o5uh_logic": {
+          try {
+            const { OpenQuantumGridService } = await import("../liberty/openquantumgrid_o5uh.service.js");
+            const res = await OpenQuantumGridService.execute(args.target || "system");
+            return { output: `### OpenQuantumGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partygrid_02dh_logic": {
+          try {
+            const { OpenMultiPartyGridService } = await import("../liberty/openmulti-partygrid_02dh.service.js");
+            const res = await OpenMultiPartyGridService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfrouter_o8u0_logic": {
+          try {
+            const { OpeneBPFRouterService } = await import("../liberty/openebpfrouter_o8u0.service.js");
+            const res = await OpeneBPFRouterService.execute(args.target || "system");
+            return { output: `### OpeneBPFRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogmatrix_xd1n_logic": {
+          try {
+            const { OpenLogMatrixService } = await import("../liberty/openlogmatrix_xd1n.service.js");
+            const res = await OpenLogMatrixService.execute(args.target || "system");
+            return { output: `### OpenLogMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticstream_ohq1_logic": {
           try {
             const { OpenStaticStreamService } = await import("../liberty/openstaticstream_ohq1.service.js");
