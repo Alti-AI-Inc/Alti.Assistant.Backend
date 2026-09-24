@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeeprouter_txsm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepRouter) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendlayer_4ofm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendLayer) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphmatrix_iw1r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphMatrix) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventcluster_ideg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventCluster) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarymatrix_vbuf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryMatrix) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventlayer_5xz1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventLayer) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5292,6 +5332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeeprouter_txsm_logic": {
+          try {
+            const { OpenDeepRouterService } = await import("../liberty/opendeeprouter_txsm.service.js");
+            const res = await OpenDeepRouterService.execute(args.target || "system");
+            return { output: `### OpenDeepRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendlayer_4ofm_logic": {
+          try {
+            const { OpenMicroFrontendLayerService } = await import("../liberty/openmicro-frontendlayer_4ofm.service.js");
+            const res = await OpenMicroFrontendLayerService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphmatrix_iw1r_logic": {
+          try {
+            const { OpenGraphMatrixService } = await import("../liberty/opengraphmatrix_iw1r.service.js");
+            const res = await OpenGraphMatrixService.execute(args.target || "system");
+            return { output: `### OpenGraphMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventcluster_ideg_logic": {
+          try {
+            const { OpenEventClusterService } = await import("../liberty/openeventcluster_ideg.service.js");
+            const res = await OpenEventClusterService.execute(args.target || "system");
+            return { output: `### OpenEventCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarymatrix_vbuf_logic": {
+          try {
+            const { OpenPlanetaryMatrixService } = await import("../liberty/openplanetarymatrix_vbuf.service.js");
+            const res = await OpenPlanetaryMatrixService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openeventlayer_5xz1_logic": {
           try {
             const { OpenEventLayerService } = await import("../liberty/openeventlayer_5xz1.service.js");
