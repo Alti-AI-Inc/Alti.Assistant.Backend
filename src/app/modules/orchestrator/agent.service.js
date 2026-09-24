@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kerneldaemon_rqer_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelDaemon) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfswarm_ca3i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFSwarm) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectornet_tc3f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorNet) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticnode_fiqy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticNode) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgrid_u6i8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGrid) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriesnet_5tx0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNet) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18092,6 +18132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kerneldaemon_rqer_logic": {
+          try {
+            const { OpenMicroKernelDaemonService } = await import("../liberty/openmicro-kerneldaemon_rqer.service.js");
+            const res = await OpenMicroKernelDaemonService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfswarm_ca3i_logic": {
+          try {
+            const { OpeneBPFSwarmService } = await import("../liberty/openebpfswarm_ca3i.service.js");
+            const res = await OpeneBPFSwarmService.execute(args.target || "system");
+            return { output: `### OpeneBPFSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectornet_tc3f_logic": {
+          try {
+            const { OpenVectorNetService } = await import("../liberty/openvectornet_tc3f.service.js");
+            const res = await OpenVectorNetService.execute(args.target || "system");
+            return { output: `### OpenVectorNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticnode_fiqy_logic": {
+          try {
+            const { OpenSemanticNodeService } = await import("../liberty/opensemanticnode_fiqy.service.js");
+            const res = await OpenSemanticNodeService.execute(args.target || "system");
+            return { output: `### OpenSemanticNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgrid_u6i8_logic": {
+          try {
+            const { OpenDecentralizedGridService } = await import("../liberty/opendecentralizedgrid_u6i8.service.js");
+            const res = await OpenDecentralizedGridService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriesnet_5tx0_logic": {
           try {
             const { OpenTimeSeriesNetService } = await import("../liberty/opentime-seriesnet_5tx0.service.js");
