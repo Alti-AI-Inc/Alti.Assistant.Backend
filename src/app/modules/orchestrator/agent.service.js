@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "synchronize_cluster_state",
+      description: "Use the Aphura Synchronization Engine (Apache ZooKeeper) to autonomously coordinate, name, and synchronize configuration states across tens of thousands of distributed microservices instantly.",
+      parameters: { type: "object", properties: { serviceRegistry: { type: "string" } }, required: ["serviceRegistry"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "provision_transactional_kv_store",
+      description: "Use the Aphura Transactional KV Engine (TiKV) to autonomously deploy distributed, strongly consistent key-value stores capable of safely processing millions of financial or e-commerce transactions without data corruption.",
+      parameters: { type: "object", properties: { namespace: { type: "string" } }, required: ["namespace"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deploy_ignite_memory_grid",
+      description: "Use the Aphura In-Memory Engine (Apache Ignite) to autonomously cache massive databases entirely in RAM across thousands of OpenStack nodes, delivering microsecond-latency data retrieval.",
+      parameters: { type: "object", properties: { datasetName: { type: "string" }, memorySizeGb: { type: "number" } }, required: ["datasetName", "memorySizeGb"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_presto_query",
+      description: "Use the Aphura Distributed SQL Engine (Presto) to autonomously distribute and execute extremely complex SQL queries across Petabytes of raw OpenStack Data Lakes in seconds.",
+      parameters: { type: "object", properties: { sqlQuery: { type: "string" }, dataLakePath: { type: "string" } }, required: ["sqlQuery", "dataLakePath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deploy_cassandra_ring",
+      description: "Use the Aphura Planetary NoSQL Engine (Apache Cassandra) to autonomously orchestrate massive, multi-datacenter database rings with zero single points of failure.",
+      parameters: { type: "object", properties: { keyspace: { type: "string" }, nodes: { type: "number" } }, required: ["keyspace", "nodes"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "compile_2d_webgl_canvas",
       description: "Use the Aphura 2D Rendering Engine (PixiJS) to autonomously compile lightning-fast WebGL canvases capable of rendering 100,000 interactive sprites and particle systems at a perfect 60 FPS.",
       parameters: { type: "object", properties: { canvasDescription: { type: "string" } }, required: ["canvasDescription"] }
@@ -1252,7 +1292,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "compile_2d_webgl_canvas": {
+        case "synchronize_cluster_state": {
+          try {
+            const { ZooKeeperService } = await import("../devops/zookeeper.service.js");
+            const res = await ZooKeeperService.synchronizeState(args.serviceRegistry);
+            return { output: `### ZooKeeper Cluster Sync\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `ZooKeeper sync failed: ${err.message}` };
+          }
+        }        case "provision_transactional_kv_store": {
+          try {
+            const { TiKVService } = await import("../data/tikv.service.js");
+            const res = await TiKVService.provisionKVStore(args.namespace);
+            return { output: `### TiKV Store Deployed\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `TiKV provisioning failed: ${err.message}` };
+          }
+        }        case "deploy_ignite_memory_grid": {
+          try {
+            const { IgniteService } = await import("../data/ignite.service.js");
+            const res = await IgniteService.deployMemoryGrid(args.datasetName, args.memorySizeGb);
+            return { output: `### In-Memory Grid Deployed\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Ignite deployment failed: ${err.message}` };
+          }
+        }        case "execute_presto_query": {
+          try {
+            const { PrestoService } = await import("../data/presto.service.js");
+            const res = await PrestoService.executeQuery(args.sqlQuery, args.dataLakePath);
+            return { output: `### Presto Query Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Presto query failed: ${err.message}` };
+          }
+        }        case "deploy_cassandra_ring": {
+          try {
+            const { CassandraService } = await import("../data/cassandra.service.js");
+            const res = await CassandraService.provisionRing(args.keyspace, args.nodes);
+            return { output: `### Cassandra Ring Deployed\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Cassandra deployment failed: ${err.message}` };
+          }
+        }        case "compile_2d_webgl_canvas": {
           try {
             const { PixiService } = await import("../ui/pixi.service.js");
             const res = await PixiService.renderCanvas(args.canvasDescription);
