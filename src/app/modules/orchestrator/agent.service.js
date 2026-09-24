@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgematrix_a15g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeMatrix) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisedaemon_wpwo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseDaemon) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencynode_7bom_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyNode) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepledger_39i2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepLedger) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativevault_f0ny_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVault) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedvault_6us9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedVault) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8612,6 +8652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgematrix_a15g_logic": {
+          try {
+            const { OpenZeroKnowledgeMatrixService } = await import("../liberty/openzero-knowledgematrix_a15g.service.js");
+            const res = await OpenZeroKnowledgeMatrixService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisedaemon_wpwo_logic": {
+          try {
+            const { OpenEnterpriseDaemonService } = await import("../liberty/openenterprisedaemon_wpwo.service.js");
+            const res = await OpenEnterpriseDaemonService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencynode_7bom_logic": {
+          try {
+            const { OpenHighFrequencyNodeService } = await import("../liberty/openhigh-frequencynode_7bom.service.js");
+            const res = await OpenHighFrequencyNodeService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepledger_39i2_logic": {
+          try {
+            const { OpenDeepLedgerService } = await import("../liberty/opendeepledger_39i2.service.js");
+            const res = await OpenDeepLedgerService.execute(args.target || "system");
+            return { output: `### OpenDeepLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativevault_f0ny_logic": {
+          try {
+            const { OpenCloudNativeVaultService } = await import("../liberty/opencloud-nativevault_f0ny.service.js");
+            const res = await OpenCloudNativeVaultService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeVault failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedvault_6us9_logic": {
           try {
             const { OpenDistributedVaultService } = await import("../liberty/opendistributedvault_6us9.service.js");
