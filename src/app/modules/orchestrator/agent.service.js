@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpcluster_kra2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPCluster) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterdaemon_3es9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterDaemon) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseoracle_ss3z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseOracle) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencybroker_lubg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyBroker) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablecontroller_nqef_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableController) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumvault_7k7m_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumVault) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13532,6 +13572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpcluster_kra2_logic": {
+          try {
+            const { OpenBGPClusterService } = await import("../liberty/openbgpcluster_kra2.service.js");
+            const res = await OpenBGPClusterService.execute(args.target || "system");
+            return { output: `### OpenBGPCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterdaemon_3es9_logic": {
+          try {
+            const { OpenCrossClusterDaemonService } = await import("../liberty/opencross-clusterdaemon_3es9.service.js");
+            const res = await OpenCrossClusterDaemonService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseoracle_ss3z_logic": {
+          try {
+            const { OpenEnterpriseOracleService } = await import("../liberty/openenterpriseoracle_ss3z.service.js");
+            const res = await OpenEnterpriseOracleService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencybroker_lubg_logic": {
+          try {
+            const { OpenHighFrequencyBrokerService } = await import("../liberty/openhigh-frequencybroker_lubg.service.js");
+            const res = await OpenHighFrequencyBrokerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablecontroller_nqef_logic": {
+          try {
+            const { OpenImmutableControllerService } = await import("../liberty/openimmutablecontroller_nqef.service.js");
+            const res = await OpenImmutableControllerService.execute(args.target || "system");
+            return { output: `### OpenImmutableController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableController failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumvault_7k7m_logic": {
           try {
             const { OpenQuantumVaultService } = await import("../liberty/openquantumvault_7k7m.service.js");
