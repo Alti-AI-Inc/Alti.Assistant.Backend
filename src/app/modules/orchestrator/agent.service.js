@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosnexus_6muf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNexus) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpugraph_lni0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUGraph) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecontroller_utr5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeController) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicgrid_00as_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicGrid) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogmesh_9rd9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogMesh) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhigh-frequencymatrix_x4tk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyMatrix) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7612,6 +7652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosnexus_6muf_logic": {
+          try {
+            const { OpenChaosNexusService } = await import("../liberty/openchaosnexus_6muf.service.js");
+            const res = await OpenChaosNexusService.execute(args.target || "system");
+            return { output: `### OpenChaosNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpugraph_lni0_logic": {
+          try {
+            const { OpenGPUGraphService } = await import("../liberty/opengpugraph_lni0.service.js");
+            const res = await OpenGPUGraphService.execute(args.target || "system");
+            return { output: `### OpenGPUGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecontroller_utr5_logic": {
+          try {
+            const { OpenZeroKnowledgeControllerService } = await import("../liberty/openzero-knowledgecontroller_utr5.service.js");
+            const res = await OpenZeroKnowledgeControllerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicgrid_00as_logic": {
+          try {
+            const { OpenHomomorphicGridService } = await import("../liberty/openhomomorphicgrid_00as.service.js");
+            const res = await OpenHomomorphicGridService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogmesh_9rd9_logic": {
+          try {
+            const { OpenLogMeshService } = await import("../liberty/openlogmesh_9rd9.service.js");
+            const res = await OpenLogMeshService.execute(args.target || "system");
+            return { output: `### OpenLogMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openhigh-frequencymatrix_x4tk_logic": {
           try {
             const { OpenHighFrequencyMatrixService } = await import("../liberty/openhigh-frequencymatrix_x4tk.service.js");
