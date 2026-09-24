@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativedaemon_nj4w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeDaemon) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpucore_ap0m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUCore) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedmatrix_b2lg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedMatrix) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedmesh_1t0t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedMesh) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpvault_bkee_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPVault) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarynexus_xmk2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNexus) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17932,6 +17972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativedaemon_nj4w_logic": {
+          try {
+            const { OpenCloudNativeDaemonService } = await import("../liberty/opencloud-nativedaemon_nj4w.service.js");
+            const res = await OpenCloudNativeDaemonService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpucore_ap0m_logic": {
+          try {
+            const { OpenGPUCoreService } = await import("../liberty/opengpucore_ap0m.service.js");
+            const res = await OpenGPUCoreService.execute(args.target || "system");
+            return { output: `### OpenGPUCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedmatrix_b2lg_logic": {
+          try {
+            const { OpenAdvancedMatrixService } = await import("../liberty/openadvancedmatrix_b2lg.service.js");
+            const res = await OpenAdvancedMatrixService.execute(args.target || "system");
+            return { output: `### OpenAdvancedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedmesh_1t0t_logic": {
+          try {
+            const { OpenFederatedMeshService } = await import("../liberty/openfederatedmesh_1t0t.service.js");
+            const res = await OpenFederatedMeshService.execute(args.target || "system");
+            return { output: `### OpenFederatedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpvault_bkee_logic": {
+          try {
+            const { OpenBGPVaultService } = await import("../liberty/openbgpvault_bkee.service.js");
+            const res = await OpenBGPVaultService.execute(args.target || "system");
+            return { output: `### OpenBGPVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPVault failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarynexus_xmk2_logic": {
           try {
             const { OpenPlanetaryNexusService } = await import("../liberty/openplanetarynexus_xmk2.service.js");
