@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativestream_8nj4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeStream) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicnexus_50ht_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNexus) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwareproxy_u4rv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareProxy) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorychain_ccn6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryChain) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisenexus_r8tp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNexus) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterpriselayer_i39q_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseLayer) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15092,6 +15132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativestream_8nj4_logic": {
+          try {
+            const { OpenCloudNativeStreamService } = await import("../liberty/opencloud-nativestream_8nj4.service.js");
+            const res = await OpenCloudNativeStreamService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicnexus_50ht_logic": {
+          try {
+            const { OpenHomomorphicNexusService } = await import("../liberty/openhomomorphicnexus_50ht.service.js");
+            const res = await OpenHomomorphicNexusService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwareproxy_u4rv_logic": {
+          try {
+            const { OpenHardwareProxyService } = await import("../liberty/openhardwareproxy_u4rv.service.js");
+            const res = await OpenHardwareProxyService.execute(args.target || "system");
+            return { output: `### OpenHardwareProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorychain_ccn6_logic": {
+          try {
+            const { OpenInMemoryChainService } = await import("../liberty/openin-memorychain_ccn6.service.js");
+            const res = await OpenInMemoryChainService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisenexus_r8tp_logic": {
+          try {
+            const { OpenEnterpriseNexusService } = await import("../liberty/openenterprisenexus_r8tp.service.js");
+            const res = await OpenEnterpriseNexusService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openenterpriselayer_i39q_logic": {
           try {
             const { OpenEnterpriseLayerService } = await import("../liberty/openenterpriselayer_i39q.service.js");
