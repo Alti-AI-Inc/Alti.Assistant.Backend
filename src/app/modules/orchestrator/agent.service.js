@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesoracle_477w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesOracle) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedproxy_muc2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedProxy) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticdaemon_pkx9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticDaemon) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicrouter_6r7y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicRouter) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedbroker_gw39_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedBroker) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancednet_2pmc_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNet) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13972,6 +14012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesoracle_477w_logic": {
+          try {
+            const { OpenTimeSeriesOracleService } = await import("../liberty/opentime-seriesoracle_477w.service.js");
+            const res = await OpenTimeSeriesOracleService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedproxy_muc2_logic": {
+          try {
+            const { OpenFederatedProxyService } = await import("../liberty/openfederatedproxy_muc2.service.js");
+            const res = await OpenFederatedProxyService.execute(args.target || "system");
+            return { output: `### OpenFederatedProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticdaemon_pkx9_logic": {
+          try {
+            const { OpenStaticDaemonService } = await import("../liberty/openstaticdaemon_pkx9.service.js");
+            const res = await OpenStaticDaemonService.execute(args.target || "system");
+            return { output: `### OpenStaticDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicrouter_6r7y_logic": {
+          try {
+            const { OpenHomomorphicRouterService } = await import("../liberty/openhomomorphicrouter_6r7y.service.js");
+            const res = await OpenHomomorphicRouterService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedbroker_gw39_logic": {
+          try {
+            const { OpenDistributedBrokerService } = await import("../liberty/opendistributedbroker_gw39.service.js");
+            const res = await OpenDistributedBrokerService.execute(args.target || "system");
+            return { output: `### OpenDistributedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedBroker failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancednet_2pmc_logic": {
           try {
             const { OpenAdvancedNetService } = await import("../liberty/openadvancednet_2pmc.service.js");
