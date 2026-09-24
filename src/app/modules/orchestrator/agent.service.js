@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partyproxy_u0if_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyProxy) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectormatrix_ez04_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorMatrix) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnet_glcq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNet) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgeswarm_di47_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeSwarm) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarycluster_j6lx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCluster) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedbroker_acfv_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedBroker) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19332,6 +19372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partyproxy_u0if_logic": {
+          try {
+            const { OpenMultiPartyProxyService } = await import("../liberty/openmulti-partyproxy_u0if.service.js");
+            const res = await OpenMultiPartyProxyService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectormatrix_ez04_logic": {
+          try {
+            const { OpenVectorMatrixService } = await import("../liberty/openvectormatrix_ez04.service.js");
+            const res = await OpenVectorMatrixService.execute(args.target || "system");
+            return { output: `### OpenVectorMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnet_glcq_logic": {
+          try {
+            const { OpenGraphNetService } = await import("../liberty/opengraphnet_glcq.service.js");
+            const res = await OpenGraphNetService.execute(args.target || "system");
+            return { output: `### OpenGraphNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgeswarm_di47_logic": {
+          try {
+            const { OpenZeroKnowledgeSwarmService } = await import("../liberty/openzero-knowledgeswarm_di47.service.js");
+            const res = await OpenZeroKnowledgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarycluster_j6lx_logic": {
+          try {
+            const { OpenPlanetaryClusterService } = await import("../liberty/openplanetarycluster_j6lx.service.js");
+            const res = await OpenPlanetaryClusterService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryCluster failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedbroker_acfv_logic": {
           try {
             const { OpenDecentralizedBrokerService } = await import("../liberty/opendecentralizedbroker_acfv.service.js");
