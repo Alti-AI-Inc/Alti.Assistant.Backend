@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaospipeline_oy1c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosPipeline) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterswarm_m5c4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterSwarm) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatagraph_sxp0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataGraph) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractnet_w0zv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractNet) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterpipeline_z9ub_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterPipeline) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendnode_jtpa_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNode) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12292,6 +12332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaospipeline_oy1c_logic": {
+          try {
+            const { OpenChaosPipelineService } = await import("../liberty/openchaospipeline_oy1c.service.js");
+            const res = await OpenChaosPipelineService.execute(args.target || "system");
+            return { output: `### OpenChaosPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterswarm_m5c4_logic": {
+          try {
+            const { OpenCrossClusterSwarmService } = await import("../liberty/opencross-clusterswarm_m5c4.service.js");
+            const res = await OpenCrossClusterSwarmService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatagraph_sxp0_logic": {
+          try {
+            const { OpenDataGraphService } = await import("../liberty/opendatagraph_sxp0.service.js");
+            const res = await OpenDataGraphService.execute(args.target || "system");
+            return { output: `### OpenDataGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractnet_w0zv_logic": {
+          try {
+            const { OpenAbstractNetService } = await import("../liberty/openabstractnet_w0zv.service.js");
+            const res = await OpenAbstractNetService.execute(args.target || "system");
+            return { output: `### OpenAbstractNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterpipeline_z9ub_logic": {
+          try {
+            const { OpenCrossClusterPipelineService } = await import("../liberty/opencross-clusterpipeline_z9ub.service.js");
+            const res = await OpenCrossClusterPipelineService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendnode_jtpa_logic": {
           try {
             const { OpenMicroFrontendNodeService } = await import("../liberty/openmicro-frontendnode_jtpa.service.js");
