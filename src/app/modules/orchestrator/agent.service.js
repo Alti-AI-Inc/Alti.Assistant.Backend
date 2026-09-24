@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlesscompiler_gpb8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessCompiler) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessdaemon_h8lg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessDaemon) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablevortex_t3x8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableVortex) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventlayer_1sj7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventLayer) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicengine_s8rz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicEngine) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgeengine_sdld_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeEngine) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3732,6 +3772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlesscompiler_gpb8_logic": {
+          try {
+            const { OpenServerlessCompilerService } = await import("../liberty/openserverlesscompiler_gpb8.service.js");
+            const res = await OpenServerlessCompilerService.execute(args.target || "system");
+            return { output: `### OpenServerlessCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessdaemon_h8lg_logic": {
+          try {
+            const { OpenServerlessDaemonService } = await import("../liberty/openserverlessdaemon_h8lg.service.js");
+            const res = await OpenServerlessDaemonService.execute(args.target || "system");
+            return { output: `### OpenServerlessDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablevortex_t3x8_logic": {
+          try {
+            const { OpenImmutableVortexService } = await import("../liberty/openimmutablevortex_t3x8.service.js");
+            const res = await OpenImmutableVortexService.execute(args.target || "system");
+            return { output: `### OpenImmutableVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventlayer_1sj7_logic": {
+          try {
+            const { OpenEventLayerService } = await import("../liberty/openeventlayer_1sj7.service.js");
+            const res = await OpenEventLayerService.execute(args.target || "system");
+            return { output: `### OpenEventLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicengine_s8rz_logic": {
+          try {
+            const { OpenHomomorphicEngineService } = await import("../liberty/openhomomorphicengine_s8rz.service.js");
+            const res = await OpenHomomorphicEngineService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openedgeengine_sdld_logic": {
           try {
             const { OpenEdgeEngineService } = await import("../liberty/openedgeengine_sdld.service.js");
