@@ -78,6 +78,29 @@ const getStorageStats = catchAsync(async (req, res) => {
   });
 });
 
+const publishOtaRelease = catchAsync(async (req, res) => {
+  const { platform, version, bucketName = 'ota-releases' } = req.body;
+  // This will assume the file is uploaded. In a real scenario, this would use a presigned URL or Multer.
+  const result = await LibertyService.publishOtaRelease(bucketName, platform, version);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `OTA release ${version} mapped for ${platform}`,
+    data: result,
+  });
+});
+
+const getLatestOtaReleaseUrl = catchAsync(async (req, res) => {
+  const { platform } = req.params;
+  const result = await LibertyService.getLatestOtaReleaseUrl('ota-releases', platform);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Latest OTA URL for ${platform}`,
+    data: result,
+  });
+});
+
 const listInstances = catchAsync(async (req, res) => {
   const result = await LibertyService.listInstances();
   sendResponse(res, {
@@ -341,6 +364,8 @@ export const LibertyController = {
   getPresignedUrl,
   deleteObject,
   getStorageStats,
+  publishOtaRelease,
+  getLatestOtaReleaseUrl,
   listInstances,
   getInstance,
   instanceAction,

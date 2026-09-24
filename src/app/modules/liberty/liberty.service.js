@@ -192,6 +192,60 @@ export const LibertyService = {
     };
   },
 
+  /**
+   * Publish an OTA binary release for Desktop (Electron/Tauri) or Mobile (APK/IPA).
+   * Generates Swift metadata aliases pointing 'latest' to this specific version.
+   */
+  async publishOtaRelease(bucketName, platform, version) {
+    try {
+      const exists = await minioClient.bucketExists(bucketName);
+      if (!exists) {
+        await minioClient.makeBucket(bucketName, config.objectStorage?.region || 'us-east-1');
+      }
+
+      // Normally, you upload the actual binary first, then update the metadata pointer.
+      // Here we assume the binary was uploaded to `releases/${platform}/${version}.zip`
+      const objectKey = `releases/${platform}/${version}.zip`;
+      
+      // Update a small pointer object that resolves 'latest' to this version key
+      const pointerKey = `releases/${platform}/latest.json`;
+      const pointerData = Buffer.from(JSON.stringify({ version, urlPath: objectKey }));
+      await minioClient.putObject(bucketName, pointerKey, pointerData, pointerData.length, {
+        'Content-Type': 'application/json'
+      });
+
+      return { platform, version, latestPointer: pointerKey };
+    } catch (err) {
+      logger.error(`[Swift CDN] Failed to publish OTA: ${err.message}`);
+      throw err;
+    }
+  },
+
+  /**
+   * Generates a fast download link (Pre-signed URL) from OpenStack Swift for OTA binaries.
+   */
+  async getLatestOtaReleaseUrl(bucketName, platform) {
+    try {
+      // Fetch the 'latest.json' pointer
+      const stream = await minioClient.getObject(bucketName, `releases/${platform}/latest.json`);
+      const chunks = [];
+      for await (const chunk of stream) chunks.push(chunk);
+      const pointerData = JSON.parse(Buffer.concat(chunks).toString());
+
+      // Generate a presigned URL valid for 1 hour for the actual binary
+      const downloadUrl = await minioClient.presignedGetObject(bucketName, pointerData.urlPath, 3600);
+      
+      return {
+        platform,
+        version: pointerData.version,
+        downloadUrl
+      };
+    } catch (err) {
+      logger.error(`[Swift CDN] Failed to fetch latest OTA URL: ${err.message}`);
+      throw err;
+    }
+  },
+
   // ── 3. Compute (Nova) ──────────────────────────────────────────────────
   async listInstances() {
     const token = await getKeystoneToken();

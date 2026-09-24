@@ -22,6 +22,11 @@ router.post('/storage/presigned-url', LibertyController.getPresignedUrl);
 router.delete('/storage/objects', LibertyController.deleteObject);
 router.get('/storage/stats', LibertyController.getStorageStats);
 
+// ── OTA Binary Distribution (Desktop/Mobile Apps) ─────────────────────────
+// Dedicated Swift endpoints for high-speed download of APKs, IPAs, and Electron binaries
+router.post('/storage/ota/release', LibertyController.publishOtaRelease);
+router.get('/storage/ota/latest/:platform', LibertyController.getLatestOtaReleaseUrl);
+
 // ── Compute (Nova) ────────────────────────────────────────────────────────
 router.get('/compute/instances', LibertyController.listInstances);
 router.get('/compute/instances/:id', LibertyController.getInstance);
