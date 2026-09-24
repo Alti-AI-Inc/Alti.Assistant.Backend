@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesmesh_logic",
+      description: "Use the Aphura Engine (OpenTime-SeriesMesh) to Autonomously deploy Time-Series Analytics architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencynexus_logic",
+      description: "Use the Aphura Engine (OpenHigh-FrequencyNexus) to Autonomously deploy High-Frequency Trading architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisecontroller_logic",
+      description: "Use the Aphura Engine (OpenEnterpriseController) to Autonomously deploy Enterprise Identity architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventengine_logic",
+      description: "Use the Aphura Engine (OpenEventEngine) to Autonomously deploy Event Streaming architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedmesh_logic",
+      description: "Use the Aphura Engine (OpenDistributedMesh) to Autonomously deploy Distributed Caching architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openabstractfabric_logic",
       description: "Use the Aphura Engine (OpenAbstractFabric) to Autonomously deploy Abstract Syntax Trees architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1732,6 +1772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesmesh_logic": {
+          try {
+            const { Opentime-seriesmeshService } = await import("../enterprise/opentime-seriesmesh.service.js");
+            const res = await Opentime-seriesmeshService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesMesh Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencynexus_logic": {
+          try {
+            const { Openhigh-frequencynexusService } = await import("../enterprise/openhigh-frequencynexus.service.js");
+            const res = await Openhigh-frequencynexusService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyNexus Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisecontroller_logic": {
+          try {
+            const { OpenenterprisecontrollerService } = await import("../enterprise/openenterprisecontroller.service.js");
+            const res = await OpenenterprisecontrollerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseController Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseController failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventengine_logic": {
+          try {
+            const { OpeneventengineService } = await import("../enterprise/openeventengine.service.js");
+            const res = await OpeneventengineService.execute(args.target || "system");
+            return { output: `### OpenEventEngine Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedmesh_logic": {
+          try {
+            const { OpendistributedmeshService } = await import("../enterprise/opendistributedmesh.service.js");
+            const res = await OpendistributedmeshService.execute(args.target || "system");
+            return { output: `### OpenDistributedMesh Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openabstractfabric_logic": {
           try {
             const { OpenabstractfabricService } = await import("../enterprise/openabstractfabric.service.js");
