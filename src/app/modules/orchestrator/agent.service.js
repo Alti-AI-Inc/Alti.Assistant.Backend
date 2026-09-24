@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlesscompiler_z7v1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCompiler) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustfabric_l83l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustFabric) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedpipeline_80su_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedPipeline) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventring_4l92_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventRing) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticfabric_o4wf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticFabric) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgeproxy_yjmh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeProxy) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19932,6 +19972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlesscompiler_z7v1_logic": {
+          try {
+            const { OpenHeadlessCompilerService } = await import("../liberty/openheadlesscompiler_z7v1.service.js");
+            const res = await OpenHeadlessCompilerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustfabric_l83l_logic": {
+          try {
+            const { OpenZeroTrustFabricService } = await import("../liberty/openzero-trustfabric_l83l.service.js");
+            const res = await OpenZeroTrustFabricService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedpipeline_80su_logic": {
+          try {
+            const { OpenDistributedPipelineService } = await import("../liberty/opendistributedpipeline_80su.service.js");
+            const res = await OpenDistributedPipelineService.execute(args.target || "system");
+            return { output: `### OpenDistributedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventring_4l92_logic": {
+          try {
+            const { OpenEventRingService } = await import("../liberty/openeventring_4l92.service.js");
+            const res = await OpenEventRingService.execute(args.target || "system");
+            return { output: `### OpenEventRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticfabric_o4wf_logic": {
+          try {
+            const { OpenStaticFabricService } = await import("../liberty/openstaticfabric_o4wf.service.js");
+            const res = await OpenStaticFabricService.execute(args.target || "system");
+            return { output: `### OpenStaticFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgeproxy_yjmh_logic": {
           try {
             const { OpenZeroKnowledgeProxyService } = await import("../liberty/openzero-knowledgeproxy_yjmh.service.js");
