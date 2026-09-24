@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesfabric_xghu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesFabric) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessgrid_apwv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessGrid) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicnet_jsq6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNet) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivepipeline_re5a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictivePipeline) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativering_tu3t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeRing) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedgraph_7acn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20932,6 +20972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesfabric_xghu_logic": {
+          try {
+            const { OpenTimeSeriesFabricService } = await import("../liberty/opentime-seriesfabric_xghu.service.js");
+            const res = await OpenTimeSeriesFabricService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessgrid_apwv_logic": {
+          try {
+            const { OpenServerlessGridService } = await import("../liberty/openserverlessgrid_apwv.service.js");
+            const res = await OpenServerlessGridService.execute(args.target || "system");
+            return { output: `### OpenServerlessGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicnet_jsq6_logic": {
+          try {
+            const { OpenHomomorphicNetService } = await import("../liberty/openhomomorphicnet_jsq6.service.js");
+            const res = await OpenHomomorphicNetService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivepipeline_re5a_logic": {
+          try {
+            const { OpenPredictivePipelineService } = await import("../liberty/openpredictivepipeline_re5a.service.js");
+            const res = await OpenPredictivePipelineService.execute(args.target || "system");
+            return { output: `### OpenPredictivePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictivePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativering_tu3t_logic": {
+          try {
+            const { OpenCloudNativeRingService } = await import("../liberty/opencloud-nativering_tu3t.service.js");
+            const res = await OpenCloudNativeRingService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeRing failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedgraph_7acn_logic": {
           try {
             const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_7acn.service.js");
