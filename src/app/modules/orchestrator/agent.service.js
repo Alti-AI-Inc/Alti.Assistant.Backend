@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedvault_x76i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVault) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecore_z1uj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCore) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partymatrix_dcll_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyMatrix) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentmesh_ibfv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentMesh) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantummesh_v8ec_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumMesh) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustgraph_4qi3_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustGraph) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15412,6 +15452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedvault_x76i_logic": {
+          try {
+            const { OpenDecentralizedVaultService } = await import("../liberty/opendecentralizedvault_x76i.service.js");
+            const res = await OpenDecentralizedVaultService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecore_z1uj_logic": {
+          try {
+            const { OpenZeroKnowledgeCoreService } = await import("../liberty/openzero-knowledgecore_z1uj.service.js");
+            const res = await OpenZeroKnowledgeCoreService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partymatrix_dcll_logic": {
+          try {
+            const { OpenMultiPartyMatrixService } = await import("../liberty/openmulti-partymatrix_dcll.service.js");
+            const res = await OpenMultiPartyMatrixService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentmesh_ibfv_logic": {
+          try {
+            const { OpenPersistentMeshService } = await import("../liberty/openpersistentmesh_ibfv.service.js");
+            const res = await OpenPersistentMeshService.execute(args.target || "system");
+            return { output: `### OpenPersistentMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantummesh_v8ec_logic": {
+          try {
+            const { OpenQuantumMeshService } = await import("../liberty/openquantummesh_v8ec.service.js");
+            const res = await OpenQuantumMeshService.execute(args.target || "system");
+            return { output: `### OpenQuantumMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustgraph_4qi3_logic": {
           try {
             const { OpenZeroTrustGraphService } = await import("../liberty/openzero-trustgraph_4qi3.service.js");
