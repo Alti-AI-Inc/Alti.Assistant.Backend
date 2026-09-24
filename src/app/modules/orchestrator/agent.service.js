@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "spawn_agent_swarm",
+      description: "Spawn a hive-mind of specialized sub-agents (e.g. Researcher, QA, Developer) to collaboratively solve a massive objective.",
+      parameters: { type: "object", properties: { objective: { type: "string" }, teamConfig: { type: "array", items: { type: "string" } } }, required: ["objective", "teamConfig"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "parse_desktop_screen",
       description: "Use the Aphura OmniParser engine to analyze a screenshot of the user OS. Returns exact XY coordinates of all clickable icons, buttons, and text fields on the screen.",
       parameters: { type: "object", properties: { base64Image: { type: "string" } }, required: ["base64Image"] }
@@ -620,7 +628,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "parse_desktop_screen": {
+        case "spawn_agent_swarm": {
+          try {
+            const { CrewAIService } = await import("../agents/crewai.service.js");
+            const res = await CrewAIService.executeSwarmTask(args.objective, args.teamConfig);
+            return { output: `### Hive-Mind Consensus Reached\\n\\n```text\\n${res.finalConsensus}\\n```` };
+          } catch (err) {
+            return { output: `Hive-Mind failed: ${err.message}` };
+          }
+        }        case "parse_desktop_screen": {
           try {
             const { OmniParserService } = await import("../vision/omniparser.service.js");
             const res = await OmniParserService.parseScreen(args.base64Image);
