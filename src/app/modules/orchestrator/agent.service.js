@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partyvault_x6g7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyVault) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisegraph_srgp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGraph) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributednexus_czmy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedNexus) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalplane_79ti_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalPlane) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarevortex_8m1i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareVortex) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumcontroller_k73y_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumController) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12132,6 +12172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partyvault_x6g7_logic": {
+          try {
+            const { OpenMultiPartyVaultService } = await import("../liberty/openmulti-partyvault_x6g7.service.js");
+            const res = await OpenMultiPartyVaultService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisegraph_srgp_logic": {
+          try {
+            const { OpenEnterpriseGraphService } = await import("../liberty/openenterprisegraph_srgp.service.js");
+            const res = await OpenEnterpriseGraphService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributednexus_czmy_logic": {
+          try {
+            const { OpenDistributedNexusService } = await import("../liberty/opendistributednexus_czmy.service.js");
+            const res = await OpenDistributedNexusService.execute(args.target || "system");
+            return { output: `### OpenDistributedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalplane_79ti_logic": {
+          try {
+            const { OpenHyperDimensionalPlaneService } = await import("../liberty/openhyper-dimensionalplane_79ti.service.js");
+            const res = await OpenHyperDimensionalPlaneService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarevortex_8m1i_logic": {
+          try {
+            const { OpenHardwareVortexService } = await import("../liberty/openhardwarevortex_8m1i.service.js");
+            const res = await OpenHardwareVortexService.execute(args.target || "system");
+            return { output: `### OpenHardwareVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumcontroller_k73y_logic": {
           try {
             const { OpenQuantumControllerService } = await import("../liberty/openquantumcontroller_k73y.service.js");
