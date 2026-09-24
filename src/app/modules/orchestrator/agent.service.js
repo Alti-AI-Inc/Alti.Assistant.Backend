@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustdaemon_tq5y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustDaemon) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentledger_l7ei_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentLedger) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencydaemon_nxlz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyDaemon) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelfabric_70ks_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelFabric) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcluster_zvb5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCluster) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpunode_70qo_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUNode) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13612,6 +13652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustdaemon_tq5y_logic": {
+          try {
+            const { OpenZeroTrustDaemonService } = await import("../liberty/openzero-trustdaemon_tq5y.service.js");
+            const res = await OpenZeroTrustDaemonService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentledger_l7ei_logic": {
+          try {
+            const { OpenPersistentLedgerService } = await import("../liberty/openpersistentledger_l7ei.service.js");
+            const res = await OpenPersistentLedgerService.execute(args.target || "system");
+            return { output: `### OpenPersistentLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencydaemon_nxlz_logic": {
+          try {
+            const { OpenHighFrequencyDaemonService } = await import("../liberty/openhigh-frequencydaemon_nxlz.service.js");
+            const res = await OpenHighFrequencyDaemonService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelfabric_70ks_logic": {
+          try {
+            const { OpenMicroKernelFabricService } = await import("../liberty/openmicro-kernelfabric_70ks.service.js");
+            const res = await OpenMicroKernelFabricService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcluster_zvb5_logic": {
+          try {
+            const { OpenDecentralizedClusterService } = await import("../liberty/opendecentralizedcluster_zvb5.service.js");
+            const res = await OpenDecentralizedClusterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCluster failed: ${err.message}` };
+          }
+        }
         case "execute_opengpunode_70qo_logic": {
           try {
             const { OpenGPUNodeService } = await import("../liberty/opengpunode_70qo.service.js");
