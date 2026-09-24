@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openabstractmesh_uojj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractMesh) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelcontroller_bczw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelController) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpupipeline_r80q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUPipeline) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedstream_j616_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedStream) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernellayer_mheh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelLayer) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpusync_dlhk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUSync) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11532,6 +11572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openabstractmesh_uojj_logic": {
+          try {
+            const { OpenAbstractMeshService } = await import("../liberty/openabstractmesh_uojj.service.js");
+            const res = await OpenAbstractMeshService.execute(args.target || "system");
+            return { output: `### OpenAbstractMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelcontroller_bczw_logic": {
+          try {
+            const { OpenMicroKernelControllerService } = await import("../liberty/openmicro-kernelcontroller_bczw.service.js");
+            const res = await OpenMicroKernelControllerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelController failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpupipeline_r80q_logic": {
+          try {
+            const { OpenGPUPipelineService } = await import("../liberty/opengpupipeline_r80q.service.js");
+            const res = await OpenGPUPipelineService.execute(args.target || "system");
+            return { output: `### OpenGPUPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedstream_j616_logic": {
+          try {
+            const { OpenDecentralizedStreamService } = await import("../liberty/opendecentralizedstream_j616.service.js");
+            const res = await OpenDecentralizedStreamService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernellayer_mheh_logic": {
+          try {
+            const { OpenMicroKernelLayerService } = await import("../liberty/openmicro-kernellayer_mheh.service.js");
+            const res = await OpenMicroKernelLayerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelLayer failed: ${err.message}` };
+          }
+        }
         case "execute_opengpusync_dlhk_logic": {
           try {
             const { OpenGPUSyncService } = await import("../liberty/opengpusync_dlhk.service.js");
