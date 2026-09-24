@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialnode_hmjr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialNode) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarynexus_fu7h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNexus) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelpipeline_8o99_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelPipeline) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpsync_ka4e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPSync) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgestream_iqb9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeStream) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventledger_ukis_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventLedger) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4252,6 +4292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialnode_hmjr_logic": {
+          try {
+            const { OpenFinancialNodeService } = await import("../liberty/openfinancialnode_hmjr.service.js");
+            const res = await OpenFinancialNodeService.execute(args.target || "system");
+            return { output: `### OpenFinancialNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarynexus_fu7h_logic": {
+          try {
+            const { OpenPlanetaryNexusService } = await import("../liberty/openplanetarynexus_fu7h.service.js");
+            const res = await OpenPlanetaryNexusService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelpipeline_8o99_logic": {
+          try {
+            const { OpenMicroKernelPipelineService } = await import("../liberty/openmicro-kernelpipeline_8o99.service.js");
+            const res = await OpenMicroKernelPipelineService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpsync_ka4e_logic": {
+          try {
+            const { OpenBGPSyncService } = await import("../liberty/openbgpsync_ka4e.service.js");
+            const res = await OpenBGPSyncService.execute(args.target || "system");
+            return { output: `### OpenBGPSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgestream_iqb9_logic": {
+          try {
+            const { OpenEdgeStreamService } = await import("../liberty/openedgestream_iqb9.service.js");
+            const res = await OpenEdgeStreamService.execute(args.target || "system");
+            return { output: `### OpenEdgeStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeStream failed: ${err.message}` };
+          }
+        }
         case "execute_openeventledger_ukis_logic": {
           try {
             const { OpenEventLedgerService } = await import("../liberty/openeventledger_ukis.service.js");
