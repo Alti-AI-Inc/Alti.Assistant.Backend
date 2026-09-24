@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedcore_1lg2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCore) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablecore_0zhc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableCore) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumfabric_0zw7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumFabric) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorygraph_dgby_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryGraph) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelvault_ozf4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelVault) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivenet_96eg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNet) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20372,6 +20412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedcore_1lg2_logic": {
+          try {
+            const { OpenDecentralizedCoreService } = await import("../liberty/opendecentralizedcore_1lg2.service.js");
+            const res = await OpenDecentralizedCoreService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablecore_0zhc_logic": {
+          try {
+            const { OpenImmutableCoreService } = await import("../liberty/openimmutablecore_0zhc.service.js");
+            const res = await OpenImmutableCoreService.execute(args.target || "system");
+            return { output: `### OpenImmutableCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumfabric_0zw7_logic": {
+          try {
+            const { OpenQuantumFabricService } = await import("../liberty/openquantumfabric_0zw7.service.js");
+            const res = await OpenQuantumFabricService.execute(args.target || "system");
+            return { output: `### OpenQuantumFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorygraph_dgby_logic": {
+          try {
+            const { OpenInMemoryGraphService } = await import("../liberty/openin-memorygraph_dgby.service.js");
+            const res = await OpenInMemoryGraphService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelvault_ozf4_logic": {
+          try {
+            const { OpenMicroKernelVaultService } = await import("../liberty/openmicro-kernelvault_ozf4.service.js");
+            const res = await OpenMicroKernelVaultService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelVault failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivenet_96eg_logic": {
           try {
             const { OpenPredictiveNetService } = await import("../liberty/openpredictivenet_96eg.service.js");
