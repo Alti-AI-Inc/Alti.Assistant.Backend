@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectorvault_k0cp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorVault) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphiccore_xcw6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicCore) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosengine_uymr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosEngine) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphring_7vxf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphRing) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuchain_o3xv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUChain) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicfabric_thr9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicFabric) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7092,6 +7132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectorvault_k0cp_logic": {
+          try {
+            const { OpenVectorVaultService } = await import("../liberty/openvectorvault_k0cp.service.js");
+            const res = await OpenVectorVaultService.execute(args.target || "system");
+            return { output: `### OpenVectorVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphiccore_xcw6_logic": {
+          try {
+            const { OpenHomomorphicCoreService } = await import("../liberty/openhomomorphiccore_xcw6.service.js");
+            const res = await OpenHomomorphicCoreService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosengine_uymr_logic": {
+          try {
+            const { OpenChaosEngineService } = await import("../liberty/openchaosengine_uymr.service.js");
+            const res = await OpenChaosEngineService.execute(args.target || "system");
+            return { output: `### OpenChaosEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphring_7vxf_logic": {
+          try {
+            const { OpenGraphRingService } = await import("../liberty/opengraphring_7vxf.service.js");
+            const res = await OpenGraphRingService.execute(args.target || "system");
+            return { output: `### OpenGraphRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuchain_o3xv_logic": {
+          try {
+            const { OpenGPUChainService } = await import("../liberty/opengpuchain_o3xv.service.js");
+            const res = await OpenGPUChainService.execute(args.target || "system");
+            return { output: `### OpenGPUChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUChain failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicfabric_thr9_logic": {
           try {
             const { OpenHomomorphicFabricService } = await import("../liberty/openhomomorphicfabric_thr9.service.js");
