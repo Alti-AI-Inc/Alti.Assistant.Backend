@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarynexus_xmk2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNexus) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessrouter_zf7s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessRouter) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicbroker_0fpr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicBroker) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedproxy_pwa1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedProxy) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondvault_cnyg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondVault) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openlogengine_ianu_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenLogEngine) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17892,6 +17932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarynexus_xmk2_logic": {
+          try {
+            const { OpenPlanetaryNexusService } = await import("../liberty/openplanetarynexus_xmk2.service.js");
+            const res = await OpenPlanetaryNexusService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessrouter_zf7s_logic": {
+          try {
+            const { OpenServerlessRouterService } = await import("../liberty/openserverlessrouter_zf7s.service.js");
+            const res = await OpenServerlessRouterService.execute(args.target || "system");
+            return { output: `### OpenServerlessRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicbroker_0fpr_logic": {
+          try {
+            const { OpenNeuromorphicBrokerService } = await import("../liberty/openneuromorphicbroker_0fpr.service.js");
+            const res = await OpenNeuromorphicBrokerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedproxy_pwa1_logic": {
+          try {
+            const { OpenAutomatedProxyService } = await import("../liberty/openautomatedproxy_pwa1.service.js");
+            const res = await OpenAutomatedProxyService.execute(args.target || "system");
+            return { output: `### OpenAutomatedProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondvault_cnyg_logic": {
+          try {
+            const { OpenSubMillisecondVaultService } = await import("../liberty/opensub-millisecondvault_cnyg.service.js");
+            const res = await OpenSubMillisecondVaultService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondVault failed: ${err.message}` };
+          }
+        }
         case "execute_openlogengine_ianu_logic": {
           try {
             const { OpenLogEngineService } = await import("../liberty/openlogengine_ianu.service.js");
