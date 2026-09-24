@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_node_rpc",
+      description: "Use the Aphura Low-Level Node Engine (JSON-RPC) to execute raw byte-level commands directly against Ethereum or Bitcoin nodes.",
+      parameters: { type: "object", properties: { nodeUrl: { type: "string" }, method: { type: "string" }, params: { type: "array", items: { type: "string" } } }, required: ["nodeUrl", "method"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "spin_up_blockchain_simulator",
+      description: "Use the Aphura Web3 Simulation Engine (Ganache) to instantly deploy an in-memory Ethereum blockchain for fast, zero-cost smart contract testing and exploit simulations.",
+      parameters: { type: "object", properties: {}, required: [] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "provision_enterprise_blockchain",
+      description: "Use the Aphura Enterprise Blockchain Engine (Hyperledger Fabric) to autonomously architect and deploy private, permissioned blockchain networks for secure enterprise operations.",
+      parameters: { type: "object", properties: { networkName: { type: "string" }, nodes: { type: "number" } }, required: ["networkName", "nodes"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "encrypt_data_payload",
+      description: "Use the Aphura Cryptography Engine (Bouncy Castle) to autonomously generate secure keys and encrypt highly sensitive payloads using military-grade AES-256-GCM algorithms.",
+      parameters: { type: "object", properties: { payloadData: { type: "string" } }, required: ["payloadData"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "pin_to_ipfs",
+      description: "Use the Aphura Decentralized Storage Engine (IPFS) to autonomously upload and pin files or entire web applications to the peer-to-peer IPFS network, generating an immutable CID hash.",
+      parameters: { type: "object", properties: { filePath: { type: "string" } }, required: ["filePath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "compress_to_parquet",
       description: "Use the Aphura Data Lake Engine (Apache Parquet) to autonomously compress massive raw datasets into highly optimized columnar formats, reducing storage costs by 80%.",
       parameters: { type: "object", properties: { datasetPath: { type: "string" } }, required: ["datasetPath"] }
@@ -1012,7 +1052,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "compress_to_parquet": {
+        case "execute_node_rpc": {
+          try {
+            const { RpcService } = await import("../web3/rpc.service.js");
+            const res = await RpcService.executeNodeCall(args.nodeUrl, args.method, args.params);
+            return { output: `### Node RPC Execution\\n\\n```text\\n${res.result}\\n```` };
+          } catch (err) {
+            return { output: `RPC failed: ${err.message}` };
+          }
+        }        case "spin_up_blockchain_simulator": {
+          try {
+            const { GanacheService } = await import("../web3/ganache.service.js");
+            const res = await GanacheService.spinUpSimulator();
+            return { output: `### Blockchain Simulator Active\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Ganache failed: ${err.message}` };
+          }
+        }        case "provision_enterprise_blockchain": {
+          try {
+            const { HyperledgerService } = await import("../web3/hyperledger.service.js");
+            const res = await HyperledgerService.provisionNetwork(args.networkName, args.nodes);
+            return { output: `### Enterprise Blockchain Deployed\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Hyperledger deployment failed: ${err.message}` };
+          }
+        }        case "encrypt_data_payload": {
+          try {
+            const { CryptoService } = await import("../security/crypto.service.js");
+            const res = await CryptoService.encryptPayload(args.payloadData);
+            return { output: `### Cryptographic Encryption Active\\n\\nKey Hash: ${res.keyHash}\\nEncrypted Blob: ${res.encryptedBlob}` };
+          } catch (err) {
+            return { output: `Encryption failed: ${err.message}` };
+          }
+        }        case "pin_to_ipfs": {
+          try {
+            const { IPFSService } = await import("../web3/ipfs.service.js");
+            const res = await IPFSService.pinFile(args.filePath);
+            return { output: `### Decentralized IPFS Upload\\n\\nCID Hash: ${res.cid}\\nNetwork URL: ${res.url}` };
+          } catch (err) {
+            return { output: `IPFS upload failed: ${err.message}` };
+          }
+        }        case "compress_to_parquet": {
           try {
             const { ParquetService } = await import("../data/parquet.service.js");
             const res = await ParquetService.compressDataset(args.datasetPath);
