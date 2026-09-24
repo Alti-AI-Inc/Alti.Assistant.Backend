@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedcontroller_xvhf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedController) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativevault_la6w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVault) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablering_71df_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableRing) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticcontroller_m3a4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticController) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenode_erka_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNode) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpmesh_ptkn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPMesh) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12412,6 +12452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedcontroller_xvhf_logic": {
+          try {
+            const { OpenAutomatedControllerService } = await import("../liberty/openautomatedcontroller_xvhf.service.js");
+            const res = await OpenAutomatedControllerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedController failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativevault_la6w_logic": {
+          try {
+            const { OpenCloudNativeVaultService } = await import("../liberty/opencloud-nativevault_la6w.service.js");
+            const res = await OpenCloudNativeVaultService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablering_71df_logic": {
+          try {
+            const { OpenImmutableRingService } = await import("../liberty/openimmutablering_71df.service.js");
+            const res = await OpenImmutableRingService.execute(args.target || "system");
+            return { output: `### OpenImmutableRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticcontroller_m3a4_logic": {
+          try {
+            const { OpenSemanticControllerService } = await import("../liberty/opensemanticcontroller_m3a4.service.js");
+            const res = await OpenSemanticControllerService.execute(args.target || "system");
+            return { output: `### OpenSemanticController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticController failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenode_erka_logic": {
+          try {
+            const { OpenCloudNativeNodeService } = await import("../liberty/opencloud-nativenode_erka.service.js");
+            const res = await OpenCloudNativeNodeService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNode failed: ${err.message}` };
+          }
+        }
         case "execute_openbgpmesh_ptkn_logic": {
           try {
             const { OpenBGPMeshService } = await import("../liberty/openbgpmesh_ptkn.service.js");
