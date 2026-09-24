@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openlogcore_6jb5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogCore) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventswarm_1yuv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventSwarm) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalvortex_9gou_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalVortex) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustercore_a3nn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterCore) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpforacle_rspj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFOracle) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustnode_c73o_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustNode) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18732,6 +18772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openlogcore_6jb5_logic": {
+          try {
+            const { OpenLogCoreService } = await import("../liberty/openlogcore_6jb5.service.js");
+            const res = await OpenLogCoreService.execute(args.target || "system");
+            return { output: `### OpenLogCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventswarm_1yuv_logic": {
+          try {
+            const { OpenEventSwarmService } = await import("../liberty/openeventswarm_1yuv.service.js");
+            const res = await OpenEventSwarmService.execute(args.target || "system");
+            return { output: `### OpenEventSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalvortex_9gou_logic": {
+          try {
+            const { OpenHyperDimensionalVortexService } = await import("../liberty/openhyper-dimensionalvortex_9gou.service.js");
+            const res = await OpenHyperDimensionalVortexService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustercore_a3nn_logic": {
+          try {
+            const { OpenCrossClusterCoreService } = await import("../liberty/opencross-clustercore_a3nn.service.js");
+            const res = await OpenCrossClusterCoreService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpforacle_rspj_logic": {
+          try {
+            const { OpeneBPFOracleService } = await import("../liberty/openebpforacle_rspj.service.js");
+            const res = await OpeneBPFOracleService.execute(args.target || "system");
+            return { output: `### OpeneBPFOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustnode_c73o_logic": {
           try {
             const { OpenZeroTrustNodeService } = await import("../liberty/openzero-trustnode_c73o.service.js");
