@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwarenode_z9j0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareNode) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatasync_5d1u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataSync) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesgrid_czvv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesGrid) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepgraph_2we3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepGraph) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventgrid_ypkx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventGrid) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedplane_ij6k_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedPlane) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20092,6 +20132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwarenode_z9j0_logic": {
+          try {
+            const { OpenHardwareNodeService } = await import("../liberty/openhardwarenode_z9j0.service.js");
+            const res = await OpenHardwareNodeService.execute(args.target || "system");
+            return { output: `### OpenHardwareNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatasync_5d1u_logic": {
+          try {
+            const { OpenDataSyncService } = await import("../liberty/opendatasync_5d1u.service.js");
+            const res = await OpenDataSyncService.execute(args.target || "system");
+            return { output: `### OpenDataSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesgrid_czvv_logic": {
+          try {
+            const { OpenTimeSeriesGridService } = await import("../liberty/opentime-seriesgrid_czvv.service.js");
+            const res = await OpenTimeSeriesGridService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepgraph_2we3_logic": {
+          try {
+            const { OpenDeepGraphService } = await import("../liberty/opendeepgraph_2we3.service.js");
+            const res = await OpenDeepGraphService.execute(args.target || "system");
+            return { output: `### OpenDeepGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventgrid_ypkx_logic": {
+          try {
+            const { OpenEventGridService } = await import("../liberty/openeventgrid_ypkx.service.js");
+            const res = await OpenEventGridService.execute(args.target || "system");
+            return { output: `### OpenEventGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedplane_ij6k_logic": {
           try {
             const { OpenDecentralizedPlaneService } = await import("../liberty/opendecentralizedplane_ij6k.service.js");
