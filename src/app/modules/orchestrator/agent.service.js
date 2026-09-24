@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticgrid_5uea_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticGrid) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventcontroller_fh5g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventController) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfcluster_sjbk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFCluster) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumsync_d940_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumSync) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partymesh_islu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyMesh) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondmatrix_sbfh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondMatrix) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3292,6 +3332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticgrid_5uea_logic": {
+          try {
+            const { OpenStaticGridService } = await import("../liberty/openstaticgrid_5uea.service.js");
+            const res = await OpenStaticGridService.execute(args.target || "system");
+            return { output: `### OpenStaticGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventcontroller_fh5g_logic": {
+          try {
+            const { OpenEventControllerService } = await import("../liberty/openeventcontroller_fh5g.service.js");
+            const res = await OpenEventControllerService.execute(args.target || "system");
+            return { output: `### OpenEventController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventController failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfcluster_sjbk_logic": {
+          try {
+            const { OpeneBPFClusterService } = await import("../liberty/openebpfcluster_sjbk.service.js");
+            const res = await OpeneBPFClusterService.execute(args.target || "system");
+            return { output: `### OpeneBPFCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumsync_d940_logic": {
+          try {
+            const { OpenQuantumSyncService } = await import("../liberty/openquantumsync_d940.service.js");
+            const res = await OpenQuantumSyncService.execute(args.target || "system");
+            return { output: `### OpenQuantumSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partymesh_islu_logic": {
+          try {
+            const { OpenMultiPartyMeshService } = await import("../liberty/openmulti-partymesh_islu.service.js");
+            const res = await OpenMultiPartyMeshService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyMesh failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondmatrix_sbfh_logic": {
           try {
             const { OpenSubMillisecondMatrixService } = await import("../liberty/opensub-millisecondmatrix_sbfh.service.js");
