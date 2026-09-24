@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticcore_logic",
+      description: "Use the Aphura Engine (OpenStaticCore) to Autonomously deploy Static Code Analysis architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustgrid_logic",
+      description: "Use the Aphura Engine (OpenZero-TrustGrid) to Autonomously deploy Zero-Trust Security architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivenexus_logic",
+      description: "Use the Aphura Engine (OpenPredictiveNexus) to Autonomously deploy Predictive ML Telemetry architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendrouter_logic",
+      description: "Use the Aphura Engine (OpenMicro-FrontendRouter) to Autonomously deploy Micro-Frontend Architecture architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractengine_logic",
+      description: "Use the Aphura Engine (OpenAbstractEngine) to Autonomously deploy Abstract Syntax Trees architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgegrid_logic",
       description: "Use the Aphura Engine (OpenEdgeGrid) to Autonomously deploy Edge Proxy Gateways architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2172,6 +2212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticcore_logic": {
+          try {
+            const { OpenstaticcoreService } = await import("../enterprise/openstaticcore.service.js");
+            const res = await OpenstaticcoreService.execute(args.target || "system");
+            return { output: `### OpenStaticCore Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustgrid_logic": {
+          try {
+            const { Openzero-trustgridService } = await import("../enterprise/openzero-trustgrid.service.js");
+            const res = await Openzero-trustgridService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustGrid Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivenexus_logic": {
+          try {
+            const { OpenpredictivenexusService } = await import("../enterprise/openpredictivenexus.service.js");
+            const res = await OpenpredictivenexusService.execute(args.target || "system");
+            return { output: `### OpenPredictiveNexus Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendrouter_logic": {
+          try {
+            const { Openmicro-frontendrouterService } = await import("../enterprise/openmicro-frontendrouter.service.js");
+            const res = await Openmicro-frontendrouterService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendRouter Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractengine_logic": {
+          try {
+            const { OpenabstractengineService } = await import("../enterprise/openabstractengine.service.js");
+            const res = await OpenabstractengineService.execute(args.target || "system");
+            return { output: `### OpenAbstractEngine Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openedgegrid_logic": {
           try {
             const { OpenedgegridService } = await import("../enterprise/openedgegrid.service.js");
