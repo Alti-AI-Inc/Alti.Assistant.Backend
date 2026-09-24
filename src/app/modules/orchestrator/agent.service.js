@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisegrid_rowb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGrid) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcluster_ehej_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCluster) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumgraph_4qyw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumGraph) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlognet_ho0c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogNet) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorledger_cvep_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorLedger) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendcluster_veq4_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCluster) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5132,6 +5172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisegrid_rowb_logic": {
+          try {
+            const { OpenEnterpriseGridService } = await import("../liberty/openenterprisegrid_rowb.service.js");
+            const res = await OpenEnterpriseGridService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcluster_ehej_logic": {
+          try {
+            const { OpenDecentralizedClusterService } = await import("../liberty/opendecentralizedcluster_ehej.service.js");
+            const res = await OpenDecentralizedClusterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumgraph_4qyw_logic": {
+          try {
+            const { OpenQuantumGraphService } = await import("../liberty/openquantumgraph_4qyw.service.js");
+            const res = await OpenQuantumGraphService.execute(args.target || "system");
+            return { output: `### OpenQuantumGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openlognet_ho0c_logic": {
+          try {
+            const { OpenLogNetService } = await import("../liberty/openlognet_ho0c.service.js");
+            const res = await OpenLogNetService.execute(args.target || "system");
+            return { output: `### OpenLogNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorledger_cvep_logic": {
+          try {
+            const { OpenVectorLedgerService } = await import("../liberty/openvectorledger_cvep.service.js");
+            const res = await OpenVectorLedgerService.execute(args.target || "system");
+            return { output: `### OpenVectorLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorLedger failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendcluster_veq4_logic": {
           try {
             const { OpenMicroFrontendClusterService } = await import("../liberty/openmicro-frontendcluster_veq4.service.js");
