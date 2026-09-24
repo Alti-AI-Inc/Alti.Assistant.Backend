@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivering_n6s5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveRing) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpflayer_ezw2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFLayer) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentoracle_iyhw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentOracle) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutabledaemon_re8x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableDaemon) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalgrid_35as_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalGrid) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpuoracle_8qsk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUOracle) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18492,6 +18532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivering_n6s5_logic": {
+          try {
+            const { OpenPredictiveRingService } = await import("../liberty/openpredictivering_n6s5.service.js");
+            const res = await OpenPredictiveRingService.execute(args.target || "system");
+            return { output: `### OpenPredictiveRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpflayer_ezw2_logic": {
+          try {
+            const { OpeneBPFLayerService } = await import("../liberty/openebpflayer_ezw2.service.js");
+            const res = await OpeneBPFLayerService.execute(args.target || "system");
+            return { output: `### OpeneBPFLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentoracle_iyhw_logic": {
+          try {
+            const { OpenPersistentOracleService } = await import("../liberty/openpersistentoracle_iyhw.service.js");
+            const res = await OpenPersistentOracleService.execute(args.target || "system");
+            return { output: `### OpenPersistentOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutabledaemon_re8x_logic": {
+          try {
+            const { OpenImmutableDaemonService } = await import("../liberty/openimmutabledaemon_re8x.service.js");
+            const res = await OpenImmutableDaemonService.execute(args.target || "system");
+            return { output: `### OpenImmutableDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalgrid_35as_logic": {
+          try {
+            const { OpenHyperDimensionalGridService } = await import("../liberty/openhyper-dimensionalgrid_35as.service.js");
+            const res = await OpenHyperDimensionalGridService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opengpuoracle_8qsk_logic": {
           try {
             const { OpenGPUOracleService } = await import("../liberty/opengpuoracle_8qsk.service.js");
