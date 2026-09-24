@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedledger_shth_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedLedger) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentmesh_gclp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentMesh) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumengine_rezv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumEngine) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfgraph_yaqj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFGraph) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederateddaemon_k0wl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedDaemon) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openin-memorymatrix_ieuk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryMatrix) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13812,6 +13852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedledger_shth_logic": {
+          try {
+            const { OpenFederatedLedgerService } = await import("../liberty/openfederatedledger_shth.service.js");
+            const res = await OpenFederatedLedgerService.execute(args.target || "system");
+            return { output: `### OpenFederatedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentmesh_gclp_logic": {
+          try {
+            const { OpenPersistentMeshService } = await import("../liberty/openpersistentmesh_gclp.service.js");
+            const res = await OpenPersistentMeshService.execute(args.target || "system");
+            return { output: `### OpenPersistentMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumengine_rezv_logic": {
+          try {
+            const { OpenQuantumEngineService } = await import("../liberty/openquantumengine_rezv.service.js");
+            const res = await OpenQuantumEngineService.execute(args.target || "system");
+            return { output: `### OpenQuantumEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfgraph_yaqj_logic": {
+          try {
+            const { OpeneBPFGraphService } = await import("../liberty/openebpfgraph_yaqj.service.js");
+            const res = await OpeneBPFGraphService.execute(args.target || "system");
+            return { output: `### OpeneBPFGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederateddaemon_k0wl_logic": {
+          try {
+            const { OpenFederatedDaemonService } = await import("../liberty/openfederateddaemon_k0wl.service.js");
+            const res = await OpenFederatedDaemonService.execute(args.target || "system");
+            return { output: `### OpenFederatedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedDaemon failed: ${err.message}` };
+          }
+        }
         case "execute_openin-memorymatrix_ieuk_logic": {
           try {
             const { OpenInMemoryMatrixService } = await import("../liberty/openin-memorymatrix_ieuk.service.js");
