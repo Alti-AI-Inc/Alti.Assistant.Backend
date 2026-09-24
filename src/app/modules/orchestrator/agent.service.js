@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpunode_70qo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUNode) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosrouter_q1dq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosRouter) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedrouter_qkh4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedRouter) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarynet_hob7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNet) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosnode_gxtf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNode) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpcluster_kra2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPCluster) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13572,6 +13612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpunode_70qo_logic": {
+          try {
+            const { OpenGPUNodeService } = await import("../liberty/opengpunode_70qo.service.js");
+            const res = await OpenGPUNodeService.execute(args.target || "system");
+            return { output: `### OpenGPUNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosrouter_q1dq_logic": {
+          try {
+            const { OpenChaosRouterService } = await import("../liberty/openchaosrouter_q1dq.service.js");
+            const res = await OpenChaosRouterService.execute(args.target || "system");
+            return { output: `### OpenChaosRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedrouter_qkh4_logic": {
+          try {
+            const { OpenFederatedRouterService } = await import("../liberty/openfederatedrouter_qkh4.service.js");
+            const res = await OpenFederatedRouterService.execute(args.target || "system");
+            return { output: `### OpenFederatedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarynet_hob7_logic": {
+          try {
+            const { OpenPlanetaryNetService } = await import("../liberty/openplanetarynet_hob7.service.js");
+            const res = await OpenPlanetaryNetService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosnode_gxtf_logic": {
+          try {
+            const { OpenChaosNodeService } = await import("../liberty/openchaosnode_gxtf.service.js");
+            const res = await OpenChaosNodeService.execute(args.target || "system");
+            return { output: `### OpenChaosNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNode failed: ${err.message}` };
+          }
+        }
         case "execute_openbgpcluster_kra2_logic": {
           try {
             const { OpenBGPClusterService } = await import("../liberty/openbgpcluster_kra2.service.js");
