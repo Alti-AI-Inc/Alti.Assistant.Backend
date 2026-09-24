@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpusync_dlhk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUSync) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarycore_zakh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCore) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaregraph_ssgv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareGraph) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedmesh_zhjm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedMesh) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwareplane_y707_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwarePlane) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openlogvortex_2a35_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenLogVortex) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11492,6 +11532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpusync_dlhk_logic": {
+          try {
+            const { OpenGPUSyncService } = await import("../liberty/opengpusync_dlhk.service.js");
+            const res = await OpenGPUSyncService.execute(args.target || "system");
+            return { output: `### OpenGPUSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarycore_zakh_logic": {
+          try {
+            const { OpenPlanetaryCoreService } = await import("../liberty/openplanetarycore_zakh.service.js");
+            const res = await OpenPlanetaryCoreService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaregraph_ssgv_logic": {
+          try {
+            const { OpenHardwareGraphService } = await import("../liberty/openhardwaregraph_ssgv.service.js");
+            const res = await OpenHardwareGraphService.execute(args.target || "system");
+            return { output: `### OpenHardwareGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedmesh_zhjm_logic": {
+          try {
+            const { OpenDecentralizedMeshService } = await import("../liberty/opendecentralizedmesh_zhjm.service.js");
+            const res = await OpenDecentralizedMeshService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwareplane_y707_logic": {
+          try {
+            const { OpenHardwarePlaneService } = await import("../liberty/openhardwareplane_y707.service.js");
+            const res = await OpenHardwarePlaneService.execute(args.target || "system");
+            return { output: `### OpenHardwarePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwarePlane failed: ${err.message}` };
+          }
+        }
         case "execute_openlogvortex_2a35_logic": {
           try {
             const { OpenLogVortexService } = await import("../liberty/openlogvortex_2a35.service.js");
