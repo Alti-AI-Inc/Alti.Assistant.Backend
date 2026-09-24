@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusternexus_7ew8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterNexus) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepfabric_sk3j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepFabric) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessgrid_o5wl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessGrid) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpugrid_coiw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUGrid) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgemesh_jwx7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeMesh) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentproxy_sol7_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentProxy) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4452,6 +4492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusternexus_7ew8_logic": {
+          try {
+            const { OpenCrossClusterNexusService } = await import("../liberty/opencross-clusternexus_7ew8.service.js");
+            const res = await OpenCrossClusterNexusService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepfabric_sk3j_logic": {
+          try {
+            const { OpenDeepFabricService } = await import("../liberty/opendeepfabric_sk3j.service.js");
+            const res = await OpenDeepFabricService.execute(args.target || "system");
+            return { output: `### OpenDeepFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessgrid_o5wl_logic": {
+          try {
+            const { OpenHeadlessGridService } = await import("../liberty/openheadlessgrid_o5wl.service.js");
+            const res = await OpenHeadlessGridService.execute(args.target || "system");
+            return { output: `### OpenHeadlessGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpugrid_coiw_logic": {
+          try {
+            const { OpenGPUGridService } = await import("../liberty/opengpugrid_coiw.service.js");
+            const res = await OpenGPUGridService.execute(args.target || "system");
+            return { output: `### OpenGPUGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgemesh_jwx7_logic": {
+          try {
+            const { OpenEdgeMeshService } = await import("../liberty/openedgemesh_jwx7.service.js");
+            const res = await OpenEdgeMeshService.execute(args.target || "system");
+            return { output: `### OpenEdgeMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentproxy_sol7_logic": {
           try {
             const { OpenPersistentProxyService } = await import("../liberty/openpersistentproxy_sol7.service.js");
