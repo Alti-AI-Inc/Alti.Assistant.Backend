@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "enforce_network_security_policy",
+      description: "Use the Aphura Network Security Engine (Calico) to autonomously deploy complex eBPF data planes and BGP routing protocols, dictating exact Zero-Trust communication rules across massive Kubernetes clusters.",
+      parameters: { type: "object", properties: { policyYaml: { type: "string" } }, required: ["policyYaml"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "provision_physical_infrastructure",
+      description: "Use the Aphura Universal Control Plane Engine (Crossplane) to bypass standard IaC tools and use Kubernetes to autonomously provision raw, bare-metal physical servers directly from the OpenStack API.",
+      parameters: { type: "object", properties: { resourceYaml: { type: "string" } }, required: ["resourceYaml"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "register_internal_dns",
+      description: "Use the Aphura DNS Engine (CoreDNS) to autonomously map dynamic IPs to stable internal domains, allowing thousands of scaling microservices to instantly discover each other.",
+      parameters: { type: "object", properties: { serviceName: { type: "string" }, internalIp: { type: "string" } }, required: ["serviceName", "internalIp"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "configure_prometheus_metrics",
+      description: "Use the Aphura Time-Series Engine (Prometheus) to autonomously configure metric scrapers, tracking millions of cloud-native data points across the OpenStack cluster to predict failures before they happen.",
+      parameters: { type: "object", properties: { targetService: { type: "string" } }, required: ["targetService"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "provision_grpc_channel",
+      description: "Use the Aphura RPC Engine (gRPC) to autonomously compile Protobuf definitions and deploy hyper-fast, binary-encoded inter-service communication channels, completely bypassing standard REST latency.",
+      parameters: { type: "object", properties: { protoFile: { type: "string" }, serviceName: { type: "string" } }, required: ["protoFile", "serviceName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "configure_iceberg_tables",
       description: "Use the Aphura Open Table Engine (Apache Iceberg) to bring SQL-like reliability and ACID transactions to massive Data Lakes, allowing multiple analytical engines to query Petabytes of data concurrently without locking.",
       parameters: { type: "object", properties: { dataLakePath: { type: "string" } }, required: ["dataLakePath"] }
@@ -1372,7 +1412,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "configure_iceberg_tables": {
+        case "enforce_network_security_policy": {
+          try {
+            const { CalicoService } = await import("../security/calico.service.js");
+            const res = await CalicoService.enforceNetworkPolicy(args.policyYaml);
+            return { output: `### Network Security Policy Enforced\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Calico enforcement failed: ${err.message}` };
+          }
+        }        case "provision_physical_infrastructure": {
+          try {
+            const { CrossplaneService } = await import("../devops/crossplane.service.js");
+            const res = await CrossplaneService.provisionInfrastructure(args.resourceYaml);
+            return { output: `### Physical Infrastructure Provisioned\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Crossplane provisioning failed: ${err.message}` };
+          }
+        }        case "register_internal_dns": {
+          try {
+            const { CoreDNSService } = await import("../devops/coredns.service.js");
+            const res = await CoreDNSService.registerServiceDomain(args.serviceName, args.internalIp);
+            return { output: `### Internal DNS Registered\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `DNS registration failed: ${err.message}` };
+          }
+        }        case "configure_prometheus_metrics": {
+          try {
+            const { PrometheusService } = await import("../devops/prometheus.service.js");
+            const res = await PrometheusService.configureMetricsTarget(args.targetService);
+            return { output: `### Prometheus Metrics Configured\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Prometheus configuration failed: ${err.message}` };
+          }
+        }        case "provision_grpc_channel": {
+          try {
+            const { GrpcService } = await import("../api/grpc.service.js");
+            const res = await GrpcService.provisionGrpcChannel(args.protoFile, args.serviceName);
+            return { output: `### gRPC Channel Deployed\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `gRPC provisioning failed: ${err.message}` };
+          }
+        }        case "configure_iceberg_tables": {
           try {
             const { IcebergService } = await import("../data/iceberg.service.js");
             const res = await IcebergService.configureTableFormat(args.dataLakePath);
