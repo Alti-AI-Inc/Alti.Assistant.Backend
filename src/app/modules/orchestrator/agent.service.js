@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeeprouter_g7ih_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepRouter) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractchain_ozvx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractChain) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedengine_sbg8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedEngine) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycontroller_6l7k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyController) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicmesh_ervc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMesh) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizednet_juks_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNet) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9412,6 +9452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeeprouter_g7ih_logic": {
+          try {
+            const { OpenDeepRouterService } = await import("../liberty/opendeeprouter_g7ih.service.js");
+            const res = await OpenDeepRouterService.execute(args.target || "system");
+            return { output: `### OpenDeepRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractchain_ozvx_logic": {
+          try {
+            const { OpenAbstractChainService } = await import("../liberty/openabstractchain_ozvx.service.js");
+            const res = await OpenAbstractChainService.execute(args.target || "system");
+            return { output: `### OpenAbstractChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedengine_sbg8_logic": {
+          try {
+            const { OpenAdvancedEngineService } = await import("../liberty/openadvancedengine_sbg8.service.js");
+            const res = await OpenAdvancedEngineService.execute(args.target || "system");
+            return { output: `### OpenAdvancedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycontroller_6l7k_logic": {
+          try {
+            const { OpenHighFrequencyControllerService } = await import("../liberty/openhigh-frequencycontroller_6l7k.service.js");
+            const res = await OpenHighFrequencyControllerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicmesh_ervc_logic": {
+          try {
+            const { OpenHomomorphicMeshService } = await import("../liberty/openhomomorphicmesh_ervc.service.js");
+            const res = await OpenHomomorphicMeshService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMesh failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizednet_juks_logic": {
           try {
             const { OpenDecentralizedNetService } = await import("../liberty/opendecentralizednet_juks.service.js");
