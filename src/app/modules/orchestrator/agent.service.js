@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessledger_cnsd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessLedger) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicgraph_fwtx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicGraph) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnexus_momu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNexus) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicfabric_ln8v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicFabric) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedengine_s3e2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedEngine) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedvault_ll38_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedVault) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4732,6 +4772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessledger_cnsd_logic": {
+          try {
+            const { OpenServerlessLedgerService } = await import("../liberty/openserverlessledger_cnsd.service.js");
+            const res = await OpenServerlessLedgerService.execute(args.target || "system");
+            return { output: `### OpenServerlessLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicgraph_fwtx_logic": {
+          try {
+            const { OpenNeuromorphicGraphService } = await import("../liberty/openneuromorphicgraph_fwtx.service.js");
+            const res = await OpenNeuromorphicGraphService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnexus_momu_logic": {
+          try {
+            const { OpenGraphNexusService } = await import("../liberty/opengraphnexus_momu.service.js");
+            const res = await OpenGraphNexusService.execute(args.target || "system");
+            return { output: `### OpenGraphNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicfabric_ln8v_logic": {
+          try {
+            const { OpenNeuromorphicFabricService } = await import("../liberty/openneuromorphicfabric_ln8v.service.js");
+            const res = await OpenNeuromorphicFabricService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedengine_s3e2_logic": {
+          try {
+            const { OpenFederatedEngineService } = await import("../liberty/openfederatedengine_s3e2.service.js");
+            const res = await OpenFederatedEngineService.execute(args.target || "system");
+            return { output: `### OpenFederatedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedvault_ll38_logic": {
           try {
             const { OpenAutomatedVaultService } = await import("../liberty/openautomatedvault_ll38.service.js");
