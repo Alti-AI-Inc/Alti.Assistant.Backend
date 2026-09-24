@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgeplane_vvc9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgePlane) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventbroker_ze1p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventBroker) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticproxy_jp1g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticProxy) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicoracle_x274_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicOracle) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentvault_p9tn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentVault) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlesscompiler_gpb8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessCompiler) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3772,6 +3812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgeplane_vvc9_logic": {
+          try {
+            const { OpenZeroKnowledgePlaneService } = await import("../liberty/openzero-knowledgeplane_vvc9.service.js");
+            const res = await OpenZeroKnowledgePlaneService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventbroker_ze1p_logic": {
+          try {
+            const { OpenEventBrokerService } = await import("../liberty/openeventbroker_ze1p.service.js");
+            const res = await OpenEventBrokerService.execute(args.target || "system");
+            return { output: `### OpenEventBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticproxy_jp1g_logic": {
+          try {
+            const { OpenSemanticProxyService } = await import("../liberty/opensemanticproxy_jp1g.service.js");
+            const res = await OpenSemanticProxyService.execute(args.target || "system");
+            return { output: `### OpenSemanticProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicoracle_x274_logic": {
+          try {
+            const { OpenHomomorphicOracleService } = await import("../liberty/openhomomorphicoracle_x274.service.js");
+            const res = await OpenHomomorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentvault_p9tn_logic": {
+          try {
+            const { OpenPersistentVaultService } = await import("../liberty/openpersistentvault_p9tn.service.js");
+            const res = await OpenPersistentVaultService.execute(args.target || "system");
+            return { output: `### OpenPersistentVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentVault failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlesscompiler_gpb8_logic": {
           try {
             const { OpenServerlessCompilerService } = await import("../liberty/openserverlesscompiler_gpb8.service.js");
