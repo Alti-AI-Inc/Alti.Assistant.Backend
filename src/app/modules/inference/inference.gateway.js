@@ -21,10 +21,19 @@ const FALLBACK_CHAIN = {
 
 export const InferenceGateway = {
   /**
-   * Evaluates the cognitive demand of the prompt array to select the optimal engine.
+   * Evaluates the cognitive demand of the request to select the optimal engine.
    */
-  classifyIntent(messages) {
+  classifyIntent(reqBody) {
+    const messages = reqBody.messages || [];
     const lastMsg = messages[messages.length - 1];
+    
+    // 🛠️ TOOL-CALLING EXPERT ROUTING
+    // If the client provides tools (e.g., Composio MCP, Desktop Shell), 
+    // we MUST route to Llama 405B to ensure near-perfect JSON tool-call schema adherence.
+    if (reqBody.tools && reqBody.tools.length > 0) {
+      return MODELS.CODE_HEAVY;
+    }
+
     if (!lastMsg) return MODELS.CHAT_SPEED;
 
     // Detect Vision
@@ -40,6 +49,15 @@ export const InferenceGateway = {
     if (text.match(/search|news|latest|find|who|what|when|where|analyze data/)) {
       return MODELS.SEARCH_EXPERT;
     }
+    if (text.match(/finance|stock|market|sec|filing|revenue|earnings|crypto|bitcoin/)) {
+      return MODELS.CODE_HEAVY;
+    }
+    if (text.match(/sports|score|game|win|odds|bet|nfl|nba|soccer/)) {
+      return MODELS.SEARCH_EXPERT;
+    }
+    if (text.match(/deep research|report|analysis|compare|history|comprehensive/)) {
+      return MODELS.SEARCH_EXPERT;
+    }
     if (text.match(/explain|teach|summarize/)) {
       return MODELS.CHAT_SMART;
     }
@@ -51,7 +69,19 @@ export const InferenceGateway = {
    * Handles dynamic routing, streaming, and automatic fallbacks.
    */
   async streamChatCompletion(reqBody, res) {
-    const originalModel = reqBody.model || this.classifyIntent(reqBody.messages);
+    // 🧠 ADVANCED MoE ROUTING:
+    // If the client explicitly requests JSON output, we force the Llama 70B engine 
+    // because it has the highest strict-schema compliance rate without the latency of 405B.
+    let originalModel = reqBody.model;
+    if (!originalModel) {
+      if (reqBody.response_format?.type === 'json_object') {
+        originalModel = MODELS.CHAT_SMART;
+        logger.info(`[MoE Gateway] JSON schema requested. Forcing highly-compliant model: ${originalModel}`);
+      } else {
+        originalModel = this.classifyIntent(reqBody);
+      }
+    }
+    
     let attempts = [originalModel, ...(FALLBACK_CHAIN[originalModel] || [])];
     
     const TOGETHER_API_KEY = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
@@ -85,16 +115,15 @@ export const InferenceGateway = {
           throw new Error(`Together API returned ${response.status}`);
         }
 
-        // Pipe the raw Together.ai stream directly back to our client
-        // This is a zero-copy passthrough proxy for maximum edge speed
+        // ZERO-COPY PIPELINE FOR MAX EDGE SPEED
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        for await (const chunk of response.body) {
-          res.write(chunk);
-        }
-        res.end();
+        import('stream').then(({ Readable }) => {
+          Readable.fromWeb(response.body).pipe(res);
+        });
+        
         return; // Success! Exit the fallback loop.
 
       } catch (error) {

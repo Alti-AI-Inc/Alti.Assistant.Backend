@@ -19,3 +19,11 @@ router.post('/chat/completions', async (req, res) => {
 });
 
 export const inferenceRoutes = router;
+
+import { DesktopGateway } from '../desktop/desktop.gateway.js';
+
+router.get('/desktop/status', (req, res) => {
+  // In production, req.user._id is used. Mocking admin_user.
+  const isConnected = DesktopGateway.clients.has('admin_user');
+  res.json({ connected: isConnected });
+});

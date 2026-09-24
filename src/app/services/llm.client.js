@@ -37,9 +37,22 @@ const TOGETHER_AI_FACTORY = {
   IMAGE_GEN: 'black-forest-labs/FLUX.1-schnell',
 };
 
-function routeToExpert(messages, requiredCapability = 'text') {
+function routeToExpert(messages, options = {}) {
+  const requiredCapability = options.capability || 'text';
   if (requiredCapability === 'vision') return TOGETHER_AI_FACTORY.VISION_HEAVY;
   if (requiredCapability === 'image_gen') return TOGETHER_AI_FACTORY.IMAGE_GEN;
+  
+  // 🛠️ Internal Tool-Calling Lock
+  if (options.tools && options.tools.length > 0) {
+    logger.info('[MoE Factory] 🛠️ Dispatching to Llama 405B (Tool Calling Expert)');
+    return TOGETHER_AI_FACTORY.CODE_HEAVY;
+  }
+
+  // 📝 Internal JSON Lock
+  if (options.responseFormat?.type === 'json_object') {
+    logger.info('[MoE Factory] 📝 Dispatching to Llama 70B (JSON Schema Expert)');
+    return TOGETHER_AI_FACTORY.CHAT_SMART;
+  }
   
   const lastMsg = messages[messages.length - 1]?.content;
   const prompt = (typeof lastMsg === 'string' ? lastMsg : JSON.stringify(lastMsg)).toLowerCase();
@@ -54,6 +67,21 @@ function routeToExpert(messages, requiredCapability = 'text') {
     return TOGETHER_AI_FACTORY.SEARCH_EXPERT;
   }
   
+  if (prompt.match(/finance|stock|market|sec|filing|revenue|earnings|crypto|bitcoin/)) {
+    logger.info('[MoE Factory] 📈 Dispatching to Llama 405B (Financial/Quant Expert)');
+    return TOGETHER_AI_FACTORY.CODE_HEAVY;
+  }
+  
+  if (prompt.match(/sports|score|game|win|odds|bet|nfl|nba|soccer/)) {
+    logger.info('[MoE Factory] 🏈 Dispatching to Qwen 72B (Sports/Odds Expert)');
+    return TOGETHER_AI_FACTORY.SEARCH_EXPERT;
+  }
+  
+  if (prompt.match(/deep research|report|analysis|compare|history|comprehensive/)) {
+    logger.info('[MoE Factory] 📚 Dispatching to Qwen 72B (Deep Research Expert)');
+    return TOGETHER_AI_FACTORY.SEARCH_EXPERT;
+  }
+  
   if (prompt.match(/explain|teach|summarize/)) {
     logger.info('[MoE Factory] ⚡ Dispatching to Llama 70B (General Intelligence)');
     return TOGETHER_AI_FACTORY.CHAT_SMART;
@@ -64,7 +92,7 @@ function routeToExpert(messages, requiredCapability = 'text') {
 }
 
 export async function llmChat(messages, options = {}) {
-  const model = options.model || routeToExpert(messages, options.capability);
+  const model = options.model || routeToExpert(messages, options);
   try {
     return await llmClient.chat.completions.create({
       model,
@@ -79,7 +107,7 @@ export async function llmChat(messages, options = {}) {
 }
 
 export async function* llmChatStream(messages, options = {}) {
-  const model = options.model || routeToExpert(messages, options.capability);
+  const model = options.model || routeToExpert(messages, options);
   try {
     const stream = await llmClient.chat.completions.create({
       model,
@@ -101,7 +129,7 @@ export async function* llmChatStream(messages, options = {}) {
 }
 
 export async function llmJson(messages, jsonSchema, options = {}) {
-  const model = options.model || routeToExpert(messages, 'text');
+  const model = options.model || routeToExpert(messages, { ...options, responseFormat: { type: 'json_object' } });
   try {
     return await llmClient.chat.completions.create({
       model,
