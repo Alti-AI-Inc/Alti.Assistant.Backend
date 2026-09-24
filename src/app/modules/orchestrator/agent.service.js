@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgedaemon_hrip_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeDaemon) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustergraph_kpib_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterGraph) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgegrid_7esl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeGrid) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgering_javn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeRing) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarevault_nrb8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareVault) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphiccore_yh0d_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicCore) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13052,6 +13092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgedaemon_hrip_logic": {
+          try {
+            const { OpenEdgeDaemonService } = await import("../liberty/openedgedaemon_hrip.service.js");
+            const res = await OpenEdgeDaemonService.execute(args.target || "system");
+            return { output: `### OpenEdgeDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustergraph_kpib_logic": {
+          try {
+            const { OpenCrossClusterGraphService } = await import("../liberty/opencross-clustergraph_kpib.service.js");
+            const res = await OpenCrossClusterGraphService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgegrid_7esl_logic": {
+          try {
+            const { OpenEdgeGridService } = await import("../liberty/openedgegrid_7esl.service.js");
+            const res = await OpenEdgeGridService.execute(args.target || "system");
+            return { output: `### OpenEdgeGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgering_javn_logic": {
+          try {
+            const { OpenEdgeRingService } = await import("../liberty/openedgering_javn.service.js");
+            const res = await OpenEdgeRingService.execute(args.target || "system");
+            return { output: `### OpenEdgeRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarevault_nrb8_logic": {
+          try {
+            const { OpenHardwareVaultService } = await import("../liberty/openhardwarevault_nrb8.service.js");
+            const res = await OpenHardwareVaultService.execute(args.target || "system");
+            return { output: `### OpenHardwareVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareVault failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphiccore_yh0d_logic": {
           try {
             const { OpenHomomorphicCoreService } = await import("../liberty/openhomomorphiccore_yh0d.service.js");
