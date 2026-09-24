@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalring_i5kp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalRing) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractproxy_r16j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractProxy) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivemesh_hr02_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveMesh) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcompiler_mzmi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedCompiler) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesschain_6ra2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessChain) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicgrid_15nj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicGrid) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7012,6 +7052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalring_i5kp_logic": {
+          try {
+            const { OpenHyperDimensionalRingService } = await import("../liberty/openhyper-dimensionalring_i5kp.service.js");
+            const res = await OpenHyperDimensionalRingService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractproxy_r16j_logic": {
+          try {
+            const { OpenAbstractProxyService } = await import("../liberty/openabstractproxy_r16j.service.js");
+            const res = await OpenAbstractProxyService.execute(args.target || "system");
+            return { output: `### OpenAbstractProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivemesh_hr02_logic": {
+          try {
+            const { OpenPredictiveMeshService } = await import("../liberty/openpredictivemesh_hr02.service.js");
+            const res = await OpenPredictiveMeshService.execute(args.target || "system");
+            return { output: `### OpenPredictiveMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcompiler_mzmi_logic": {
+          try {
+            const { OpenAdvancedCompilerService } = await import("../liberty/openadvancedcompiler_mzmi.service.js");
+            const res = await OpenAdvancedCompilerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesschain_6ra2_logic": {
+          try {
+            const { OpenHeadlessChainService } = await import("../liberty/openheadlesschain_6ra2.service.js");
+            const res = await OpenHeadlessChainService.execute(args.target || "system");
+            return { output: `### OpenHeadlessChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessChain failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicgrid_15nj_logic": {
           try {
             const { OpenHomomorphicGridService } = await import("../liberty/openhomomorphicgrid_15nj.service.js");
