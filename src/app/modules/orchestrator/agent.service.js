@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwarefabric_6r61_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareFabric) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedledger_k0p8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedLedger) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendrouter_ncza_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRouter) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablecore_22xp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableCore) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondnexus_hki8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondNexus) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgeoracle_r0ou_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeOracle) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11932,6 +11972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwarefabric_6r61_logic": {
+          try {
+            const { OpenHardwareFabricService } = await import("../liberty/openhardwarefabric_6r61.service.js");
+            const res = await OpenHardwareFabricService.execute(args.target || "system");
+            return { output: `### OpenHardwareFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedledger_k0p8_logic": {
+          try {
+            const { OpenAdvancedLedgerService } = await import("../liberty/openadvancedledger_k0p8.service.js");
+            const res = await OpenAdvancedLedgerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendrouter_ncza_logic": {
+          try {
+            const { OpenMicroFrontendRouterService } = await import("../liberty/openmicro-frontendrouter_ncza.service.js");
+            const res = await OpenMicroFrontendRouterService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablecore_22xp_logic": {
+          try {
+            const { OpenImmutableCoreService } = await import("../liberty/openimmutablecore_22xp.service.js");
+            const res = await OpenImmutableCoreService.execute(args.target || "system");
+            return { output: `### OpenImmutableCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondnexus_hki8_logic": {
+          try {
+            const { OpenSubMillisecondNexusService } = await import("../liberty/opensub-millisecondnexus_hki8.service.js");
+            const res = await OpenSubMillisecondNexusService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgeoracle_r0ou_logic": {
           try {
             const { OpenZeroKnowledgeOracleService } = await import("../liberty/openzero-knowledgeoracle_r0ou.service.js");
