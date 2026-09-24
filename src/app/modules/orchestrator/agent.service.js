@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustnode_c73o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustNode) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesproxy_uxai_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesProxy) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosbroker_ofm2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosBroker) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventgraph_2mlv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventGraph) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedswarm_t13a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedSwarm) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterfabric_i0jf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterFabric) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18692,6 +18732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustnode_c73o_logic": {
+          try {
+            const { OpenZeroTrustNodeService } = await import("../liberty/openzero-trustnode_c73o.service.js");
+            const res = await OpenZeroTrustNodeService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesproxy_uxai_logic": {
+          try {
+            const { OpenTimeSeriesProxyService } = await import("../liberty/opentime-seriesproxy_uxai.service.js");
+            const res = await OpenTimeSeriesProxyService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosbroker_ofm2_logic": {
+          try {
+            const { OpenChaosBrokerService } = await import("../liberty/openchaosbroker_ofm2.service.js");
+            const res = await OpenChaosBrokerService.execute(args.target || "system");
+            return { output: `### OpenChaosBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventgraph_2mlv_logic": {
+          try {
+            const { OpenEventGraphService } = await import("../liberty/openeventgraph_2mlv.service.js");
+            const res = await OpenEventGraphService.execute(args.target || "system");
+            return { output: `### OpenEventGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedswarm_t13a_logic": {
+          try {
+            const { OpenDistributedSwarmService } = await import("../liberty/opendistributedswarm_t13a.service.js");
+            const res = await OpenDistributedSwarmService.execute(args.target || "system");
+            return { output: `### OpenDistributedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterfabric_i0jf_logic": {
           try {
             const { OpenCrossClusterFabricService } = await import("../liberty/opencross-clusterfabric_i0jf.service.js");
