@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesnet_5tx0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNet) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicring_xrkx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicRing) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedswarm_gf6h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedSwarm) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorengine_jkp0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorEngine) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumswarm_1gqe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumSwarm) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterpriseengine_1pv6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseEngine) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18052,6 +18092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesnet_5tx0_logic": {
+          try {
+            const { OpenTimeSeriesNetService } = await import("../liberty/opentime-seriesnet_5tx0.service.js");
+            const res = await OpenTimeSeriesNetService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicring_xrkx_logic": {
+          try {
+            const { OpenNeuromorphicRingService } = await import("../liberty/openneuromorphicring_xrkx.service.js");
+            const res = await OpenNeuromorphicRingService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedswarm_gf6h_logic": {
+          try {
+            const { OpenAdvancedSwarmService } = await import("../liberty/openadvancedswarm_gf6h.service.js");
+            const res = await OpenAdvancedSwarmService.execute(args.target || "system");
+            return { output: `### OpenAdvancedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorengine_jkp0_logic": {
+          try {
+            const { OpenVectorEngineService } = await import("../liberty/openvectorengine_jkp0.service.js");
+            const res = await OpenVectorEngineService.execute(args.target || "system");
+            return { output: `### OpenVectorEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumswarm_1gqe_logic": {
+          try {
+            const { OpenQuantumSwarmService } = await import("../liberty/openquantumswarm_1gqe.service.js");
+            const res = await OpenQuantumSwarmService.execute(args.target || "system");
+            return { output: `### OpenQuantumSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openenterpriseengine_1pv6_logic": {
           try {
             const { OpenEnterpriseEngineService } = await import("../liberty/openenterpriseengine_1pv6.service.js");
