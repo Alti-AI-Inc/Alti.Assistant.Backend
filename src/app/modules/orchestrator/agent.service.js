@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialmatrix_faq0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialMatrix) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractfabric_0xqb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractFabric) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeeplayer_onk5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepLayer) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedbroker_8w8k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedBroker) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessplane_jntf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessPlane) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partynexus_gpgx_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyNexus) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17732,6 +17772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialmatrix_faq0_logic": {
+          try {
+            const { OpenFinancialMatrixService } = await import("../liberty/openfinancialmatrix_faq0.service.js");
+            const res = await OpenFinancialMatrixService.execute(args.target || "system");
+            return { output: `### OpenFinancialMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractfabric_0xqb_logic": {
+          try {
+            const { OpenAbstractFabricService } = await import("../liberty/openabstractfabric_0xqb.service.js");
+            const res = await OpenAbstractFabricService.execute(args.target || "system");
+            return { output: `### OpenAbstractFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeeplayer_onk5_logic": {
+          try {
+            const { OpenDeepLayerService } = await import("../liberty/opendeeplayer_onk5.service.js");
+            const res = await OpenDeepLayerService.execute(args.target || "system");
+            return { output: `### OpenDeepLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedbroker_8w8k_logic": {
+          try {
+            const { OpenDistributedBrokerService } = await import("../liberty/opendistributedbroker_8w8k.service.js");
+            const res = await OpenDistributedBrokerService.execute(args.target || "system");
+            return { output: `### OpenDistributedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessplane_jntf_logic": {
+          try {
+            const { OpenHeadlessPlaneService } = await import("../liberty/openheadlessplane_jntf.service.js");
+            const res = await OpenHeadlessPlaneService.execute(args.target || "system");
+            return { output: `### OpenHeadlessPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partynexus_gpgx_logic": {
           try {
             const { OpenMultiPartyNexusService } = await import("../liberty/openmulti-partynexus_gpgx.service.js");
