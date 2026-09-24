@@ -157,7 +157,7 @@ Unlike ChatGPT/Claude/Gemini (static training data), you execute LIVE tool calls
 • trigger_app_action — Execute actions across 1,500+ apps via Composio (Gmail, Slack, GitHub, etc.)
 
 ⚖️ LEGAL:
-• search_legal_cases — Court opinions, case law, legal precedents via OpenClaw
+• search_legal_cases — Court opinions, case law, legal precedents via Aphura Compliance Engine
 
 📍 LOCATION:
 • get_location_data — Geocoding, directions, place search via MapBox
@@ -173,7 +173,7 @@ Unlike ChatGPT/Claude/Gemini (static training data), you execute LIVE tool calls
 💻 CODE & COMPUTE:
 • run_code — Execute Python in secure cloud sandbox with packages, plots, data processing
 • execute_code_sandbox — Open Codex sandboxed code execution
-• execute_edge_command — Run commands on edge fleet via OpenClaw
+• execute_edge_command — Run commands on edge fleet via Aphura Compliance Engine
 
 ⚙️ AUTOMATION & PLATFORM:
 • run_workflow — Durable, fault-tolerant workflows via Temporal
@@ -269,7 +269,7 @@ OUTPUT FORMAT DIRECTIVES:
     
     // Use the generic AGENT route for the system prompt
     let systemPrompt = this.buildSystemPrompt('AGENTIC_LOOP', '', [], userContext) + 
-      "\n\nYou are operating in Sovereign Agentic ReAct mode. You have 45 tools across Together AI, LangChain, LangGraph, Exa, Composio, Temporal, Codex, Liberty, MapBox, OpenClaw, NOAA Weather, NIH PubMed, UN Comtrade, USPTO Patents, OpenAlex Science, and 20+ live direct institutional data APIs. If the user asks for ANY factual data, scientific research, weather, trade, patents, code execution, media generation, workflow automation, legal search, location data, or multi-agent analysis — USE THE CORRESPONDING TOOL. DO NOT GUESS. Chain tools together for maximum accuracy (e.g., search_nih_pubmed → deep_reason).";
+      "\n\nYou are operating in Sovereign Agentic ReAct mode. You have 45 tools across Together AI, LangChain, LangGraph, Exa, Composio, Temporal, Codex, Liberty, MapBox, Aphura Compliance Engine, NOAA Weather, NIH PubMed, UN Comtrade, USPTO Patents, OpenAlex Science, and 20+ live direct institutional data APIs. If the user asks for ANY factual data, scientific research, weather, trade, patents, code execution, media generation, workflow automation, legal search, location data, or multi-agent analysis — USE THE CORRESPONDING TOOL. DO NOT GUESS. Chain tools together for maximum accuracy (e.g., search_nih_pubmed → deep_reason).";
     
     if (memoryContext) {
       systemPrompt += memoryContext;
@@ -393,7 +393,7 @@ OUTPUT FORMAT DIRECTIVES:
     }
 
     let systemPrompt = this.buildSystemPrompt('AGENTIC_LOOP', '', [], userContext) + 
-      "\n\nYou are operating in Sovereign Agentic ReAct mode. You have 45 tools across Together AI, LangChain, LangGraph, Exa, Composio, Temporal, Codex, Liberty, MapBox, OpenClaw, NOAA Weather, NIH PubMed, UN Comtrade, USPTO Patents, OpenAlex Science, and 20+ live direct institutional data APIs. If the user asks for ANY factual data, scientific research, weather, trade, patents, code execution, media generation, workflow automation, legal search, location data, or multi-agent analysis — USE THE CORRESPONDING TOOL. DO NOT GUESS. Chain tools together for maximum accuracy (e.g., search_nih_pubmed → deep_reason).";
+      "\n\nYou are operating in Sovereign Agentic ReAct mode. You have 45 tools across Together AI, LangChain, LangGraph, Exa, Composio, Temporal, Codex, Liberty, MapBox, Aphura Compliance Engine, NOAA Weather, NIH PubMed, UN Comtrade, USPTO Patents, OpenAlex Science, and 20+ live direct institutional data APIs. If the user asks for ANY factual data, scientific research, weather, trade, patents, code execution, media generation, workflow automation, legal search, location data, or multi-agent analysis — USE THE CORRESPONDING TOOL. DO NOT GUESS. Chain tools together for maximum accuracy (e.g., search_nih_pubmed → deep_reason).";
     
     if (memoryContext) {
       systemPrompt += memoryContext;

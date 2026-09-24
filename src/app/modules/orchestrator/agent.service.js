@@ -39,6 +39,22 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "delegate_to_aphura_sovereign_agent",
+      description: "Delegate complex, multi-step autonomous reasoning to the Aphura Sovereign Agent (Cleaned Hermes Engine).",
+      parameters: { type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "analyze_legal_contract",
+      description: "Pass legal documents and contracts to the Aphura Compliance Engine (Cleaned OpenClaw) for deep liability analysis.",
+      parameters: { type: "object", properties: { contract_text: { type: "string" } }, required: ["contract_text"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "browser_use_action",
       description: "Use the ultrafast Browser-Use framework to physically control a headless browser. Use this to scrape modern web apps, click buttons, or extract dynamic data that simple GET requests cannot handle.",
       parameters: { type: "object", properties: { action: { type: "string", enum: ["launch", "click", "type", "scroll", "close"] }, url_or_target: { type: "string" }, sessionId: { type: "string" } }, required: ["action", "url_or_target", "sessionId"] }
@@ -540,7 +556,24 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "browser_use_action": {
+        case "delegate_to_aphura_sovereign_agent": {
+          try {
+            const { HermesAgentService } = await import("../agents/hermes.service.js");
+            const res = await HermesAgentService.executeTask(args.prompt);
+            return { output: `Aphura Sovereign Agent Output:\n${res.content}` };
+          } catch (err) {
+            return { output: `Agent failure: ${err.message}` };
+          }
+        }
+        case "analyze_legal_contract": {
+          try {
+            const { OpenClawService } = await import("../agents/openclaw.service.js");
+            const res = await OpenClawService.analyzeContract(args.contract_text);
+            return { output: `Aphura Legal Engine Output:\n${res.content}` };
+          } catch (err) {
+            return { output: `Legal scan failure: ${err.message}` };
+          }
+        }        case "browser_use_action": {
           try {
             const { BrowserUseService } = await import("../browser/browser.service.js");
             if (args.action === "launch") {
