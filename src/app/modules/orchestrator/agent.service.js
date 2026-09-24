@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectorcore_57xu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorCore) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfledger_o8w7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFLedger) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogcompiler_vtiv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogCompiler) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterlayer_2b0u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLayer) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessmatrix_vbyx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessMatrix) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectorstream_vh5s_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorStream) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9212,6 +9252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectorcore_57xu_logic": {
+          try {
+            const { OpenVectorCoreService } = await import("../liberty/openvectorcore_57xu.service.js");
+            const res = await OpenVectorCoreService.execute(args.target || "system");
+            return { output: `### OpenVectorCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfledger_o8w7_logic": {
+          try {
+            const { OpeneBPFLedgerService } = await import("../liberty/openebpfledger_o8w7.service.js");
+            const res = await OpeneBPFLedgerService.execute(args.target || "system");
+            return { output: `### OpeneBPFLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogcompiler_vtiv_logic": {
+          try {
+            const { OpenLogCompilerService } = await import("../liberty/openlogcompiler_vtiv.service.js");
+            const res = await OpenLogCompilerService.execute(args.target || "system");
+            return { output: `### OpenLogCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterlayer_2b0u_logic": {
+          try {
+            const { OpenCrossClusterLayerService } = await import("../liberty/opencross-clusterlayer_2b0u.service.js");
+            const res = await OpenCrossClusterLayerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessmatrix_vbyx_logic": {
+          try {
+            const { OpenServerlessMatrixService } = await import("../liberty/openserverlessmatrix_vbyx.service.js");
+            const res = await OpenServerlessMatrixService.execute(args.target || "system");
+            return { output: `### OpenServerlessMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openvectorstream_vh5s_logic": {
           try {
             const { OpenVectorStreamService } = await import("../liberty/openvectorstream_vh5s.service.js");
