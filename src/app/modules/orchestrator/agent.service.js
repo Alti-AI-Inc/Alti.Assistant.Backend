@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendatagrid_12de_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataGrid) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedgraph_8qc2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedGraph) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosmesh_nlg0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosMesh) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgprouter_s75o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPRouter) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlognet_ggba_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogNet) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosvortex_rxhy_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosVortex) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10572,6 +10612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendatagrid_12de_logic": {
+          try {
+            const { OpenDataGridService } = await import("../liberty/opendatagrid_12de.service.js");
+            const res = await OpenDataGridService.execute(args.target || "system");
+            return { output: `### OpenDataGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedgraph_8qc2_logic": {
+          try {
+            const { OpenAutomatedGraphService } = await import("../liberty/openautomatedgraph_8qc2.service.js");
+            const res = await OpenAutomatedGraphService.execute(args.target || "system");
+            return { output: `### OpenAutomatedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosmesh_nlg0_logic": {
+          try {
+            const { OpenChaosMeshService } = await import("../liberty/openchaosmesh_nlg0.service.js");
+            const res = await OpenChaosMeshService.execute(args.target || "system");
+            return { output: `### OpenChaosMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgprouter_s75o_logic": {
+          try {
+            const { OpenBGPRouterService } = await import("../liberty/openbgprouter_s75o.service.js");
+            const res = await OpenBGPRouterService.execute(args.target || "system");
+            return { output: `### OpenBGPRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openlognet_ggba_logic": {
+          try {
+            const { OpenLogNetService } = await import("../liberty/openlognet_ggba.service.js");
+            const res = await OpenLogNetService.execute(args.target || "system");
+            return { output: `### OpenLogNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogNet failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosvortex_rxhy_logic": {
           try {
             const { OpenChaosVortexService } = await import("../liberty/openchaosvortex_rxhy.service.js");
