@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisenexus_oeqz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNexus) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelvortex_ctvo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelVortex) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpsync_61fm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPSync) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriescore_ekbs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCore) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustvault_wqo8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustVault) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepplane_ge6f_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepPlane) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9732,6 +9772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisenexus_oeqz_logic": {
+          try {
+            const { OpenEnterpriseNexusService } = await import("../liberty/openenterprisenexus_oeqz.service.js");
+            const res = await OpenEnterpriseNexusService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelvortex_ctvo_logic": {
+          try {
+            const { OpenMicroKernelVortexService } = await import("../liberty/openmicro-kernelvortex_ctvo.service.js");
+            const res = await OpenMicroKernelVortexService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpsync_61fm_logic": {
+          try {
+            const { OpenBGPSyncService } = await import("../liberty/openbgpsync_61fm.service.js");
+            const res = await OpenBGPSyncService.execute(args.target || "system");
+            return { output: `### OpenBGPSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriescore_ekbs_logic": {
+          try {
+            const { OpenTimeSeriesCoreService } = await import("../liberty/opentime-seriescore_ekbs.service.js");
+            const res = await OpenTimeSeriesCoreService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustvault_wqo8_logic": {
+          try {
+            const { OpenZeroTrustVaultService } = await import("../liberty/openzero-trustvault_wqo8.service.js");
+            const res = await OpenZeroTrustVaultService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustVault failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepplane_ge6f_logic": {
           try {
             const { OpenDeepPlaneService } = await import("../liberty/opendeepplane_ge6f.service.js");
