@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgeswarm_5bhx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeSwarm) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticmesh_i3e2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticMesh) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedvortex_yrvd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedVortex) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesbroker_tj6t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesBroker) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicsync_v8vd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicSync) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivedaemon_wydn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveDaemon) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8972,6 +9012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgeswarm_5bhx_logic": {
+          try {
+            const { OpenZeroKnowledgeSwarmService } = await import("../liberty/openzero-knowledgeswarm_5bhx.service.js");
+            const res = await OpenZeroKnowledgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticmesh_i3e2_logic": {
+          try {
+            const { OpenStaticMeshService } = await import("../liberty/openstaticmesh_i3e2.service.js");
+            const res = await OpenStaticMeshService.execute(args.target || "system");
+            return { output: `### OpenStaticMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedvortex_yrvd_logic": {
+          try {
+            const { OpenAdvancedVortexService } = await import("../liberty/openadvancedvortex_yrvd.service.js");
+            const res = await OpenAdvancedVortexService.execute(args.target || "system");
+            return { output: `### OpenAdvancedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesbroker_tj6t_logic": {
+          try {
+            const { OpenTimeSeriesBrokerService } = await import("../liberty/opentime-seriesbroker_tj6t.service.js");
+            const res = await OpenTimeSeriesBrokerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicsync_v8vd_logic": {
+          try {
+            const { OpenHomomorphicSyncService } = await import("../liberty/openhomomorphicsync_v8vd.service.js");
+            const res = await OpenHomomorphicSyncService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicSync failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivedaemon_wydn_logic": {
           try {
             const { OpenPredictiveDaemonService } = await import("../liberty/openpredictivedaemon_wydn.service.js");
