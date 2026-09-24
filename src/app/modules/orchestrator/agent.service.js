@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondmatrix_sbfh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondMatrix) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiccompiler_7dzy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicCompiler) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalstream_lte9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalStream) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpugrid_c7ca_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUGrid) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partychain_0o0l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyChain) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendgrid_3ddv_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendGrid) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3252,6 +3292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondmatrix_sbfh_logic": {
+          try {
+            const { OpenSubMillisecondMatrixService } = await import("../liberty/opensub-millisecondmatrix_sbfh.service.js");
+            const res = await OpenSubMillisecondMatrixService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiccompiler_7dzy_logic": {
+          try {
+            const { OpenNeuromorphicCompilerService } = await import("../liberty/openneuromorphiccompiler_7dzy.service.js");
+            const res = await OpenNeuromorphicCompilerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalstream_lte9_logic": {
+          try {
+            const { OpenHyperDimensionalStreamService } = await import("../liberty/openhyper-dimensionalstream_lte9.service.js");
+            const res = await OpenHyperDimensionalStreamService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpugrid_c7ca_logic": {
+          try {
+            const { OpenGPUGridService } = await import("../liberty/opengpugrid_c7ca.service.js");
+            const res = await OpenGPUGridService.execute(args.target || "system");
+            return { output: `### OpenGPUGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partychain_0o0l_logic": {
+          try {
+            const { OpenMultiPartyChainService } = await import("../liberty/openmulti-partychain_0o0l.service.js");
+            const res = await OpenMultiPartyChainService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyChain failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendgrid_3ddv_logic": {
           try {
             const { OpenMicroFrontendGridService } = await import("../liberty/openmicro-frontendgrid_3ddv.service.js");
