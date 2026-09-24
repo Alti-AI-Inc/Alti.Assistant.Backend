@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustbroker_kdxj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustBroker) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablevortex_gxtr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableVortex) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseoracle_pc3v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseOracle) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablelayer_rryc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableLayer) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionaloracle_iwhs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalOracle) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialoracle_nvkd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialOracle) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6132,6 +6172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustbroker_kdxj_logic": {
+          try {
+            const { OpenZeroTrustBrokerService } = await import("../liberty/openzero-trustbroker_kdxj.service.js");
+            const res = await OpenZeroTrustBrokerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablevortex_gxtr_logic": {
+          try {
+            const { OpenImmutableVortexService } = await import("../liberty/openimmutablevortex_gxtr.service.js");
+            const res = await OpenImmutableVortexService.execute(args.target || "system");
+            return { output: `### OpenImmutableVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseoracle_pc3v_logic": {
+          try {
+            const { OpenEnterpriseOracleService } = await import("../liberty/openenterpriseoracle_pc3v.service.js");
+            const res = await OpenEnterpriseOracleService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablelayer_rryc_logic": {
+          try {
+            const { OpenImmutableLayerService } = await import("../liberty/openimmutablelayer_rryc.service.js");
+            const res = await OpenImmutableLayerService.execute(args.target || "system");
+            return { output: `### OpenImmutableLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionaloracle_iwhs_logic": {
+          try {
+            const { OpenHyperDimensionalOracleService } = await import("../liberty/openhyper-dimensionaloracle_iwhs.service.js");
+            const res = await OpenHyperDimensionalOracleService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialoracle_nvkd_logic": {
           try {
             const { OpenFinancialOracleService } = await import("../liberty/openfinancialoracle_nvkd.service.js");
