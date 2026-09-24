@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendcontroller_jvji_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendController) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicproxy_n7a9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicProxy) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialproxy_kg4c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialProxy) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepnexus_axbf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepNexus) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicledger_exm9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicLedger) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhigh-frequencyvortex_pz3p_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyVortex) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19612,6 +19652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendcontroller_jvji_logic": {
+          try {
+            const { OpenMicroFrontendControllerService } = await import("../liberty/openmicro-frontendcontroller_jvji.service.js");
+            const res = await OpenMicroFrontendControllerService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicproxy_n7a9_logic": {
+          try {
+            const { OpenHomomorphicProxyService } = await import("../liberty/openhomomorphicproxy_n7a9.service.js");
+            const res = await OpenHomomorphicProxyService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialproxy_kg4c_logic": {
+          try {
+            const { OpenFinancialProxyService } = await import("../liberty/openfinancialproxy_kg4c.service.js");
+            const res = await OpenFinancialProxyService.execute(args.target || "system");
+            return { output: `### OpenFinancialProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepnexus_axbf_logic": {
+          try {
+            const { OpenDeepNexusService } = await import("../liberty/opendeepnexus_axbf.service.js");
+            const res = await OpenDeepNexusService.execute(args.target || "system");
+            return { output: `### OpenDeepNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicledger_exm9_logic": {
+          try {
+            const { OpenNeuromorphicLedgerService } = await import("../liberty/openneuromorphicledger_exm9.service.js");
+            const res = await OpenNeuromorphicLedgerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicLedger failed: ${err.message}` };
+          }
+        }
         case "execute_openhigh-frequencyvortex_pz3p_logic": {
           try {
             const { OpenHighFrequencyVortexService } = await import("../liberty/openhigh-frequencyvortex_pz3p.service.js");
