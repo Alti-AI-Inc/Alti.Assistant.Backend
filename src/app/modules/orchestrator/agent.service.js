@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_arrow_computation",
+      description: "Use the Aphura Compute Engine (Apache Arrow) to execute mathematical operations or queries on massive tabular datasets up to 100x faster than standard Python Pandas by utilizing in-memory columnar formats.",
+      parameters: { type: "object", properties: { dataset: { type: "string" }, query: { type: "string" } }, required: ["dataset", "query"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "process_data_stream_flink",
+      description: "Use the Aphura Stream Processing Engine (Apache Flink) to deploy stateful computation jobs over massive real-time data streams (like stock market tickers or IoT sensors).",
+      parameters: { type: "object", properties: { streamSource: { type: "string" }, computationLogic: { type: "string" } }, required: ["streamSource", "computationLogic"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_3d_map",
+      description: "Use the Aphura Geolocation Engine (MapLibre) to compile and render an interactive 3D map with data overlays directly in the chat UI.",
+      parameters: { type: "object", properties: { datasetOverlay: { type: "string" } }, required: ["datasetOverlay"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "seed_webtorrent_file",
+      description: "Use the Aphura Torrent Engine (WebTorrent) to distribute massive datasets or compiled videos via peer-to-peer streaming directly to the browser.",
+      parameters: { type: "object", properties: { filePath: { type: "string" } }, required: ["filePath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_matrix_room",
+      description: "Use the Aphura Comms Engine (Matrix) to autonomously spin up a decentralized, end-to-end encrypted chat protocol for secure data transfer.",
+      parameters: { type: "object", properties: { roomAlias: { type: "string" } }, required: ["roomAlias"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_fleet_patch",
       description: "Use the Aphura Server Fleet Engine (SaltStack) to autonomously SSH into thousands of Linux servers simultaneously and deploy configuration patches or security updates.",
       parameters: { type: "object", properties: { targetFleet: { type: "string" }, patchCommand: { type: "string" } }, required: ["targetFleet", "patchCommand"] }
@@ -852,7 +892,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "execute_fleet_patch": {
+        case "execute_arrow_computation": {
+          try {
+            const { ArrowService } = await import("../compute/arrow.service.js");
+            const res = await ArrowService.executeColumnarQuery(args.dataset, args.query);
+            return { output: `### Arrow Computation Result\\n\\n```text\\n${res.result}\\n```` };
+          } catch (err) {
+            return { output: `Arrow compute failed: ${err.message}` };
+          }
+        }        case "process_data_stream_flink": {
+          try {
+            const { FlinkService } = await import("../data/flink.service.js");
+            const res = await FlinkService.orchestrateStream(args.streamSource, args.computationLogic);
+            return { output: `### Flink Job Executed\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Flink deployment failed: ${err.message}` };
+          }
+        }        case "generate_3d_map": {
+          try {
+            const { MapLibreService } = await import("../ui/maplibre.service.js");
+            const res = await MapLibreService.generateMap(args.datasetOverlay);
+            return { output: res.markdown };
+          } catch (err) {
+            return { output: `Map generation failed: ${err.message}` };
+          }
+        }        case "seed_webtorrent_file": {
+          try {
+            const { WebTorrentService } = await import("../data/webtorrent.service.js");
+            const res = await WebTorrentService.seedFile(args.filePath);
+            return { output: `### P2P Seed Active\\n\\n```text\\n${res.magnetUri}\\n```` };
+          } catch (err) {
+            return { output: `Torrent seed failed: ${err.message}` };
+          }
+        }        case "create_matrix_room": {
+          try {
+            const { MatrixService } = await import("../comms/matrix.service.js");
+            const res = await MatrixService.createEncryptedRoom(args.roomAlias);
+            return { output: `### Secure Comms Established\\n\\nRoom ID: ${res.roomId}\\nStatus: ${res.status}` };
+          } catch (err) {
+            return { output: `Matrix room failed: ${err.message}` };
+          }
+        }        case "execute_fleet_patch": {
           try {
             const { SaltStackService } = await import("../devops/saltstack.service.js");
             const res = await SaltStackService.deployPatch(args.targetFleet, args.patchCommand);
