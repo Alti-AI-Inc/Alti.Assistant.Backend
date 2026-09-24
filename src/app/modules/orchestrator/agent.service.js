@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictiveoracle_3nt3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveOracle) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatadaemon_u8rj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataDaemon) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessrouter_gl6w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessRouter) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessring_cjfl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessRing) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicdaemon_mvv2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicDaemon) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancedrouter_9kd2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedRouter) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8412,6 +8452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictiveoracle_3nt3_logic": {
+          try {
+            const { OpenPredictiveOracleService } = await import("../liberty/openpredictiveoracle_3nt3.service.js");
+            const res = await OpenPredictiveOracleService.execute(args.target || "system");
+            return { output: `### OpenPredictiveOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatadaemon_u8rj_logic": {
+          try {
+            const { OpenDataDaemonService } = await import("../liberty/opendatadaemon_u8rj.service.js");
+            const res = await OpenDataDaemonService.execute(args.target || "system");
+            return { output: `### OpenDataDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessrouter_gl6w_logic": {
+          try {
+            const { OpenServerlessRouterService } = await import("../liberty/openserverlessrouter_gl6w.service.js");
+            const res = await OpenServerlessRouterService.execute(args.target || "system");
+            return { output: `### OpenServerlessRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessring_cjfl_logic": {
+          try {
+            const { OpenServerlessRingService } = await import("../liberty/openserverlessring_cjfl.service.js");
+            const res = await OpenServerlessRingService.execute(args.target || "system");
+            return { output: `### OpenServerlessRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicdaemon_mvv2_logic": {
+          try {
+            const { OpenNeuromorphicDaemonService } = await import("../liberty/openneuromorphicdaemon_mvv2.service.js");
+            const res = await OpenNeuromorphicDaemonService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicDaemon failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancedrouter_9kd2_logic": {
           try {
             const { OpenAdvancedRouterService } = await import("../liberty/openadvancedrouter_9kd2.service.js");
