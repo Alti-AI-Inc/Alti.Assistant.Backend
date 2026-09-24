@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessnode_k31d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNode) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphstream_l39x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphStream) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesspipeline_nn7j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessPipeline) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributeddaemon_2mqr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedDaemon) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgeoracle_u7bp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeOracle) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlessdaemon_fw37_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessDaemon) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20652,6 +20692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessnode_k31d_logic": {
+          try {
+            const { OpenHeadlessNodeService } = await import("../liberty/openheadlessnode_k31d.service.js");
+            const res = await OpenHeadlessNodeService.execute(args.target || "system");
+            return { output: `### OpenHeadlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphstream_l39x_logic": {
+          try {
+            const { OpenGraphStreamService } = await import("../liberty/opengraphstream_l39x.service.js");
+            const res = await OpenGraphStreamService.execute(args.target || "system");
+            return { output: `### OpenGraphStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesspipeline_nn7j_logic": {
+          try {
+            const { OpenServerlessPipelineService } = await import("../liberty/openserverlesspipeline_nn7j.service.js");
+            const res = await OpenServerlessPipelineService.execute(args.target || "system");
+            return { output: `### OpenServerlessPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributeddaemon_2mqr_logic": {
+          try {
+            const { OpenDistributedDaemonService } = await import("../liberty/opendistributeddaemon_2mqr.service.js");
+            const res = await OpenDistributedDaemonService.execute(args.target || "system");
+            return { output: `### OpenDistributedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgeoracle_u7bp_logic": {
+          try {
+            const { OpenZeroKnowledgeOracleService } = await import("../liberty/openzero-knowledgeoracle_u7bp.service.js");
+            const res = await OpenZeroKnowledgeOracleService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlessdaemon_fw37_logic": {
           try {
             const { OpenHeadlessDaemonService } = await import("../liberty/openheadlessdaemon_fw37.service.js");
