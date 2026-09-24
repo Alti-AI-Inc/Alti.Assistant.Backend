@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesswarm_z0vt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesSwarm) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyengine_9t1h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyEngine) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatednode_zyrg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedNode) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesledger_hdho_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesLedger) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosring_i8bj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosRing) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedoracle_p2f1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedOracle) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11012,6 +11052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesswarm_z0vt_logic": {
+          try {
+            const { OpenTimeSeriesSwarmService } = await import("../liberty/opentime-seriesswarm_z0vt.service.js");
+            const res = await OpenTimeSeriesSwarmService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyengine_9t1h_logic": {
+          try {
+            const { OpenHighFrequencyEngineService } = await import("../liberty/openhigh-frequencyengine_9t1h.service.js");
+            const res = await OpenHighFrequencyEngineService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatednode_zyrg_logic": {
+          try {
+            const { OpenFederatedNodeService } = await import("../liberty/openfederatednode_zyrg.service.js");
+            const res = await OpenFederatedNodeService.execute(args.target || "system");
+            return { output: `### OpenFederatedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesledger_hdho_logic": {
+          try {
+            const { OpenTimeSeriesLedgerService } = await import("../liberty/opentime-seriesledger_hdho.service.js");
+            const res = await OpenTimeSeriesLedgerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosring_i8bj_logic": {
+          try {
+            const { OpenChaosRingService } = await import("../liberty/openchaosring_i8bj.service.js");
+            const res = await OpenChaosRingService.execute(args.target || "system");
+            return { output: `### OpenChaosRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosRing failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedoracle_p2f1_logic": {
           try {
             const { OpenDistributedOracleService } = await import("../liberty/opendistributedoracle_p2f1.service.js");
