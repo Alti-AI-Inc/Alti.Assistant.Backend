@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventdaemon_z3ms_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventDaemon) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatacore_fnit_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataCore) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecompiler_ejms_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCompiler) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorymesh_s6ec_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryMesh) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractsync_csfn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractSync) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpforacle_15lz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFOracle) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6652,6 +6692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventdaemon_z3ms_logic": {
+          try {
+            const { OpenEventDaemonService } = await import("../liberty/openeventdaemon_z3ms.service.js");
+            const res = await OpenEventDaemonService.execute(args.target || "system");
+            return { output: `### OpenEventDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatacore_fnit_logic": {
+          try {
+            const { OpenDataCoreService } = await import("../liberty/opendatacore_fnit.service.js");
+            const res = await OpenDataCoreService.execute(args.target || "system");
+            return { output: `### OpenDataCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecompiler_ejms_logic": {
+          try {
+            const { OpenCloudNativeCompilerService } = await import("../liberty/opencloud-nativecompiler_ejms.service.js");
+            const res = await OpenCloudNativeCompilerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorymesh_s6ec_logic": {
+          try {
+            const { OpenInMemoryMeshService } = await import("../liberty/openin-memorymesh_s6ec.service.js");
+            const res = await OpenInMemoryMeshService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractsync_csfn_logic": {
+          try {
+            const { OpenAbstractSyncService } = await import("../liberty/openabstractsync_csfn.service.js");
+            const res = await OpenAbstractSyncService.execute(args.target || "system");
+            return { output: `### OpenAbstractSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractSync failed: ${err.message}` };
+          }
+        }
         case "execute_openebpforacle_15lz_logic": {
           try {
             const { OpeneBPFOracleService } = await import("../liberty/openebpforacle_15lz.service.js");
