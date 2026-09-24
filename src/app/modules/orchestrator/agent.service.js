@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedfabric_zngo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedFabric) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicsync_l8ut_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicSync) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessrouter_nlt5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessRouter) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partycore_jja9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyCore) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarechain_2uy3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareChain) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partyring_ld8u_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyRing) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15252,6 +15292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedfabric_zngo_logic": {
+          try {
+            const { OpenAutomatedFabricService } = await import("../liberty/openautomatedfabric_zngo.service.js");
+            const res = await OpenAutomatedFabricService.execute(args.target || "system");
+            return { output: `### OpenAutomatedFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicsync_l8ut_logic": {
+          try {
+            const { OpenNeuromorphicSyncService } = await import("../liberty/openneuromorphicsync_l8ut.service.js");
+            const res = await OpenNeuromorphicSyncService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessrouter_nlt5_logic": {
+          try {
+            const { OpenHeadlessRouterService } = await import("../liberty/openheadlessrouter_nlt5.service.js");
+            const res = await OpenHeadlessRouterService.execute(args.target || "system");
+            return { output: `### OpenHeadlessRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partycore_jja9_logic": {
+          try {
+            const { OpenMultiPartyCoreService } = await import("../liberty/openmulti-partycore_jja9.service.js");
+            const res = await OpenMultiPartyCoreService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarechain_2uy3_logic": {
+          try {
+            const { OpenHardwareChainService } = await import("../liberty/openhardwarechain_2uy3.service.js");
+            const res = await OpenHardwareChainService.execute(args.target || "system");
+            return { output: `### OpenHardwareChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareChain failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partyring_ld8u_logic": {
           try {
             const { OpenMultiPartyRingService } = await import("../liberty/openmulti-partyring_ld8u.service.js");
