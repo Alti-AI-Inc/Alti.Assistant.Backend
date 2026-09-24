@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalpipeline_ssk5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalPipeline) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcontroller_imik_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPController) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiclayer_ktrz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicLayer) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpumatrix_ulsx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUMatrix) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepgrid_ls95_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepGrid) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativeledger_tb55_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeLedger) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20492,6 +20532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalpipeline_ssk5_logic": {
+          try {
+            const { OpenHyperDimensionalPipelineService } = await import("../liberty/openhyper-dimensionalpipeline_ssk5.service.js");
+            const res = await OpenHyperDimensionalPipelineService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcontroller_imik_logic": {
+          try {
+            const { OpenBGPControllerService } = await import("../liberty/openbgpcontroller_imik.service.js");
+            const res = await OpenBGPControllerService.execute(args.target || "system");
+            return { output: `### OpenBGPController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPController failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiclayer_ktrz_logic": {
+          try {
+            const { OpenNeuromorphicLayerService } = await import("../liberty/openneuromorphiclayer_ktrz.service.js");
+            const res = await OpenNeuromorphicLayerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpumatrix_ulsx_logic": {
+          try {
+            const { OpenGPUMatrixService } = await import("../liberty/opengpumatrix_ulsx.service.js");
+            const res = await OpenGPUMatrixService.execute(args.target || "system");
+            return { output: `### OpenGPUMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepgrid_ls95_logic": {
+          try {
+            const { OpenDeepGridService } = await import("../liberty/opendeepgrid_ls95.service.js");
+            const res = await OpenDeepGridService.execute(args.target || "system");
+            return { output: `### OpenDeepGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativeledger_tb55_logic": {
           try {
             const { OpenCloudNativeLedgerService } = await import("../liberty/opencloud-nativeledger_tb55.service.js");
