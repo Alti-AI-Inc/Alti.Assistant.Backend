@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwaredaemon_oxht_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareDaemon) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedcore_xci2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedCore) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcore_mt4g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPCore) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicoracle_n7gh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicOracle) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivecontroller_bo3c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveController) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clustermesh_ufs5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterMesh) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8852,6 +8892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwaredaemon_oxht_logic": {
+          try {
+            const { OpenHardwareDaemonService } = await import("../liberty/openhardwaredaemon_oxht.service.js");
+            const res = await OpenHardwareDaemonService.execute(args.target || "system");
+            return { output: `### OpenHardwareDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedcore_xci2_logic": {
+          try {
+            const { OpenAutomatedCoreService } = await import("../liberty/openautomatedcore_xci2.service.js");
+            const res = await OpenAutomatedCoreService.execute(args.target || "system");
+            return { output: `### OpenAutomatedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcore_mt4g_logic": {
+          try {
+            const { OpenBGPCoreService } = await import("../liberty/openbgpcore_mt4g.service.js");
+            const res = await OpenBGPCoreService.execute(args.target || "system");
+            return { output: `### OpenBGPCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicoracle_n7gh_logic": {
+          try {
+            const { OpenHomomorphicOracleService } = await import("../liberty/openhomomorphicoracle_n7gh.service.js");
+            const res = await OpenHomomorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivecontroller_bo3c_logic": {
+          try {
+            const { OpenPredictiveControllerService } = await import("../liberty/openpredictivecontroller_bo3c.service.js");
+            const res = await OpenPredictiveControllerService.execute(args.target || "system");
+            return { output: `### OpenPredictiveController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveController failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clustermesh_ufs5_logic": {
           try {
             const { OpenCrossClusterMeshService } = await import("../liberty/opencross-clustermesh_ufs5.service.js");
