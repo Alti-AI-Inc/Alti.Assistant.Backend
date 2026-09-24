@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativevortex_0fum_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVortex) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpucontroller_8p1q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUController) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcompiler_dba0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedCompiler) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedcluster_jcoo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedCluster) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialplane_vouq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialPlane) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelswarm_5gmt_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelSwarm) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21532,6 +21572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativevortex_0fum_logic": {
+          try {
+            const { OpenCloudNativeVortexService } = await import("../liberty/opencloud-nativevortex_0fum.service.js");
+            const res = await OpenCloudNativeVortexService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpucontroller_8p1q_logic": {
+          try {
+            const { OpenGPUControllerService } = await import("../liberty/opengpucontroller_8p1q.service.js");
+            const res = await OpenGPUControllerService.execute(args.target || "system");
+            return { output: `### OpenGPUController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUController failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcompiler_dba0_logic": {
+          try {
+            const { OpenAdvancedCompilerService } = await import("../liberty/openadvancedcompiler_dba0.service.js");
+            const res = await OpenAdvancedCompilerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedcluster_jcoo_logic": {
+          try {
+            const { OpenFederatedClusterService } = await import("../liberty/openfederatedcluster_jcoo.service.js");
+            const res = await OpenFederatedClusterService.execute(args.target || "system");
+            return { output: `### OpenFederatedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialplane_vouq_logic": {
+          try {
+            const { OpenFinancialPlaneService } = await import("../liberty/openfinancialplane_vouq.service.js");
+            const res = await OpenFinancialPlaneService.execute(args.target || "system");
+            return { output: `### OpenFinancialPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelswarm_5gmt_logic": {
           try {
             const { OpenMicroKernelSwarmService } = await import("../liberty/openmicro-kernelswarm_5gmt.service.js");
