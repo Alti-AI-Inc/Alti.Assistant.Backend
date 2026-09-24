@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfgraph_mfq5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFGraph) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphswarm_ka1s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphSwarm) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepmesh_5jd1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepMesh) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticring_m095_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticRing) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpunode_5xhg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUNode) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentswarm_us1s_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentSwarm) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14052,6 +14092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfgraph_mfq5_logic": {
+          try {
+            const { OpeneBPFGraphService } = await import("../liberty/openebpfgraph_mfq5.service.js");
+            const res = await OpeneBPFGraphService.execute(args.target || "system");
+            return { output: `### OpeneBPFGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphswarm_ka1s_logic": {
+          try {
+            const { OpenGraphSwarmService } = await import("../liberty/opengraphswarm_ka1s.service.js");
+            const res = await OpenGraphSwarmService.execute(args.target || "system");
+            return { output: `### OpenGraphSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepmesh_5jd1_logic": {
+          try {
+            const { OpenDeepMeshService } = await import("../liberty/opendeepmesh_5jd1.service.js");
+            const res = await OpenDeepMeshService.execute(args.target || "system");
+            return { output: `### OpenDeepMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticring_m095_logic": {
+          try {
+            const { OpenStaticRingService } = await import("../liberty/openstaticring_m095.service.js");
+            const res = await OpenStaticRingService.execute(args.target || "system");
+            return { output: `### OpenStaticRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpunode_5xhg_logic": {
+          try {
+            const { OpenGPUNodeService } = await import("../liberty/opengpunode_5xhg.service.js");
+            const res = await OpenGPUNodeService.execute(args.target || "system");
+            return { output: `### OpenGPUNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUNode failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentswarm_us1s_logic": {
           try {
             const { OpenPersistentSwarmService } = await import("../liberty/openpersistentswarm_us1s.service.js");
