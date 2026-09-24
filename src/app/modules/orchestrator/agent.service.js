@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedpipeline_ctr0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedPipeline) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partynode_oekf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyNode) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedstream_7okt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedStream) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscontroller_3a26_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosController) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarenode_ewpj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareNode) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativefabric_b977_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeFabric) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16052,6 +16092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedpipeline_ctr0_logic": {
+          try {
+            const { OpenFederatedPipelineService } = await import("../liberty/openfederatedpipeline_ctr0.service.js");
+            const res = await OpenFederatedPipelineService.execute(args.target || "system");
+            return { output: `### OpenFederatedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partynode_oekf_logic": {
+          try {
+            const { OpenMultiPartyNodeService } = await import("../liberty/openmulti-partynode_oekf.service.js");
+            const res = await OpenMultiPartyNodeService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedstream_7okt_logic": {
+          try {
+            const { OpenAdvancedStreamService } = await import("../liberty/openadvancedstream_7okt.service.js");
+            const res = await OpenAdvancedStreamService.execute(args.target || "system");
+            return { output: `### OpenAdvancedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscontroller_3a26_logic": {
+          try {
+            const { OpenChaosControllerService } = await import("../liberty/openchaoscontroller_3a26.service.js");
+            const res = await OpenChaosControllerService.execute(args.target || "system");
+            return { output: `### OpenChaosController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarenode_ewpj_logic": {
+          try {
+            const { OpenHardwareNodeService } = await import("../liberty/openhardwarenode_ewpj.service.js");
+            const res = await OpenHardwareNodeService.execute(args.target || "system");
+            return { output: `### OpenHardwareNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareNode failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativefabric_b977_logic": {
           try {
             const { OpenCloudNativeFabricService } = await import("../liberty/opencloud-nativefabric_b977.service.js");
