@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfvortex_mnz2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFVortex) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphchain_hcok_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphChain) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpusync_y8s8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUSync) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicstream_n1o9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicStream) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecompiler_lc2d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareCompiler) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clustergrid_f9tg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterGrid) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15852,6 +15892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfvortex_mnz2_logic": {
+          try {
+            const { OpeneBPFVortexService } = await import("../liberty/openebpfvortex_mnz2.service.js");
+            const res = await OpeneBPFVortexService.execute(args.target || "system");
+            return { output: `### OpeneBPFVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphchain_hcok_logic": {
+          try {
+            const { OpenGraphChainService } = await import("../liberty/opengraphchain_hcok.service.js");
+            const res = await OpenGraphChainService.execute(args.target || "system");
+            return { output: `### OpenGraphChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpusync_y8s8_logic": {
+          try {
+            const { OpenGPUSyncService } = await import("../liberty/opengpusync_y8s8.service.js");
+            const res = await OpenGPUSyncService.execute(args.target || "system");
+            return { output: `### OpenGPUSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicstream_n1o9_logic": {
+          try {
+            const { OpenHomomorphicStreamService } = await import("../liberty/openhomomorphicstream_n1o9.service.js");
+            const res = await OpenHomomorphicStreamService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecompiler_lc2d_logic": {
+          try {
+            const { OpenHardwareCompilerService } = await import("../liberty/openhardwarecompiler_lc2d.service.js");
+            const res = await OpenHardwareCompilerService.execute(args.target || "system");
+            return { output: `### OpenHardwareCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clustergrid_f9tg_logic": {
           try {
             const { OpenCrossClusterGridService } = await import("../liberty/opencross-clustergrid_f9tg.service.js");
