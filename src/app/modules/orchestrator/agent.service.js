@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivenet_96eg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNet) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticledger_kehv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticLedger) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalnet_8uxe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalNet) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivesync_hww6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveSync) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedoracle_adu7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedOracle) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgedaemon_7v42_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeDaemon) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20332,6 +20372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivenet_96eg_logic": {
+          try {
+            const { OpenPredictiveNetService } = await import("../liberty/openpredictivenet_96eg.service.js");
+            const res = await OpenPredictiveNetService.execute(args.target || "system");
+            return { output: `### OpenPredictiveNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticledger_kehv_logic": {
+          try {
+            const { OpenSemanticLedgerService } = await import("../liberty/opensemanticledger_kehv.service.js");
+            const res = await OpenSemanticLedgerService.execute(args.target || "system");
+            return { output: `### OpenSemanticLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalnet_8uxe_logic": {
+          try {
+            const { OpenHyperDimensionalNetService } = await import("../liberty/openhyper-dimensionalnet_8uxe.service.js");
+            const res = await OpenHyperDimensionalNetService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivesync_hww6_logic": {
+          try {
+            const { OpenPredictiveSyncService } = await import("../liberty/openpredictivesync_hww6.service.js");
+            const res = await OpenPredictiveSyncService.execute(args.target || "system");
+            return { output: `### OpenPredictiveSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedoracle_adu7_logic": {
+          try {
+            const { OpenAdvancedOracleService } = await import("../liberty/openadvancedoracle_adu7.service.js");
+            const res = await OpenAdvancedOracleService.execute(args.target || "system");
+            return { output: `### OpenAdvancedOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgedaemon_7v42_logic": {
           try {
             const { OpenZeroKnowledgeDaemonService } = await import("../liberty/openzero-knowledgedaemon_7v42.service.js");
