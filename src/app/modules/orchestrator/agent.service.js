@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumdaemon_z7th_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumDaemon) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondledger_d2pq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondLedger) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticchain_5ece_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticChain) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustoracle_fg5e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustOracle) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticswarm_nzmx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticSwarm) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarypipeline_3yrq_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryPipeline) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17292,6 +17332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumdaemon_z7th_logic": {
+          try {
+            const { OpenQuantumDaemonService } = await import("../liberty/openquantumdaemon_z7th.service.js");
+            const res = await OpenQuantumDaemonService.execute(args.target || "system");
+            return { output: `### OpenQuantumDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondledger_d2pq_logic": {
+          try {
+            const { OpenSubMillisecondLedgerService } = await import("../liberty/opensub-millisecondledger_d2pq.service.js");
+            const res = await OpenSubMillisecondLedgerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticchain_5ece_logic": {
+          try {
+            const { OpenSemanticChainService } = await import("../liberty/opensemanticchain_5ece.service.js");
+            const res = await OpenSemanticChainService.execute(args.target || "system");
+            return { output: `### OpenSemanticChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustoracle_fg5e_logic": {
+          try {
+            const { OpenZeroTrustOracleService } = await import("../liberty/openzero-trustoracle_fg5e.service.js");
+            const res = await OpenZeroTrustOracleService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticswarm_nzmx_logic": {
+          try {
+            const { OpenSemanticSwarmService } = await import("../liberty/opensemanticswarm_nzmx.service.js");
+            const res = await OpenSemanticSwarmService.execute(args.target || "system");
+            return { output: `### OpenSemanticSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarypipeline_3yrq_logic": {
           try {
             const { OpenPlanetaryPipelineService } = await import("../liberty/openplanetarypipeline_3yrq.service.js");
