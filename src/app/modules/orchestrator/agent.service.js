@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaoscontroller_uqh5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosController) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantummatrix_8e5b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumMatrix) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentgrid_rfq5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentGrid) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogring_go4q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogRing) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterledger_8oza_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLedger) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizednode_2l4b_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNode) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11612,6 +11652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaoscontroller_uqh5_logic": {
+          try {
+            const { OpenChaosControllerService } = await import("../liberty/openchaoscontroller_uqh5.service.js");
+            const res = await OpenChaosControllerService.execute(args.target || "system");
+            return { output: `### OpenChaosController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosController failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantummatrix_8e5b_logic": {
+          try {
+            const { OpenQuantumMatrixService } = await import("../liberty/openquantummatrix_8e5b.service.js");
+            const res = await OpenQuantumMatrixService.execute(args.target || "system");
+            return { output: `### OpenQuantumMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentgrid_rfq5_logic": {
+          try {
+            const { OpenPersistentGridService } = await import("../liberty/openpersistentgrid_rfq5.service.js");
+            const res = await OpenPersistentGridService.execute(args.target || "system");
+            return { output: `### OpenPersistentGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogring_go4q_logic": {
+          try {
+            const { OpenLogRingService } = await import("../liberty/openlogring_go4q.service.js");
+            const res = await OpenLogRingService.execute(args.target || "system");
+            return { output: `### OpenLogRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterledger_8oza_logic": {
+          try {
+            const { OpenCrossClusterLedgerService } = await import("../liberty/opencross-clusterledger_8oza.service.js");
+            const res = await OpenCrossClusterLedgerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterLedger failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizednode_2l4b_logic": {
           try {
             const { OpenDecentralizedNodeService } = await import("../liberty/opendecentralizednode_2l4b.service.js");
