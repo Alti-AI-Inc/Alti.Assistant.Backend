@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventcompiler_fymy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventCompiler) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarycontroller_tg66_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryController) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepledger_j1rr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepLedger) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepswarm_o5x2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepSwarm) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpforacle_rnml_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFOracle) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumledger_b6p6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumLedger) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18612,6 +18652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventcompiler_fymy_logic": {
+          try {
+            const { OpenEventCompilerService } = await import("../liberty/openeventcompiler_fymy.service.js");
+            const res = await OpenEventCompilerService.execute(args.target || "system");
+            return { output: `### OpenEventCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarycontroller_tg66_logic": {
+          try {
+            const { OpenPlanetaryControllerService } = await import("../liberty/openplanetarycontroller_tg66.service.js");
+            const res = await OpenPlanetaryControllerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryController failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepledger_j1rr_logic": {
+          try {
+            const { OpenDeepLedgerService } = await import("../liberty/opendeepledger_j1rr.service.js");
+            const res = await OpenDeepLedgerService.execute(args.target || "system");
+            return { output: `### OpenDeepLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepswarm_o5x2_logic": {
+          try {
+            const { OpenDeepSwarmService } = await import("../liberty/opendeepswarm_o5x2.service.js");
+            const res = await OpenDeepSwarmService.execute(args.target || "system");
+            return { output: `### OpenDeepSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpforacle_rnml_logic": {
+          try {
+            const { OpeneBPFOracleService } = await import("../liberty/openebpforacle_rnml.service.js");
+            const res = await OpeneBPFOracleService.execute(args.target || "system");
+            return { output: `### OpeneBPFOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumledger_b6p6_logic": {
           try {
             const { OpenQuantumLedgerService } = await import("../liberty/openquantumledger_b6p6.service.js");
