@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgedaemon_7v42_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeDaemon) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustfabric_6ica_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustFabric) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionallayer_7kmc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalLayer) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusternexus_cjzi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterNexus) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendstream_497j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendStream) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentcore_yzt1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentCore) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20292,6 +20332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgedaemon_7v42_logic": {
+          try {
+            const { OpenZeroKnowledgeDaemonService } = await import("../liberty/openzero-knowledgedaemon_7v42.service.js");
+            const res = await OpenZeroKnowledgeDaemonService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustfabric_6ica_logic": {
+          try {
+            const { OpenZeroTrustFabricService } = await import("../liberty/openzero-trustfabric_6ica.service.js");
+            const res = await OpenZeroTrustFabricService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionallayer_7kmc_logic": {
+          try {
+            const { OpenHyperDimensionalLayerService } = await import("../liberty/openhyper-dimensionallayer_7kmc.service.js");
+            const res = await OpenHyperDimensionalLayerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusternexus_cjzi_logic": {
+          try {
+            const { OpenCrossClusterNexusService } = await import("../liberty/opencross-clusternexus_cjzi.service.js");
+            const res = await OpenCrossClusterNexusService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendstream_497j_logic": {
+          try {
+            const { OpenMicroFrontendStreamService } = await import("../liberty/openmicro-frontendstream_497j.service.js");
+            const res = await OpenMicroFrontendStreamService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendStream failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentcore_yzt1_logic": {
           try {
             const { OpenPersistentCoreService } = await import("../liberty/openpersistentcore_yzt1.service.js");
