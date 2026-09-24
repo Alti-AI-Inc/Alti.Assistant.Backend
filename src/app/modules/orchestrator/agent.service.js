@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openabstractdaemon_5yhz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractDaemon) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableledger_6cfm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableLedger) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticoracle_o43t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticOracle) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalnode_16uy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalNode) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialswarm_lwh7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialSwarm) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarycontroller_ipkn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryController) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10292,6 +10332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openabstractdaemon_5yhz_logic": {
+          try {
+            const { OpenAbstractDaemonService } = await import("../liberty/openabstractdaemon_5yhz.service.js");
+            const res = await OpenAbstractDaemonService.execute(args.target || "system");
+            return { output: `### OpenAbstractDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableledger_6cfm_logic": {
+          try {
+            const { OpenImmutableLedgerService } = await import("../liberty/openimmutableledger_6cfm.service.js");
+            const res = await OpenImmutableLedgerService.execute(args.target || "system");
+            return { output: `### OpenImmutableLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticoracle_o43t_logic": {
+          try {
+            const { OpenSemanticOracleService } = await import("../liberty/opensemanticoracle_o43t.service.js");
+            const res = await OpenSemanticOracleService.execute(args.target || "system");
+            return { output: `### OpenSemanticOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalnode_16uy_logic": {
+          try {
+            const { OpenHyperDimensionalNodeService } = await import("../liberty/openhyper-dimensionalnode_16uy.service.js");
+            const res = await OpenHyperDimensionalNodeService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialswarm_lwh7_logic": {
+          try {
+            const { OpenFinancialSwarmService } = await import("../liberty/openfinancialswarm_lwh7.service.js");
+            const res = await OpenFinancialSwarmService.execute(args.target || "system");
+            return { output: `### OpenFinancialSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarycontroller_ipkn_logic": {
           try {
             const { OpenPlanetaryControllerService } = await import("../liberty/openplanetarycontroller_ipkn.service.js");
