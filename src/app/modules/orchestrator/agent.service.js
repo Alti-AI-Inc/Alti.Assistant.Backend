@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatednet_fxjw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedNet) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutabledaemon_hc3j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableDaemon) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedvault_7nq9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedVault) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscore_ohqd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCore) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcompiler_jxy0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPCompiler) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticproxy_ka60_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticProxy) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14972,6 +15012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatednet_fxjw_logic": {
+          try {
+            const { OpenAutomatedNetService } = await import("../liberty/openautomatednet_fxjw.service.js");
+            const res = await OpenAutomatedNetService.execute(args.target || "system");
+            return { output: `### OpenAutomatedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutabledaemon_hc3j_logic": {
+          try {
+            const { OpenImmutableDaemonService } = await import("../liberty/openimmutabledaemon_hc3j.service.js");
+            const res = await OpenImmutableDaemonService.execute(args.target || "system");
+            return { output: `### OpenImmutableDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedvault_7nq9_logic": {
+          try {
+            const { OpenFederatedVaultService } = await import("../liberty/openfederatedvault_7nq9.service.js");
+            const res = await OpenFederatedVaultService.execute(args.target || "system");
+            return { output: `### OpenFederatedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscore_ohqd_logic": {
+          try {
+            const { OpenChaosCoreService } = await import("../liberty/openchaoscore_ohqd.service.js");
+            const res = await OpenChaosCoreService.execute(args.target || "system");
+            return { output: `### OpenChaosCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcompiler_jxy0_logic": {
+          try {
+            const { OpenBGPCompilerService } = await import("../liberty/openbgpcompiler_jxy0.service.js");
+            const res = await OpenBGPCompilerService.execute(args.target || "system");
+            return { output: `### OpenBGPCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticproxy_ka60_logic": {
           try {
             const { OpenSemanticProxyService } = await import("../liberty/opensemanticproxy_ka60.service.js");
