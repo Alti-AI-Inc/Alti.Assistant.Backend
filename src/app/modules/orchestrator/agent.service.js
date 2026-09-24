@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialcontroller_lyu9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialController) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablematrix_txz9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableMatrix) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepswarm_4qwv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepSwarm) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscontroller_tkfn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessController) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarycore_59b0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCore) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriesswarm_z0vt_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesSwarm) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11052,6 +11092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialcontroller_lyu9_logic": {
+          try {
+            const { OpenFinancialControllerService } = await import("../liberty/openfinancialcontroller_lyu9.service.js");
+            const res = await OpenFinancialControllerService.execute(args.target || "system");
+            return { output: `### OpenFinancialController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialController failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablematrix_txz9_logic": {
+          try {
+            const { OpenImmutableMatrixService } = await import("../liberty/openimmutablematrix_txz9.service.js");
+            const res = await OpenImmutableMatrixService.execute(args.target || "system");
+            return { output: `### OpenImmutableMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepswarm_4qwv_logic": {
+          try {
+            const { OpenDeepSwarmService } = await import("../liberty/opendeepswarm_4qwv.service.js");
+            const res = await OpenDeepSwarmService.execute(args.target || "system");
+            return { output: `### OpenDeepSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscontroller_tkfn_logic": {
+          try {
+            const { OpenHeadlessControllerService } = await import("../liberty/openheadlesscontroller_tkfn.service.js");
+            const res = await OpenHeadlessControllerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessController failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarycore_59b0_logic": {
+          try {
+            const { OpenPlanetaryCoreService } = await import("../liberty/openplanetarycore_59b0.service.js");
+            const res = await OpenPlanetaryCoreService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryCore failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriesswarm_z0vt_logic": {
           try {
             const { OpenTimeSeriesSwarmService } = await import("../liberty/opentime-seriesswarm_z0vt.service.js");
