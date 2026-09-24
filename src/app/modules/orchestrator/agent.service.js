@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessmatrix_logic",
+      description: "Use the Aphura Engine (OpenHeadlessMatrix) to Autonomously deploy Headless CMS Routing architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessgraph_logic",
+      description: "Use the Aphura Engine (OpenHeadlessGraph) to Autonomously deploy Headless CMS Routing architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphiccore_logic",
+      description: "Use the Aphura Engine (OpenHomomorphicCore) to Autonomously deploy Homomorphic Encryption architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphplane_logic",
+      description: "Use the Aphura Engine (OpenGraphPlane) to Autonomously deploy Graph Neural Networks architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicplane_logic",
+      description: "Use the Aphura Engine (OpenHomomorphicPlane) to Autonomously deploy Homomorphic Encryption architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedstream_logic",
       description: "Use the Aphura Engine (OpenDistributedStream) to Autonomously deploy Distributed Caching architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2252,6 +2292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessmatrix_logic": {
+          try {
+            const { OpenheadlessmatrixService } = await import("../enterprise/openheadlessmatrix.service.js");
+            const res = await OpenheadlessmatrixService.execute(args.target || "system");
+            return { output: `### OpenHeadlessMatrix Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessgraph_logic": {
+          try {
+            const { OpenheadlessgraphService } = await import("../enterprise/openheadlessgraph.service.js");
+            const res = await OpenheadlessgraphService.execute(args.target || "system");
+            return { output: `### OpenHeadlessGraph Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphiccore_logic": {
+          try {
+            const { OpenhomomorphiccoreService } = await import("../enterprise/openhomomorphiccore.service.js");
+            const res = await OpenhomomorphiccoreService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicCore Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphplane_logic": {
+          try {
+            const { OpengraphplaneService } = await import("../enterprise/opengraphplane.service.js");
+            const res = await OpengraphplaneService.execute(args.target || "system");
+            return { output: `### OpenGraphPlane Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicplane_logic": {
+          try {
+            const { OpenhomomorphicplaneService } = await import("../enterprise/openhomomorphicplane.service.js");
+            const res = await OpenhomomorphicplaneService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicPlane Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicPlane failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedstream_logic": {
           try {
             const { OpendistributedstreamService } = await import("../enterprise/opendistributedstream.service.js");
