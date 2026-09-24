@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalswarm_8zl2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalSwarm) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgenet_5a8q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeNet) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativeswarm_j8bl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeSwarm) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticstream_xo21_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticStream) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentplane_hgq2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentPlane) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustgrid_9i7k_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustGrid) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12532,6 +12572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalswarm_8zl2_logic": {
+          try {
+            const { OpenHyperDimensionalSwarmService } = await import("../liberty/openhyper-dimensionalswarm_8zl2.service.js");
+            const res = await OpenHyperDimensionalSwarmService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgenet_5a8q_logic": {
+          try {
+            const { OpenZeroKnowledgeNetService } = await import("../liberty/openzero-knowledgenet_5a8q.service.js");
+            const res = await OpenZeroKnowledgeNetService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativeswarm_j8bl_logic": {
+          try {
+            const { OpenCloudNativeSwarmService } = await import("../liberty/opencloud-nativeswarm_j8bl.service.js");
+            const res = await OpenCloudNativeSwarmService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticstream_xo21_logic": {
+          try {
+            const { OpenStaticStreamService } = await import("../liberty/openstaticstream_xo21.service.js");
+            const res = await OpenStaticStreamService.execute(args.target || "system");
+            return { output: `### OpenStaticStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentplane_hgq2_logic": {
+          try {
+            const { OpenPersistentPlaneService } = await import("../liberty/openpersistentplane_hgq2.service.js");
+            const res = await OpenPersistentPlaneService.execute(args.target || "system");
+            return { output: `### OpenPersistentPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustgrid_9i7k_logic": {
           try {
             const { OpenZeroTrustGridService } = await import("../liberty/openzero-trustgrid_9i7k.service.js");
