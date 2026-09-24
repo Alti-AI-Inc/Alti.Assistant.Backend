@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicmesh_r24f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMesh) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphdaemon_sqwd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphDaemon) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarepipeline_57le_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwarePipeline) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalnexus_v2rk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalNexus) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondlayer_84h3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondLayer) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlesslayer_418s_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessLayer) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19692,6 +19732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicmesh_r24f_logic": {
+          try {
+            const { OpenHomomorphicMeshService } = await import("../liberty/openhomomorphicmesh_r24f.service.js");
+            const res = await OpenHomomorphicMeshService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphdaemon_sqwd_logic": {
+          try {
+            const { OpenGraphDaemonService } = await import("../liberty/opengraphdaemon_sqwd.service.js");
+            const res = await OpenGraphDaemonService.execute(args.target || "system");
+            return { output: `### OpenGraphDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarepipeline_57le_logic": {
+          try {
+            const { OpenHardwarePipelineService } = await import("../liberty/openhardwarepipeline_57le.service.js");
+            const res = await OpenHardwarePipelineService.execute(args.target || "system");
+            return { output: `### OpenHardwarePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwarePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalnexus_v2rk_logic": {
+          try {
+            const { OpenHyperDimensionalNexusService } = await import("../liberty/openhyper-dimensionalnexus_v2rk.service.js");
+            const res = await OpenHyperDimensionalNexusService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondlayer_84h3_logic": {
+          try {
+            const { OpenSubMillisecondLayerService } = await import("../liberty/opensub-millisecondlayer_84h3.service.js");
+            const res = await OpenSubMillisecondLayerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlesslayer_418s_logic": {
           try {
             const { OpenServerlessLayerService } = await import("../liberty/openserverlesslayer_418s.service.js");
