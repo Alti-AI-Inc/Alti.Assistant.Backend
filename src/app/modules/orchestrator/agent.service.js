@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticfabric_6ut9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticFabric) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedmesh_z3wh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedMesh) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgevault_m596_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeVault) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialmesh_2eut_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialMesh) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedmesh_i8fq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedMesh) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgeplane_vvc9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgePlane) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3812,6 +3852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticfabric_6ut9_logic": {
+          try {
+            const { OpenSemanticFabricService } = await import("../liberty/opensemanticfabric_6ut9.service.js");
+            const res = await OpenSemanticFabricService.execute(args.target || "system");
+            return { output: `### OpenSemanticFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedmesh_z3wh_logic": {
+          try {
+            const { OpenFederatedMeshService } = await import("../liberty/openfederatedmesh_z3wh.service.js");
+            const res = await OpenFederatedMeshService.execute(args.target || "system");
+            return { output: `### OpenFederatedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgevault_m596_logic": {
+          try {
+            const { OpenZeroKnowledgeVaultService } = await import("../liberty/openzero-knowledgevault_m596.service.js");
+            const res = await OpenZeroKnowledgeVaultService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialmesh_2eut_logic": {
+          try {
+            const { OpenFinancialMeshService } = await import("../liberty/openfinancialmesh_2eut.service.js");
+            const res = await OpenFinancialMeshService.execute(args.target || "system");
+            return { output: `### OpenFinancialMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedmesh_i8fq_logic": {
+          try {
+            const { OpenAutomatedMeshService } = await import("../liberty/openautomatedmesh_i8fq.service.js");
+            const res = await OpenAutomatedMeshService.execute(args.target || "system");
+            return { output: `### OpenAutomatedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgeplane_vvc9_logic": {
           try {
             const { OpenZeroKnowledgePlaneService } = await import("../liberty/openzero-knowledgeplane_vvc9.service.js");
