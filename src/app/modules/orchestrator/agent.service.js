@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clustercontroller_44og_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterController) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedmesh_mnwa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedMesh) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgeplane_syte_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgePlane) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryledger_1tg4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryLedger) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatednode_ztj0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedNode) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhigh-frequencyproxy_4pfs_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyProxy) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5932,6 +5972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clustercontroller_44og_logic": {
+          try {
+            const { OpenCrossClusterControllerService } = await import("../liberty/opencross-clustercontroller_44og.service.js");
+            const res = await OpenCrossClusterControllerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterController failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedmesh_mnwa_logic": {
+          try {
+            const { OpenAutomatedMeshService } = await import("../liberty/openautomatedmesh_mnwa.service.js");
+            const res = await OpenAutomatedMeshService.execute(args.target || "system");
+            return { output: `### OpenAutomatedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgeplane_syte_logic": {
+          try {
+            const { OpenZeroKnowledgePlaneService } = await import("../liberty/openzero-knowledgeplane_syte.service.js");
+            const res = await OpenZeroKnowledgePlaneService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryledger_1tg4_logic": {
+          try {
+            const { OpenInMemoryLedgerService } = await import("../liberty/openin-memoryledger_1tg4.service.js");
+            const res = await OpenInMemoryLedgerService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatednode_ztj0_logic": {
+          try {
+            const { OpenAutomatedNodeService } = await import("../liberty/openautomatednode_ztj0.service.js");
+            const res = await OpenAutomatedNodeService.execute(args.target || "system");
+            return { output: `### OpenAutomatedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedNode failed: ${err.message}` };
+          }
+        }
         case "execute_openhigh-frequencyproxy_4pfs_logic": {
           try {
             const { OpenHighFrequencyProxyService } = await import("../liberty/openhigh-frequencyproxy_4pfs.service.js");
