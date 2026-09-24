@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterpriseswarm_opiy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseSwarm) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryproxy_wpzm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryProxy) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticswarm_y7gc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticSwarm) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentring_1zjm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentRing) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondnexus_cf2r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondNexus) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedrouter_2wdm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21732,6 +21772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterpriseswarm_opiy_logic": {
+          try {
+            const { OpenEnterpriseSwarmService } = await import("../liberty/openenterpriseswarm_opiy.service.js");
+            const res = await OpenEnterpriseSwarmService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryproxy_wpzm_logic": {
+          try {
+            const { OpenPlanetaryProxyService } = await import("../liberty/openplanetaryproxy_wpzm.service.js");
+            const res = await OpenPlanetaryProxyService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticswarm_y7gc_logic": {
+          try {
+            const { OpenSemanticSwarmService } = await import("../liberty/opensemanticswarm_y7gc.service.js");
+            const res = await OpenSemanticSwarmService.execute(args.target || "system");
+            return { output: `### OpenSemanticSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentring_1zjm_logic": {
+          try {
+            const { OpenPersistentRingService } = await import("../liberty/openpersistentring_1zjm.service.js");
+            const res = await OpenPersistentRingService.execute(args.target || "system");
+            return { output: `### OpenPersistentRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondnexus_cf2r_logic": {
+          try {
+            const { OpenSubMillisecondNexusService } = await import("../liberty/opensub-millisecondnexus_cf2r.service.js");
+            const res = await OpenSubMillisecondNexusService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondNexus failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedrouter_2wdm_logic": {
           try {
             const { OpenDecentralizedRouterService } = await import("../liberty/opendecentralizedrouter_2wdm.service.js");
