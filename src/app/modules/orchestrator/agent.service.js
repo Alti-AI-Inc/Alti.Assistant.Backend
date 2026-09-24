@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticnet_3ryb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticNet) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarenode_y1x7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareNode) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgprouter_2nxm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPRouter) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectornexus_bahn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorNexus) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicswarm_gk2m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicSwarm) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgecluster_krrb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeCluster) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5412,6 +5452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticnet_3ryb_logic": {
+          try {
+            const { OpenStaticNetService } = await import("../liberty/openstaticnet_3ryb.service.js");
+            const res = await OpenStaticNetService.execute(args.target || "system");
+            return { output: `### OpenStaticNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarenode_y1x7_logic": {
+          try {
+            const { OpenHardwareNodeService } = await import("../liberty/openhardwarenode_y1x7.service.js");
+            const res = await OpenHardwareNodeService.execute(args.target || "system");
+            return { output: `### OpenHardwareNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgprouter_2nxm_logic": {
+          try {
+            const { OpenBGPRouterService } = await import("../liberty/openbgprouter_2nxm.service.js");
+            const res = await OpenBGPRouterService.execute(args.target || "system");
+            return { output: `### OpenBGPRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectornexus_bahn_logic": {
+          try {
+            const { OpenVectorNexusService } = await import("../liberty/openvectornexus_bahn.service.js");
+            const res = await OpenVectorNexusService.execute(args.target || "system");
+            return { output: `### OpenVectorNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicswarm_gk2m_logic": {
+          try {
+            const { OpenNeuromorphicSwarmService } = await import("../liberty/openneuromorphicswarm_gk2m.service.js");
+            const res = await OpenNeuromorphicSwarmService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openedgecluster_krrb_logic": {
           try {
             const { OpenEdgeClusterService } = await import("../liberty/openedgecluster_krrb.service.js");
