@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentlayer_vwj2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentLayer) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticbroker_ve2b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticBroker) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedledger_mrn4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLedger) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterdaemon_etcp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterDaemon) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuring_mlx4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPURing) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivedaemon_w24r_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveDaemon) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15332,6 +15372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentlayer_vwj2_logic": {
+          try {
+            const { OpenPersistentLayerService } = await import("../liberty/openpersistentlayer_vwj2.service.js");
+            const res = await OpenPersistentLayerService.execute(args.target || "system");
+            return { output: `### OpenPersistentLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticbroker_ve2b_logic": {
+          try {
+            const { OpenStaticBrokerService } = await import("../liberty/openstaticbroker_ve2b.service.js");
+            const res = await OpenStaticBrokerService.execute(args.target || "system");
+            return { output: `### OpenStaticBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedledger_mrn4_logic": {
+          try {
+            const { OpenDecentralizedLedgerService } = await import("../liberty/opendecentralizedledger_mrn4.service.js");
+            const res = await OpenDecentralizedLedgerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterdaemon_etcp_logic": {
+          try {
+            const { OpenCrossClusterDaemonService } = await import("../liberty/opencross-clusterdaemon_etcp.service.js");
+            const res = await OpenCrossClusterDaemonService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuring_mlx4_logic": {
+          try {
+            const { OpenGPURingService } = await import("../liberty/opengpuring_mlx4.service.js");
+            const res = await OpenGPURingService.execute(args.target || "system");
+            return { output: `### OpenGPURing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPURing failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivedaemon_w24r_logic": {
           try {
             const { OpenPredictiveDaemonService } = await import("../liberty/openpredictivedaemon_w24r.service.js");
