@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentfabric_61av_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentFabric) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventchain_f20y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventChain) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributednode_o8pn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedNode) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustrouter_nq29_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustRouter) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosgraph_kkrf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosGraph) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizeddaemon_pimm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedDaemon) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6212,6 +6252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentfabric_61av_logic": {
+          try {
+            const { OpenPersistentFabricService } = await import("../liberty/openpersistentfabric_61av.service.js");
+            const res = await OpenPersistentFabricService.execute(args.target || "system");
+            return { output: `### OpenPersistentFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventchain_f20y_logic": {
+          try {
+            const { OpenEventChainService } = await import("../liberty/openeventchain_f20y.service.js");
+            const res = await OpenEventChainService.execute(args.target || "system");
+            return { output: `### OpenEventChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributednode_o8pn_logic": {
+          try {
+            const { OpenDistributedNodeService } = await import("../liberty/opendistributednode_o8pn.service.js");
+            const res = await OpenDistributedNodeService.execute(args.target || "system");
+            return { output: `### OpenDistributedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustrouter_nq29_logic": {
+          try {
+            const { OpenZeroTrustRouterService } = await import("../liberty/openzero-trustrouter_nq29.service.js");
+            const res = await OpenZeroTrustRouterService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosgraph_kkrf_logic": {
+          try {
+            const { OpenChaosGraphService } = await import("../liberty/openchaosgraph_kkrf.service.js");
+            const res = await OpenChaosGraphService.execute(args.target || "system");
+            return { output: `### OpenChaosGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosGraph failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizeddaemon_pimm_logic": {
           try {
             const { OpenDecentralizedDaemonService } = await import("../liberty/opendecentralizeddaemon_pimm.service.js");
