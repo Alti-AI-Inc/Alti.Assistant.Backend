@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosbroker_o4c9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosBroker) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiccore_dj1r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicCore) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticchain_cikb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticChain) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedlayer_vgr5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedLayer) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessswarm_pk4w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessSwarm) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancedrouter_0qiq_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedRouter) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4012,6 +4052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosbroker_o4c9_logic": {
+          try {
+            const { OpenChaosBrokerService } = await import("../liberty/openchaosbroker_o4c9.service.js");
+            const res = await OpenChaosBrokerService.execute(args.target || "system");
+            return { output: `### OpenChaosBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiccore_dj1r_logic": {
+          try {
+            const { OpenNeuromorphicCoreService } = await import("../liberty/openneuromorphiccore_dj1r.service.js");
+            const res = await OpenNeuromorphicCoreService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticchain_cikb_logic": {
+          try {
+            const { OpenSemanticChainService } = await import("../liberty/opensemanticchain_cikb.service.js");
+            const res = await OpenSemanticChainService.execute(args.target || "system");
+            return { output: `### OpenSemanticChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedlayer_vgr5_logic": {
+          try {
+            const { OpenFederatedLayerService } = await import("../liberty/openfederatedlayer_vgr5.service.js");
+            const res = await OpenFederatedLayerService.execute(args.target || "system");
+            return { output: `### OpenFederatedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessswarm_pk4w_logic": {
+          try {
+            const { OpenHeadlessSwarmService } = await import("../liberty/openheadlessswarm_pk4w.service.js");
+            const res = await OpenHeadlessSwarmService.execute(args.target || "system");
+            return { output: `### OpenHeadlessSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancedrouter_0qiq_logic": {
           try {
             const { OpenAdvancedRouterService } = await import("../liberty/openadvancedrouter_0qiq.service.js");
