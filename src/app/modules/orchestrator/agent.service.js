@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancednet_2pmc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNet) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicchain_ppw5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicChain) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedplane_fh0x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedPlane) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustvortex_6285_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustVortex) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticcluster_cl0j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticCluster) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustdaemon_guth_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustDaemon) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13932,6 +13972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancednet_2pmc_logic": {
+          try {
+            const { OpenAdvancedNetService } = await import("../liberty/openadvancednet_2pmc.service.js");
+            const res = await OpenAdvancedNetService.execute(args.target || "system");
+            return { output: `### OpenAdvancedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicchain_ppw5_logic": {
+          try {
+            const { OpenNeuromorphicChainService } = await import("../liberty/openneuromorphicchain_ppw5.service.js");
+            const res = await OpenNeuromorphicChainService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedplane_fh0x_logic": {
+          try {
+            const { OpenFederatedPlaneService } = await import("../liberty/openfederatedplane_fh0x.service.js");
+            const res = await OpenFederatedPlaneService.execute(args.target || "system");
+            return { output: `### OpenFederatedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustvortex_6285_logic": {
+          try {
+            const { OpenZeroTrustVortexService } = await import("../liberty/openzero-trustvortex_6285.service.js");
+            const res = await OpenZeroTrustVortexService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticcluster_cl0j_logic": {
+          try {
+            const { OpenStaticClusterService } = await import("../liberty/openstaticcluster_cl0j.service.js");
+            const res = await OpenStaticClusterService.execute(args.target || "system");
+            return { output: `### OpenStaticCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustdaemon_guth_logic": {
           try {
             const { OpenZeroTrustDaemonService } = await import("../liberty/openzero-trustdaemon_guth.service.js");
