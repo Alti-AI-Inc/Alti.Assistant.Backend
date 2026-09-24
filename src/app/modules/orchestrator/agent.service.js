@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterpriselayer_i39q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseLayer) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatamesh_avmj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataMesh) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventvortex_qqif_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventVortex) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventmesh_590e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventMesh) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelnode_bpzx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNode) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedsync_ey3r_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedSync) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15052,6 +15092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterpriselayer_i39q_logic": {
+          try {
+            const { OpenEnterpriseLayerService } = await import("../liberty/openenterpriselayer_i39q.service.js");
+            const res = await OpenEnterpriseLayerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatamesh_avmj_logic": {
+          try {
+            const { OpenDataMeshService } = await import("../liberty/opendatamesh_avmj.service.js");
+            const res = await OpenDataMeshService.execute(args.target || "system");
+            return { output: `### OpenDataMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventvortex_qqif_logic": {
+          try {
+            const { OpenEventVortexService } = await import("../liberty/openeventvortex_qqif.service.js");
+            const res = await OpenEventVortexService.execute(args.target || "system");
+            return { output: `### OpenEventVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventmesh_590e_logic": {
+          try {
+            const { OpenEventMeshService } = await import("../liberty/openeventmesh_590e.service.js");
+            const res = await OpenEventMeshService.execute(args.target || "system");
+            return { output: `### OpenEventMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelnode_bpzx_logic": {
+          try {
+            const { OpenMicroKernelNodeService } = await import("../liberty/openmicro-kernelnode_bpzx.service.js");
+            const res = await OpenMicroKernelNodeService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelNode failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedsync_ey3r_logic": {
           try {
             const { OpenAutomatedSyncService } = await import("../liberty/openautomatedsync_ey3r.service.js");
