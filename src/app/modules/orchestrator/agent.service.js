@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivenexus_vaxr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNexus) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseplane_ghud_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterprisePlane) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednexus_cf42_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNexus) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeswarm_9lko_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSwarm) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticnet_4ngb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticNet) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openneuromorphicstream_2r71_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicStream) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9852,6 +9892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivenexus_vaxr_logic": {
+          try {
+            const { OpenPredictiveNexusService } = await import("../liberty/openpredictivenexus_vaxr.service.js");
+            const res = await OpenPredictiveNexusService.execute(args.target || "system");
+            return { output: `### OpenPredictiveNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseplane_ghud_logic": {
+          try {
+            const { OpenEnterprisePlaneService } = await import("../liberty/openenterpriseplane_ghud.service.js");
+            const res = await OpenEnterprisePlaneService.execute(args.target || "system");
+            return { output: `### OpenEnterprisePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterprisePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednexus_cf42_logic": {
+          try {
+            const { OpenDecentralizedNexusService } = await import("../liberty/opendecentralizednexus_cf42.service.js");
+            const res = await OpenDecentralizedNexusService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeswarm_9lko_logic": {
+          try {
+            const { OpenEdgeSwarmService } = await import("../liberty/openedgeswarm_9lko.service.js");
+            const res = await OpenEdgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenEdgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticnet_4ngb_logic": {
+          try {
+            const { OpenSemanticNetService } = await import("../liberty/opensemanticnet_4ngb.service.js");
+            const res = await OpenSemanticNetService.execute(args.target || "system");
+            return { output: `### OpenSemanticNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticNet failed: ${err.message}` };
+          }
+        }
         case "execute_openneuromorphicstream_2r71_logic": {
           try {
             const { OpenNeuromorphicStreamService } = await import("../liberty/openneuromorphicstream_2r71.service.js");
