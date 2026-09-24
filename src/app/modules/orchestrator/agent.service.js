@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributednode_zapj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedNode) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondpipeline_f6o5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondPipeline) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedrouter_yvor_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizeddaemon_qxps_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedDaemon) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventlayer_ied4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventLayer) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusternexus_7ew8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterNexus) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4492,6 +4532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributednode_zapj_logic": {
+          try {
+            const { OpenDistributedNodeService } = await import("../liberty/opendistributednode_zapj.service.js");
+            const res = await OpenDistributedNodeService.execute(args.target || "system");
+            return { output: `### OpenDistributedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondpipeline_f6o5_logic": {
+          try {
+            const { OpenSubMillisecondPipelineService } = await import("../liberty/opensub-millisecondpipeline_f6o5.service.js");
+            const res = await OpenSubMillisecondPipelineService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedrouter_yvor_logic": {
+          try {
+            const { OpenDecentralizedRouterService } = await import("../liberty/opendecentralizedrouter_yvor.service.js");
+            const res = await OpenDecentralizedRouterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizeddaemon_qxps_logic": {
+          try {
+            const { OpenDecentralizedDaemonService } = await import("../liberty/opendecentralizeddaemon_qxps.service.js");
+            const res = await OpenDecentralizedDaemonService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventlayer_ied4_logic": {
+          try {
+            const { OpenEventLayerService } = await import("../liberty/openeventlayer_ied4.service.js");
+            const res = await OpenEventLayerService.execute(args.target || "system");
+            return { output: `### OpenEventLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventLayer failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusternexus_7ew8_logic": {
           try {
             const { OpenCrossClusterNexusService } = await import("../liberty/opencross-clusternexus_7ew8.service.js");
