@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterpriseengine_1pv6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseEngine) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedpipeline_7amf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedPipeline) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatagraph_6ll5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataGraph) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractgraph_nxdd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractGraph) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-milliseconddaemon_f3up_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondDaemon) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancedmesh_k8oa_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedMesh) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18012,6 +18052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterpriseengine_1pv6_logic": {
+          try {
+            const { OpenEnterpriseEngineService } = await import("../liberty/openenterpriseengine_1pv6.service.js");
+            const res = await OpenEnterpriseEngineService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedpipeline_7amf_logic": {
+          try {
+            const { OpenAdvancedPipelineService } = await import("../liberty/openadvancedpipeline_7amf.service.js");
+            const res = await OpenAdvancedPipelineService.execute(args.target || "system");
+            return { output: `### OpenAdvancedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatagraph_6ll5_logic": {
+          try {
+            const { OpenDataGraphService } = await import("../liberty/opendatagraph_6ll5.service.js");
+            const res = await OpenDataGraphService.execute(args.target || "system");
+            return { output: `### OpenDataGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractgraph_nxdd_logic": {
+          try {
+            const { OpenAbstractGraphService } = await import("../liberty/openabstractgraph_nxdd.service.js");
+            const res = await OpenAbstractGraphService.execute(args.target || "system");
+            return { output: `### OpenAbstractGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-milliseconddaemon_f3up_logic": {
+          try {
+            const { OpenSubMillisecondDaemonService } = await import("../liberty/opensub-milliseconddaemon_f3up.service.js");
+            const res = await OpenSubMillisecondDaemonService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondDaemon failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancedmesh_k8oa_logic": {
           try {
             const { OpenAdvancedMeshService } = await import("../liberty/openadvancedmesh_k8oa.service.js");
