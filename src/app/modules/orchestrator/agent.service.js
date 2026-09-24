@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgecluster_krrb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeCluster) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelnode_6hqc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNode) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarenexus_3bs0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareNexus) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustercontroller_bc4h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterController) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisegraph_kpb3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGraph) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessnode_ig0h_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessNode) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5372,6 +5412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgecluster_krrb_logic": {
+          try {
+            const { OpenEdgeClusterService } = await import("../liberty/openedgecluster_krrb.service.js");
+            const res = await OpenEdgeClusterService.execute(args.target || "system");
+            return { output: `### OpenEdgeCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelnode_6hqc_logic": {
+          try {
+            const { OpenMicroKernelNodeService } = await import("../liberty/openmicro-kernelnode_6hqc.service.js");
+            const res = await OpenMicroKernelNodeService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarenexus_3bs0_logic": {
+          try {
+            const { OpenHardwareNexusService } = await import("../liberty/openhardwarenexus_3bs0.service.js");
+            const res = await OpenHardwareNexusService.execute(args.target || "system");
+            return { output: `### OpenHardwareNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustercontroller_bc4h_logic": {
+          try {
+            const { OpenCrossClusterControllerService } = await import("../liberty/opencross-clustercontroller_bc4h.service.js");
+            const res = await OpenCrossClusterControllerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterController failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisegraph_kpb3_logic": {
+          try {
+            const { OpenEnterpriseGraphService } = await import("../liberty/openenterprisegraph_kpb3.service.js");
+            const res = await OpenEnterpriseGraphService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessnode_ig0h_logic": {
           try {
             const { OpenServerlessNodeService } = await import("../liberty/openserverlessnode_ig0h.service.js");
