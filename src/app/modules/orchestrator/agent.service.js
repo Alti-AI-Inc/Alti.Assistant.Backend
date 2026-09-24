@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengraphrouter_p1ej_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphRouter) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpubroker_nerx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUBroker) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentcore_fm3o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentCore) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiccompiler_yaot_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicCompiler) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractfabric_6c54_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractFabric) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedcluster_mwew_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCluster) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4852,6 +4892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengraphrouter_p1ej_logic": {
+          try {
+            const { OpenGraphRouterService } = await import("../liberty/opengraphrouter_p1ej.service.js");
+            const res = await OpenGraphRouterService.execute(args.target || "system");
+            return { output: `### OpenGraphRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpubroker_nerx_logic": {
+          try {
+            const { OpenGPUBrokerService } = await import("../liberty/opengpubroker_nerx.service.js");
+            const res = await OpenGPUBrokerService.execute(args.target || "system");
+            return { output: `### OpenGPUBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentcore_fm3o_logic": {
+          try {
+            const { OpenPersistentCoreService } = await import("../liberty/openpersistentcore_fm3o.service.js");
+            const res = await OpenPersistentCoreService.execute(args.target || "system");
+            return { output: `### OpenPersistentCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiccompiler_yaot_logic": {
+          try {
+            const { OpenNeuromorphicCompilerService } = await import("../liberty/openneuromorphiccompiler_yaot.service.js");
+            const res = await OpenNeuromorphicCompilerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractfabric_6c54_logic": {
+          try {
+            const { OpenAbstractFabricService } = await import("../liberty/openabstractfabric_6c54.service.js");
+            const res = await OpenAbstractFabricService.execute(args.target || "system");
+            return { output: `### OpenAbstractFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractFabric failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedcluster_mwew_logic": {
           try {
             const { OpenDecentralizedClusterService } = await import("../liberty/opendecentralizedcluster_mwew.service.js");
