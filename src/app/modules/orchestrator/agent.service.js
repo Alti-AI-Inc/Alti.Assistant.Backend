@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwarecontroller_qp6a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareController) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalmatrix_6q37_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalMatrix) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedgraph_ugmm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedGraph) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelplane_numd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelPlane) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractoracle_qnuj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractOracle) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablefabric_bnv1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableFabric) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6492,6 +6532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwarecontroller_qp6a_logic": {
+          try {
+            const { OpenHardwareControllerService } = await import("../liberty/openhardwarecontroller_qp6a.service.js");
+            const res = await OpenHardwareControllerService.execute(args.target || "system");
+            return { output: `### OpenHardwareController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalmatrix_6q37_logic": {
+          try {
+            const { OpenHyperDimensionalMatrixService } = await import("../liberty/openhyper-dimensionalmatrix_6q37.service.js");
+            const res = await OpenHyperDimensionalMatrixService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedgraph_ugmm_logic": {
+          try {
+            const { OpenFederatedGraphService } = await import("../liberty/openfederatedgraph_ugmm.service.js");
+            const res = await OpenFederatedGraphService.execute(args.target || "system");
+            return { output: `### OpenFederatedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelplane_numd_logic": {
+          try {
+            const { OpenMicroKernelPlaneService } = await import("../liberty/openmicro-kernelplane_numd.service.js");
+            const res = await OpenMicroKernelPlaneService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractoracle_qnuj_logic": {
+          try {
+            const { OpenAbstractOracleService } = await import("../liberty/openabstractoracle_qnuj.service.js");
+            const res = await OpenAbstractOracleService.execute(args.target || "system");
+            return { output: `### OpenAbstractOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablefabric_bnv1_logic": {
           try {
             const { OpenImmutableFabricService } = await import("../liberty/openimmutablefabric_bnv1.service.js");
