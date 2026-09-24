@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partydaemon_c2ss_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyDaemon) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatanet_n18t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataNet) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfsync_ve2s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFSync) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticmesh_hv23_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticMesh) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesswarm_2s4a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesSwarm) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventdaemon_z3ms_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventDaemon) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6692,6 +6732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partydaemon_c2ss_logic": {
+          try {
+            const { OpenMultiPartyDaemonService } = await import("../liberty/openmulti-partydaemon_c2ss.service.js");
+            const res = await OpenMultiPartyDaemonService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatanet_n18t_logic": {
+          try {
+            const { OpenDataNetService } = await import("../liberty/opendatanet_n18t.service.js");
+            const res = await OpenDataNetService.execute(args.target || "system");
+            return { output: `### OpenDataNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfsync_ve2s_logic": {
+          try {
+            const { OpeneBPFSyncService } = await import("../liberty/openebpfsync_ve2s.service.js");
+            const res = await OpeneBPFSyncService.execute(args.target || "system");
+            return { output: `### OpeneBPFSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticmesh_hv23_logic": {
+          try {
+            const { OpenStaticMeshService } = await import("../liberty/openstaticmesh_hv23.service.js");
+            const res = await OpenStaticMeshService.execute(args.target || "system");
+            return { output: `### OpenStaticMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesswarm_2s4a_logic": {
+          try {
+            const { OpenTimeSeriesSwarmService } = await import("../liberty/opentime-seriesswarm_2s4a.service.js");
+            const res = await OpenTimeSeriesSwarmService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openeventdaemon_z3ms_logic": {
           try {
             const { OpenEventDaemonService } = await import("../liberty/openeventdaemon_z3ms.service.js");
