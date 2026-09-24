@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendnet_9ces_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNet) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogswarm_97tt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogSwarm) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedproxy_vpyf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedProxy) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcontroller_dtw3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedController) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondnexus_ahsp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondNexus) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedvault_c4m8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedVault) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8012,6 +8052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendnet_9ces_logic": {
+          try {
+            const { OpenMicroFrontendNetService } = await import("../liberty/openmicro-frontendnet_9ces.service.js");
+            const res = await OpenMicroFrontendNetService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogswarm_97tt_logic": {
+          try {
+            const { OpenLogSwarmService } = await import("../liberty/openlogswarm_97tt.service.js");
+            const res = await OpenLogSwarmService.execute(args.target || "system");
+            return { output: `### OpenLogSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedproxy_vpyf_logic": {
+          try {
+            const { OpenDecentralizedProxyService } = await import("../liberty/opendecentralizedproxy_vpyf.service.js");
+            const res = await OpenDecentralizedProxyService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcontroller_dtw3_logic": {
+          try {
+            const { OpenDecentralizedControllerService } = await import("../liberty/opendecentralizedcontroller_dtw3.service.js");
+            const res = await OpenDecentralizedControllerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedController failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondnexus_ahsp_logic": {
+          try {
+            const { OpenSubMillisecondNexusService } = await import("../liberty/opensub-millisecondnexus_ahsp.service.js");
+            const res = await OpenSubMillisecondNexusService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedvault_c4m8_logic": {
           try {
             const { OpenAutomatedVaultService } = await import("../liberty/openautomatedvault_c4m8.service.js");
