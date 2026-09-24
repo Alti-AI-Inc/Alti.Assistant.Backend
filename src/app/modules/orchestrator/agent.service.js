@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarypipeline_3yrq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryPipeline) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelfabric_vp8a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelFabric) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosnet_lizp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNet) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractcompiler_ld41_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractCompiler) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicchain_c6os_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicChain) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlessstream_4tl8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessStream) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17252,6 +17292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarypipeline_3yrq_logic": {
+          try {
+            const { OpenPlanetaryPipelineService } = await import("../liberty/openplanetarypipeline_3yrq.service.js");
+            const res = await OpenPlanetaryPipelineService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelfabric_vp8a_logic": {
+          try {
+            const { OpenMicroKernelFabricService } = await import("../liberty/openmicro-kernelfabric_vp8a.service.js");
+            const res = await OpenMicroKernelFabricService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosnet_lizp_logic": {
+          try {
+            const { OpenChaosNetService } = await import("../liberty/openchaosnet_lizp.service.js");
+            const res = await OpenChaosNetService.execute(args.target || "system");
+            return { output: `### OpenChaosNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractcompiler_ld41_logic": {
+          try {
+            const { OpenAbstractCompilerService } = await import("../liberty/openabstractcompiler_ld41.service.js");
+            const res = await OpenAbstractCompilerService.execute(args.target || "system");
+            return { output: `### OpenAbstractCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicchain_c6os_logic": {
+          try {
+            const { OpenHomomorphicChainService } = await import("../liberty/openhomomorphicchain_c6os.service.js");
+            const res = await OpenHomomorphicChainService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicChain failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlessstream_4tl8_logic": {
           try {
             const { OpenHeadlessStreamService } = await import("../liberty/openheadlessstream_4tl8.service.js");
