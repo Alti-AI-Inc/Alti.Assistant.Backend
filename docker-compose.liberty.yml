@@ -2808,3 +2808,68 @@ services:
       - COMPUTE_NODE="Liberty Center One - Alpha"
       - LICENSE_VALIDATION="MIT"
     restart: always
+
+  engine-opengraphgraph:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENGRAPHGRAPH
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Alpha"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-openvectorsync:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENVECTORSYNC
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Alpha"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-opentime-seriessync:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENTIME-SERIESSYNC
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Alpha"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always
+
+  engine-openeventmatrix:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENEVENTMATRIX
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Alpha"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always
+
+  engine-opendistributedcore:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENDISTRIBUTEDCORE
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Alpha"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always

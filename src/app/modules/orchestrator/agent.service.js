@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedcore_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedCore) to Autonomously deploy Distributed Caching architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventmatrix_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventMatrix) to Autonomously deploy Event Streaming architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriessync_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesSync) to Autonomously deploy Time-Series Analytics architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorsync_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorSync) to Autonomously deploy Vector Mathematics architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphgraph_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphGraph) to Autonomously deploy Graph Neural Networks architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialsync_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialSync) to Autonomously deploy Financial Ledger State architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2412,6 +2452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedcore_logic": {
+          try {
+            const { OpendistributedcoreService } = await import("../enterprise/opendistributedcore.service.js");
+            const res = await OpendistributedcoreService.execute(args.target || "system");
+            return { output: `### OpenDistributedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventmatrix_logic": {
+          try {
+            const { OpeneventmatrixService } = await import("../enterprise/openeventmatrix.service.js");
+            const res = await OpeneventmatrixService.execute(args.target || "system");
+            return { output: `### OpenEventMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriessync_logic": {
+          try {
+            const { Opentime-seriessyncService } = await import("../enterprise/opentime-seriessync.service.js");
+            const res = await Opentime-seriessyncService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorsync_logic": {
+          try {
+            const { OpenvectorsyncService } = await import("../enterprise/openvectorsync.service.js");
+            const res = await OpenvectorsyncService.execute(args.target || "system");
+            return { output: `### OpenVectorSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphgraph_logic": {
+          try {
+            const { OpengraphgraphService } = await import("../enterprise/opengraphgraph.service.js");
+            const res = await OpengraphgraphService.execute(args.target || "system");
+            return { output: `### OpenGraphGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialsync_logic": {
           try {
             const { OpenfinancialsyncService } = await import("../enterprise/openfinancialsync.service.js");
