@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialcontroller_vrbl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialController) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessmesh_b5k1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessMesh) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarynet_g7vk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNet) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesmesh_fy8n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesMesh) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpumatrix_u0au_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUMatrix) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedrouter_owac_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedRouter) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13732,6 +13772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialcontroller_vrbl_logic": {
+          try {
+            const { OpenFinancialControllerService } = await import("../liberty/openfinancialcontroller_vrbl.service.js");
+            const res = await OpenFinancialControllerService.execute(args.target || "system");
+            return { output: `### OpenFinancialController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialController failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessmesh_b5k1_logic": {
+          try {
+            const { OpenHeadlessMeshService } = await import("../liberty/openheadlessmesh_b5k1.service.js");
+            const res = await OpenHeadlessMeshService.execute(args.target || "system");
+            return { output: `### OpenHeadlessMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarynet_g7vk_logic": {
+          try {
+            const { OpenPlanetaryNetService } = await import("../liberty/openplanetarynet_g7vk.service.js");
+            const res = await OpenPlanetaryNetService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesmesh_fy8n_logic": {
+          try {
+            const { OpenTimeSeriesMeshService } = await import("../liberty/opentime-seriesmesh_fy8n.service.js");
+            const res = await OpenTimeSeriesMeshService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpumatrix_u0au_logic": {
+          try {
+            const { OpenGPUMatrixService } = await import("../liberty/opengpumatrix_u0au.service.js");
+            const res = await OpenGPUMatrixService.execute(args.target || "system");
+            return { output: `### OpenGPUMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedrouter_owac_logic": {
           try {
             const { OpenFederatedRouterService } = await import("../liberty/openfederatedrouter_owac.service.js");
