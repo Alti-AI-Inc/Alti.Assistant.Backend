@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "apply_multiplayer_edits",
+      description: "Use the Aphura Yjs Sync Engine to seamlessly inject code edits into a live document that the user is currently typing in, preventing merge conflicts.",
+      parameters: { type: "object", properties: { docId: { type: "string" }, edits: { type: "string" } }, required: ["docId", "edits"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "generate_interactive_diagram",
       description: "Use the Aphura Diagram Engine (Excalidraw/Mermaid) to generate a rich, interactive visual architecture map or flowchart instead of just outputting text.",
       parameters: { type: "object", properties: { description: { type: "string" }, type: { type: "string", enum: ["architecture", "flowchart", "sequence"] } }, required: ["description"] }
@@ -716,7 +724,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "generate_interactive_diagram": {
+        case "apply_multiplayer_edits": {
+          try {
+            const { YjsService } = await import("../collaboration/yjs.service.js");
+            const res = await YjsService.syncDocumentState(args.docId, args.edits);
+            return { output: `### Live Collaboration Sync\\n\\n${res.status}` };
+          } catch (err) {
+            return { output: `Sync failed: ${err.message}` };
+          }
+        }        case "generate_interactive_diagram": {
           try {
             const { DiagramService } = await import("../ui/diagram.service.js");
             const res = await DiagramService.generateDiagram(args.description, args.type);
