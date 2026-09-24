@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticnet_btma_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticNet) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriescompiler_2nbd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCompiler) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivelayer_empx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveLayer) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessvortex_tlnf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessVortex) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativematrix_ttxc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeMatrix) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kerneldaemon_rqer_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelDaemon) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18132,6 +18172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticnet_btma_logic": {
+          try {
+            const { OpenSemanticNetService } = await import("../liberty/opensemanticnet_btma.service.js");
+            const res = await OpenSemanticNetService.execute(args.target || "system");
+            return { output: `### OpenSemanticNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriescompiler_2nbd_logic": {
+          try {
+            const { OpenTimeSeriesCompilerService } = await import("../liberty/opentime-seriescompiler_2nbd.service.js");
+            const res = await OpenTimeSeriesCompilerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivelayer_empx_logic": {
+          try {
+            const { OpenPredictiveLayerService } = await import("../liberty/openpredictivelayer_empx.service.js");
+            const res = await OpenPredictiveLayerService.execute(args.target || "system");
+            return { output: `### OpenPredictiveLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessvortex_tlnf_logic": {
+          try {
+            const { OpenHeadlessVortexService } = await import("../liberty/openheadlessvortex_tlnf.service.js");
+            const res = await OpenHeadlessVortexService.execute(args.target || "system");
+            return { output: `### OpenHeadlessVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativematrix_ttxc_logic": {
+          try {
+            const { OpenCloudNativeMatrixService } = await import("../liberty/opencloud-nativematrix_ttxc.service.js");
+            const res = await OpenCloudNativeMatrixService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kerneldaemon_rqer_logic": {
           try {
             const { OpenMicroKernelDaemonService } = await import("../liberty/openmicro-kerneldaemon_rqer.service.js");
