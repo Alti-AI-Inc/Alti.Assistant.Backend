@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalmesh_e5hl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalMesh) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventring_tzjz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventRing) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partymatrix_yu3c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyMatrix) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnode_wny2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNode) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryswarm_yczs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetarySwarm) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpunode_16x8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUNode) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14412,6 +14452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalmesh_e5hl_logic": {
+          try {
+            const { OpenHyperDimensionalMeshService } = await import("../liberty/openhyper-dimensionalmesh_e5hl.service.js");
+            const res = await OpenHyperDimensionalMeshService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventring_tzjz_logic": {
+          try {
+            const { OpenEventRingService } = await import("../liberty/openeventring_tzjz.service.js");
+            const res = await OpenEventRingService.execute(args.target || "system");
+            return { output: `### OpenEventRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partymatrix_yu3c_logic": {
+          try {
+            const { OpenMultiPartyMatrixService } = await import("../liberty/openmulti-partymatrix_yu3c.service.js");
+            const res = await OpenMultiPartyMatrixService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnode_wny2_logic": {
+          try {
+            const { OpenGraphNodeService } = await import("../liberty/opengraphnode_wny2.service.js");
+            const res = await OpenGraphNodeService.execute(args.target || "system");
+            return { output: `### OpenGraphNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryswarm_yczs_logic": {
+          try {
+            const { OpenPlanetarySwarmService } = await import("../liberty/openplanetaryswarm_yczs.service.js");
+            const res = await OpenPlanetarySwarmService.execute(args.target || "system");
+            return { output: `### OpenPlanetarySwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetarySwarm failed: ${err.message}` };
+          }
+        }
         case "execute_opengpunode_16x8_logic": {
           try {
             const { OpenGPUNodeService } = await import("../liberty/opengpunode_16x8.service.js");
