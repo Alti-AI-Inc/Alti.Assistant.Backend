@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgecore_0kef_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCore) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumring_cpmf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumRing) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessvault_le4v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessVault) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticdaemon_m8kt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticDaemon) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelproxy_fcn0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelProxy) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustlayer_nx2z_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustLayer) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21652,6 +21692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgecore_0kef_logic": {
+          try {
+            const { OpenZeroKnowledgeCoreService } = await import("../liberty/openzero-knowledgecore_0kef.service.js");
+            const res = await OpenZeroKnowledgeCoreService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumring_cpmf_logic": {
+          try {
+            const { OpenQuantumRingService } = await import("../liberty/openquantumring_cpmf.service.js");
+            const res = await OpenQuantumRingService.execute(args.target || "system");
+            return { output: `### OpenQuantumRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessvault_le4v_logic": {
+          try {
+            const { OpenHeadlessVaultService } = await import("../liberty/openheadlessvault_le4v.service.js");
+            const res = await OpenHeadlessVaultService.execute(args.target || "system");
+            return { output: `### OpenHeadlessVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticdaemon_m8kt_logic": {
+          try {
+            const { OpenSemanticDaemonService } = await import("../liberty/opensemanticdaemon_m8kt.service.js");
+            const res = await OpenSemanticDaemonService.execute(args.target || "system");
+            return { output: `### OpenSemanticDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelproxy_fcn0_logic": {
+          try {
+            const { OpenMicroKernelProxyService } = await import("../liberty/openmicro-kernelproxy_fcn0.service.js");
+            const res = await OpenMicroKernelProxyService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustlayer_nx2z_logic": {
           try {
             const { OpenZeroTrustLayerService } = await import("../liberty/openzero-trustlayer_nx2z.service.js");
