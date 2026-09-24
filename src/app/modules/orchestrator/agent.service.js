@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosproxy_7fc7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosProxy) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustvault_86t3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustVault) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendsync_9smh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendSync) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustnet_l2ro_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustNet) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventbroker_m2m5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventBroker) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendatanexus_zlbn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataNexus) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8732,6 +8772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosproxy_7fc7_logic": {
+          try {
+            const { OpenChaosProxyService } = await import("../liberty/openchaosproxy_7fc7.service.js");
+            const res = await OpenChaosProxyService.execute(args.target || "system");
+            return { output: `### OpenChaosProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustvault_86t3_logic": {
+          try {
+            const { OpenZeroTrustVaultService } = await import("../liberty/openzero-trustvault_86t3.service.js");
+            const res = await OpenZeroTrustVaultService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendsync_9smh_logic": {
+          try {
+            const { OpenMicroFrontendSyncService } = await import("../liberty/openmicro-frontendsync_9smh.service.js");
+            const res = await OpenMicroFrontendSyncService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustnet_l2ro_logic": {
+          try {
+            const { OpenZeroTrustNetService } = await import("../liberty/openzero-trustnet_l2ro.service.js");
+            const res = await OpenZeroTrustNetService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventbroker_m2m5_logic": {
+          try {
+            const { OpenEventBrokerService } = await import("../liberty/openeventbroker_m2m5.service.js");
+            const res = await OpenEventBrokerService.execute(args.target || "system");
+            return { output: `### OpenEventBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventBroker failed: ${err.message}` };
+          }
+        }
         case "execute_opendatanexus_zlbn_logic": {
           try {
             const { OpenDataNexusService } = await import("../liberty/opendatanexus_zlbn.service.js");
