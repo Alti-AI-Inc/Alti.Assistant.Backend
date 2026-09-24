@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepplane_ge6f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepPlane) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiclayer_j0jl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicLayer) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryrouter_e2nz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryRouter) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partysync_leub_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartySync) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatafabric_vbqq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataFabric) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentpipeline_p7gq_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentPipeline) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9692,6 +9732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepplane_ge6f_logic": {
+          try {
+            const { OpenDeepPlaneService } = await import("../liberty/opendeepplane_ge6f.service.js");
+            const res = await OpenDeepPlaneService.execute(args.target || "system");
+            return { output: `### OpenDeepPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiclayer_j0jl_logic": {
+          try {
+            const { OpenNeuromorphicLayerService } = await import("../liberty/openneuromorphiclayer_j0jl.service.js");
+            const res = await OpenNeuromorphicLayerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryrouter_e2nz_logic": {
+          try {
+            const { OpenInMemoryRouterService } = await import("../liberty/openin-memoryrouter_e2nz.service.js");
+            const res = await OpenInMemoryRouterService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partysync_leub_logic": {
+          try {
+            const { OpenMultiPartySyncService } = await import("../liberty/openmulti-partysync_leub.service.js");
+            const res = await OpenMultiPartySyncService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartySync failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatafabric_vbqq_logic": {
+          try {
+            const { OpenDataFabricService } = await import("../liberty/opendatafabric_vbqq.service.js");
+            const res = await OpenDataFabricService.execute(args.target || "system");
+            return { output: `### OpenDataFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentpipeline_p7gq_logic": {
           try {
             const { OpenPersistentPipelineService } = await import("../liberty/openpersistentpipeline_p7gq.service.js");
