@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosnexus_nt56_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNexus) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisedaemon_w2az_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseDaemon) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticnexus_v7d6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticNexus) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatafabric_6ep3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataFabric) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgepipeline_04bx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgePipeline) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalswarm_8zl2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalSwarm) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12572,6 +12612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosnexus_nt56_logic": {
+          try {
+            const { OpenChaosNexusService } = await import("../liberty/openchaosnexus_nt56.service.js");
+            const res = await OpenChaosNexusService.execute(args.target || "system");
+            return { output: `### OpenChaosNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisedaemon_w2az_logic": {
+          try {
+            const { OpenEnterpriseDaemonService } = await import("../liberty/openenterprisedaemon_w2az.service.js");
+            const res = await OpenEnterpriseDaemonService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticnexus_v7d6_logic": {
+          try {
+            const { OpenSemanticNexusService } = await import("../liberty/opensemanticnexus_v7d6.service.js");
+            const res = await OpenSemanticNexusService.execute(args.target || "system");
+            return { output: `### OpenSemanticNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatafabric_6ep3_logic": {
+          try {
+            const { OpenDataFabricService } = await import("../liberty/opendatafabric_6ep3.service.js");
+            const res = await OpenDataFabricService.execute(args.target || "system");
+            return { output: `### OpenDataFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgepipeline_04bx_logic": {
+          try {
+            const { OpenZeroKnowledgePipelineService } = await import("../liberty/openzero-knowledgepipeline_04bx.service.js");
+            const res = await OpenZeroKnowledgePipelineService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgePipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalswarm_8zl2_logic": {
           try {
             const { OpenHyperDimensionalSwarmService } = await import("../liberty/openhyper-dimensionalswarm_8zl2.service.js");
