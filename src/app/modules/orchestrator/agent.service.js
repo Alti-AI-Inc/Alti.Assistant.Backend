@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhigh-frequencyvortex_pz3p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyVortex) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpusync_krak_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUSync) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablering_qluw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableRing) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictiveoracle_7qac_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveOracle) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryvault_g8a2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryVault) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfvortex_i4va_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFVortex) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19572,6 +19612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhigh-frequencyvortex_pz3p_logic": {
+          try {
+            const { OpenHighFrequencyVortexService } = await import("../liberty/openhigh-frequencyvortex_pz3p.service.js");
+            const res = await OpenHighFrequencyVortexService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpusync_krak_logic": {
+          try {
+            const { OpenGPUSyncService } = await import("../liberty/opengpusync_krak.service.js");
+            const res = await OpenGPUSyncService.execute(args.target || "system");
+            return { output: `### OpenGPUSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablering_qluw_logic": {
+          try {
+            const { OpenImmutableRingService } = await import("../liberty/openimmutablering_qluw.service.js");
+            const res = await OpenImmutableRingService.execute(args.target || "system");
+            return { output: `### OpenImmutableRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictiveoracle_7qac_logic": {
+          try {
+            const { OpenPredictiveOracleService } = await import("../liberty/openpredictiveoracle_7qac.service.js");
+            const res = await OpenPredictiveOracleService.execute(args.target || "system");
+            return { output: `### OpenPredictiveOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryvault_g8a2_logic": {
+          try {
+            const { OpenPlanetaryVaultService } = await import("../liberty/openplanetaryvault_g8a2.service.js");
+            const res = await OpenPlanetaryVaultService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryVault failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfvortex_i4va_logic": {
           try {
             const { OpeneBPFVortexService } = await import("../liberty/openebpfvortex_i4va.service.js");
