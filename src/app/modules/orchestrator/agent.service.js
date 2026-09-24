@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesnet_zvfz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNet) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedlayer_z5it_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedLayer) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcluster_9tsn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPCluster) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedengine_9npk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedEngine) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialpipeline_9ubq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialPipeline) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openlogmesh_d4zp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenLogMesh) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8332,6 +8372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesnet_zvfz_logic": {
+          try {
+            const { OpenTimeSeriesNetService } = await import("../liberty/opentime-seriesnet_zvfz.service.js");
+            const res = await OpenTimeSeriesNetService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedlayer_z5it_logic": {
+          try {
+            const { OpenAutomatedLayerService } = await import("../liberty/openautomatedlayer_z5it.service.js");
+            const res = await OpenAutomatedLayerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcluster_9tsn_logic": {
+          try {
+            const { OpenBGPClusterService } = await import("../liberty/openbgpcluster_9tsn.service.js");
+            const res = await OpenBGPClusterService.execute(args.target || "system");
+            return { output: `### OpenBGPCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedengine_9npk_logic": {
+          try {
+            const { OpenDecentralizedEngineService } = await import("../liberty/opendecentralizedengine_9npk.service.js");
+            const res = await OpenDecentralizedEngineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialpipeline_9ubq_logic": {
+          try {
+            const { OpenFinancialPipelineService } = await import("../liberty/openfinancialpipeline_9ubq.service.js");
+            const res = await OpenFinancialPipelineService.execute(args.target || "system");
+            return { output: `### OpenFinancialPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openlogmesh_d4zp_logic": {
           try {
             const { OpenLogMeshService } = await import("../liberty/openlogmesh_d4zp.service.js");
