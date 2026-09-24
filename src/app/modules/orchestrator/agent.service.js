@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisecontroller_ggn1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseController) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventswarm_zcum_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventSwarm) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelvault_5q7l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelVault) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivegrid_hxr5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveGrid) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionaloracle_0d7u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalOracle) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfvortex_mnz2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFVortex) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15892,6 +15932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisecontroller_ggn1_logic": {
+          try {
+            const { OpenEnterpriseControllerService } = await import("../liberty/openenterprisecontroller_ggn1.service.js");
+            const res = await OpenEnterpriseControllerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseController failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventswarm_zcum_logic": {
+          try {
+            const { OpenEventSwarmService } = await import("../liberty/openeventswarm_zcum.service.js");
+            const res = await OpenEventSwarmService.execute(args.target || "system");
+            return { output: `### OpenEventSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelvault_5q7l_logic": {
+          try {
+            const { OpenMicroKernelVaultService } = await import("../liberty/openmicro-kernelvault_5q7l.service.js");
+            const res = await OpenMicroKernelVaultService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivegrid_hxr5_logic": {
+          try {
+            const { OpenPredictiveGridService } = await import("../liberty/openpredictivegrid_hxr5.service.js");
+            const res = await OpenPredictiveGridService.execute(args.target || "system");
+            return { output: `### OpenPredictiveGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionaloracle_0d7u_logic": {
+          try {
+            const { OpenHyperDimensionalOracleService } = await import("../liberty/openhyper-dimensionaloracle_0d7u.service.js");
+            const res = await OpenHyperDimensionalOracleService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfvortex_mnz2_logic": {
           try {
             const { OpeneBPFVortexService } = await import("../liberty/openebpfvortex_mnz2.service.js");
