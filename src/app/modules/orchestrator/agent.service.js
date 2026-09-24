@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedrouter_owac_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedRouter) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarybroker_ttsk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryBroker) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgppipeline_a79b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPPipeline) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticfabric_qi90_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticFabric) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeeprouter_eke2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepRouter) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgecontroller_1nuf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeController) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13692,6 +13732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedrouter_owac_logic": {
+          try {
+            const { OpenFederatedRouterService } = await import("../liberty/openfederatedrouter_owac.service.js");
+            const res = await OpenFederatedRouterService.execute(args.target || "system");
+            return { output: `### OpenFederatedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarybroker_ttsk_logic": {
+          try {
+            const { OpenPlanetaryBrokerService } = await import("../liberty/openplanetarybroker_ttsk.service.js");
+            const res = await OpenPlanetaryBrokerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgppipeline_a79b_logic": {
+          try {
+            const { OpenBGPPipelineService } = await import("../liberty/openbgppipeline_a79b.service.js");
+            const res = await OpenBGPPipelineService.execute(args.target || "system");
+            return { output: `### OpenBGPPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticfabric_qi90_logic": {
+          try {
+            const { OpenSemanticFabricService } = await import("../liberty/opensemanticfabric_qi90.service.js");
+            const res = await OpenSemanticFabricService.execute(args.target || "system");
+            return { output: `### OpenSemanticFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeeprouter_eke2_logic": {
+          try {
+            const { OpenDeepRouterService } = await import("../liberty/opendeeprouter_eke2.service.js");
+            const res = await OpenDeepRouterService.execute(args.target || "system");
+            return { output: `### OpenDeepRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openedgecontroller_1nuf_logic": {
           try {
             const { OpenEdgeControllerService } = await import("../liberty/openedgecontroller_1nuf.service.js");
