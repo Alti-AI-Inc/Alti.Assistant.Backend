@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticnode_f35e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticNode) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorcluster_dkh0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorCluster) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycompiler_nydg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyCompiler) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgeledger_eaop_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeLedger) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicvortex_50i4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicVortex) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterchain_6suz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterChain) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2692,6 +2732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticnode_f35e_logic": {
+          try {
+            const { OpenStaticNodeService } = await import("../liberty/openstaticnode_f35e.service.js");
+            const res = await OpenStaticNodeService.execute(args.target || "system");
+            return { output: `### OpenStaticNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorcluster_dkh0_logic": {
+          try {
+            const { OpenVectorClusterService } = await import("../liberty/openvectorcluster_dkh0.service.js");
+            const res = await OpenVectorClusterService.execute(args.target || "system");
+            return { output: `### OpenVectorCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycompiler_nydg_logic": {
+          try {
+            const { OpenHighFrequencyCompilerService } = await import("../liberty/openhigh-frequencycompiler_nydg.service.js");
+            const res = await OpenHighFrequencyCompilerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgeledger_eaop_logic": {
+          try {
+            const { OpenZeroKnowledgeLedgerService } = await import("../liberty/openzero-knowledgeledger_eaop.service.js");
+            const res = await OpenZeroKnowledgeLedgerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicvortex_50i4_logic": {
+          try {
+            const { OpenHomomorphicVortexService } = await import("../liberty/openhomomorphicvortex_50i4.service.js");
+            const res = await OpenHomomorphicVortexService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicVortex failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterchain_6suz_logic": {
           try {
             const { OpenCrossClusterChainService } = await import("../liberty/opencross-clusterchain_6suz.service.js");
