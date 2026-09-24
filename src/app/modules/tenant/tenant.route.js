@@ -1267,6 +1267,39 @@ router.delete(
 );
 
 /**
+ * @swagger
+ * /api/v1/tenant/{tenantId}/transfer-ownership:
+ *   post:
+ *     summary: Transfer tenant ownership (Owner only)
+ *     description: Transfers ownership of the tenant to another member.
+ *     tags:
+ *       - Tenant Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/tenantIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               newOwnerId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Ownership transferred successfully.
+ *       403:
+ *         description: Only the current owner can transfer ownership
+ */
+router.post(
+  '/:tenantId/transfer-ownership',
+  auth(ENUM_USER_ROLE.ADMIN),
+  tenantController.transferOwnership
+);
+
+/**
  * @description Exports the tenant router for use in the main application.
  * @constant
  * @type {express.Router}

@@ -226,6 +226,22 @@ OUTPUT FORMAT DIRECTIVES:
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
+    // Hard-Stop Orchestration Cost Capping
+    if (userId) {
+      try {
+        const { checkUsageLimit, incrementUsage } = await import('../subscription/subscription.service.js');
+        const limitCheck = await checkUsageLimit(userId, 'webSearch');
+        if (limitCheck && !limitCheck.allowed) {
+          res.write(`data: {"error":"Usage limit exceeded for your current plan. Please upgrade to continue using the intelligence engine."}\n\n`);
+          res.end();
+          return;
+        }
+        await incrementUsage(userId, 'webSearch');
+      } catch (err) {
+        logger.warn(`[SovereignRouter] Cost cap check failed: ${err.message}`);
+      }
+    }
+
     const convId = sessionId || `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     res.write(`data: ${JSON.stringify({ type: 'connected', conversationId: convId })}\n\n`);
@@ -342,6 +358,22 @@ OUTPUT FORMAT DIRECTIVES:
    */
   async handlePromptJson({ prompt, sessionId, userId, userContext }) {
     const pipelineStart = Date.now();
+    
+    // Hard-Stop Orchestration Cost Capping
+    if (userId) {
+      try {
+        const { checkUsageLimit, incrementUsage } = await import('../subscription/subscription.service.js');
+        const limitCheck = await checkUsageLimit(userId, 'webSearch');
+        if (limitCheck && !limitCheck.allowed) {
+          throw new Error('Usage limit exceeded for your current plan. Please upgrade to continue using the intelligence engine.');
+        }
+        await incrementUsage(userId, 'webSearch');
+      } catch (err) {
+        if (err.message.includes('Usage limit exceeded')) throw err;
+        logger.warn(`[SovereignRouter] Cost cap check failed: ${err.message}`);
+      }
+    }
+
     const convId = sessionId || `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Load conversation context

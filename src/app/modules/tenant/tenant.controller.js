@@ -1408,6 +1408,21 @@ const getTenantUserCount = catchAsync(async (req, res) => {
  * @property {function(import('express').Request, import('express').Response): Promise<void>} getTenantLimits - Controller for getting tenant resource limits.
  * @property {function(import('express').Request, import('express').Response): Promise<void>} checkSubdomainAvailability - Controller for checking subdomain availability.
  */
+const transferOwnership = catchAsync(async (req, res) => {
+  const { tenantId } = req.params;
+  const { newOwnerId } = req.body;
+  const currentOwnerId = req.user.userId || req.user._id;
+
+  const result = await tenantService.transferOwnership(tenantId, newOwnerId, currentOwnerId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Ownership transferred successfully',
+    data: result,
+  });
+});
+
 export const tenantController = {
   createTenant,
   getCurrentTenant,
@@ -1424,4 +1439,5 @@ export const tenantController = {
   getTenantUsage,
   getTenantLimits,
   checkSubdomainAvailability,
+  transferOwnership,
 };

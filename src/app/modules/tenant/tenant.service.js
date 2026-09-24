@@ -268,7 +268,26 @@ const deleteTenant = async (tenantId) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
   }
 
+  // 1. Cancel active Stripe Subscriptions
+  try {
+    const Subscription = (await import('../subscription/subscription.model.js')).default;
+    const subscription = await Subscription.findOne({ tenantId });
+    if (subscription && subscription.stripeSubscriptionId) {
+      const { cancelSubscriptionService } = await import('../stripe/subscription.service.js');
+      await cancelSubscriptionService(subscription.stripeSubscriptionId);
+      logger.info(`Cancelled Stripe subscription for deleted tenant: ${tenantId}`);
+    }
+  } catch (error) {
+    logger.error(`Failed to cancel subscription during tenant deletion: ${error.message}`);
+  }
+
+  // 2. Soft delete tenant and members
   await tenant.softDelete();
+  
+  try {
+    const TenantMember = (await import('./tenantMember.model.js')).default;
+    await TenantMember.updateMany({ tenantId }, { isDeleted: true, deletedAt: new Date() });
+  } catch(e) {}
 
   logger.info(`Tenant deleted: ${tenantId}`);
 };
@@ -946,6 +965,35 @@ const getTenantUserCount = async (tenantId) => {
  * @namespace tenantService
  * @description Provides service functions for managing tenants and their members.
  */
+const transferOwnership = async (tenantId, newOwnerId, currentOwnerId) => {
+  const tenant = await Tenant.findById(tenantId);
+  if (!tenant) throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  
+  if (tenant.owner.toString() !== currentOwnerId.toString()) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only the current owner can transfer ownership');
+  }
+
+  const newOwnerMember = await TenantMember.findOne({ tenantId, userId: newOwnerId });
+  if (!newOwnerMember) throw new ApiError(httpStatus.BAD_REQUEST, 'New owner must be an existing member of the tenant');
+
+  // Perform transfer
+  tenant.owner = newOwnerId;
+  await tenant.save();
+
+  // Update roles
+  newOwnerMember.role = 'admin';
+  await newOwnerMember.save();
+
+  const currentOwnerMember = await TenantMember.findOne({ tenantId, userId: currentOwnerId });
+  if (currentOwnerMember) {
+    currentOwnerMember.role = 'user';
+    await currentOwnerMember.save();
+  }
+  
+  logger.info(`Ownership of tenant ${tenantId} transferred to ${newOwnerId}`);
+  return tenant;
+};
+
 export const tenantService = {
   createTenant,
   getTenantById,
@@ -961,4 +1009,5 @@ export const tenantService = {
   getTenantUsage,
   getTenantLimits,
   checkSubdomainAvailability,
+  transferOwnership,
 };
