@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "crawl_website",
+      description: "Use the Aphura supersonic crawler (Crawl4AI) to rip an entire website, documentation, or sitemap and return the clean markdown instantly.",
+      parameters: { type: "object", properties: { url: { type: "string" }, depth: { type: "number" } }, required: ["url"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "query_knowledge_graph",
       description: "Query the Aphura Knowledge Graph (GraphRAG) to synthesize global context and find deep entity relationships across massive amounts of documents.",
       parameters: { type: "object", properties: { query: { type: "string" }, graphId: { type: "string" } }, required: ["query", "graphId"] }
@@ -636,7 +644,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "query_knowledge_graph": {
+        case "crawl_website": {
+          try {
+            const { CrawlerService } = await import("../browser/crawler.service.js");
+            const res = await CrawlerService.crawlWebsite(args.url, args.depth || 1);
+            return { output: `### Crawl Result\\n\\n${res.markdown}` };
+          } catch (err) {
+            return { output: `Crawl failed: ${err.message}` };
+          }
+        }        case "query_knowledge_graph": {
           try {
             const { GraphRAGService } = await import("../rag/graphrag.service.js");
             const res = await GraphRAGService.queryGraph(args.query, args.graphId);
