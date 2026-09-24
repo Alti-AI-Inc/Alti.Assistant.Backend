@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedvault_dcsp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedVault) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativelayer_r6nx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeLayer) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedcompiler_bsuh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedCompiler) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustervault_eu63_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterVault) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwareengine_6k83_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareEngine) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfnexus_8fac_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFNexus) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13332,6 +13372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedvault_dcsp_logic": {
+          try {
+            const { OpenAdvancedVaultService } = await import("../liberty/openadvancedvault_dcsp.service.js");
+            const res = await OpenAdvancedVaultService.execute(args.target || "system");
+            return { output: `### OpenAdvancedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativelayer_r6nx_logic": {
+          try {
+            const { OpenCloudNativeLayerService } = await import("../liberty/opencloud-nativelayer_r6nx.service.js");
+            const res = await OpenCloudNativeLayerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedcompiler_bsuh_logic": {
+          try {
+            const { OpenDistributedCompilerService } = await import("../liberty/opendistributedcompiler_bsuh.service.js");
+            const res = await OpenDistributedCompilerService.execute(args.target || "system");
+            return { output: `### OpenDistributedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustervault_eu63_logic": {
+          try {
+            const { OpenCrossClusterVaultService } = await import("../liberty/opencross-clustervault_eu63.service.js");
+            const res = await OpenCrossClusterVaultService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwareengine_6k83_logic": {
+          try {
+            const { OpenHardwareEngineService } = await import("../liberty/openhardwareengine_6k83.service.js");
+            const res = await OpenHardwareEngineService.execute(args.target || "system");
+            return { output: `### OpenHardwareEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfnexus_8fac_logic": {
           try {
             const { OpeneBPFNexusService } = await import("../liberty/openebpfnexus_8fac.service.js");
