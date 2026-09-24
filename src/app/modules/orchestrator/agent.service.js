@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfproxy_z5zc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFProxy) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisegrid_z8cz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGrid) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalnexus_x8x9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalNexus) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfchain_s91m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFChain) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscore_sxn7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCore) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelnet_c8rb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNet) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9052,6 +9092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfproxy_z5zc_logic": {
+          try {
+            const { OpeneBPFProxyService } = await import("../liberty/openebpfproxy_z5zc.service.js");
+            const res = await OpeneBPFProxyService.execute(args.target || "system");
+            return { output: `### OpeneBPFProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisegrid_z8cz_logic": {
+          try {
+            const { OpenEnterpriseGridService } = await import("../liberty/openenterprisegrid_z8cz.service.js");
+            const res = await OpenEnterpriseGridService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalnexus_x8x9_logic": {
+          try {
+            const { OpenHyperDimensionalNexusService } = await import("../liberty/openhyper-dimensionalnexus_x8x9.service.js");
+            const res = await OpenHyperDimensionalNexusService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfchain_s91m_logic": {
+          try {
+            const { OpeneBPFChainService } = await import("../liberty/openebpfchain_s91m.service.js");
+            const res = await OpeneBPFChainService.execute(args.target || "system");
+            return { output: `### OpeneBPFChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscore_sxn7_logic": {
+          try {
+            const { OpenHeadlessCoreService } = await import("../liberty/openheadlesscore_sxn7.service.js");
+            const res = await OpenHeadlessCoreService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCore failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelnet_c8rb_logic": {
           try {
             const { OpenMicroKernelNetService } = await import("../liberty/openmicro-kernelnet_c8rb.service.js");
