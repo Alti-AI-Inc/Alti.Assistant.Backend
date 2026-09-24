@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriescluster_h9e5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCluster) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecore_gfrq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareCore) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiccluster_vnp6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicCluster) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialengine_788l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialEngine) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelcompiler_2bdo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelCompiler) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepbroker_wzeh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepBroker) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4332,6 +4372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriescluster_h9e5_logic": {
+          try {
+            const { OpenTimeSeriesClusterService } = await import("../liberty/opentime-seriescluster_h9e5.service.js");
+            const res = await OpenTimeSeriesClusterService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecore_gfrq_logic": {
+          try {
+            const { OpenHardwareCoreService } = await import("../liberty/openhardwarecore_gfrq.service.js");
+            const res = await OpenHardwareCoreService.execute(args.target || "system");
+            return { output: `### OpenHardwareCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiccluster_vnp6_logic": {
+          try {
+            const { OpenNeuromorphicClusterService } = await import("../liberty/openneuromorphiccluster_vnp6.service.js");
+            const res = await OpenNeuromorphicClusterService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialengine_788l_logic": {
+          try {
+            const { OpenFinancialEngineService } = await import("../liberty/openfinancialengine_788l.service.js");
+            const res = await OpenFinancialEngineService.execute(args.target || "system");
+            return { output: `### OpenFinancialEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelcompiler_2bdo_logic": {
+          try {
+            const { OpenMicroKernelCompilerService } = await import("../liberty/openmicro-kernelcompiler_2bdo.service.js");
+            const res = await OpenMicroKernelCompilerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepbroker_wzeh_logic": {
           try {
             const { OpenDeepBrokerService } = await import("../liberty/opendeepbroker_wzeh.service.js");
