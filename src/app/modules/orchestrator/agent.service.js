@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustlayer_nx2z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustLayer) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpugraph_42yf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUGraph) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecore_u0j1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCore) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatapipeline_89sf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataPipeline) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticgraph_8y1y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticGraph) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedmatrix_m3d9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedMatrix) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21612,6 +21652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustlayer_nx2z_logic": {
+          try {
+            const { OpenZeroTrustLayerService } = await import("../liberty/openzero-trustlayer_nx2z.service.js");
+            const res = await OpenZeroTrustLayerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpugraph_42yf_logic": {
+          try {
+            const { OpenGPUGraphService } = await import("../liberty/opengpugraph_42yf.service.js");
+            const res = await OpenGPUGraphService.execute(args.target || "system");
+            return { output: `### OpenGPUGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecore_u0j1_logic": {
+          try {
+            const { OpenCloudNativeCoreService } = await import("../liberty/opencloud-nativecore_u0j1.service.js");
+            const res = await OpenCloudNativeCoreService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatapipeline_89sf_logic": {
+          try {
+            const { OpenDataPipelineService } = await import("../liberty/opendatapipeline_89sf.service.js");
+            const res = await OpenDataPipelineService.execute(args.target || "system");
+            return { output: `### OpenDataPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticgraph_8y1y_logic": {
+          try {
+            const { OpenStaticGraphService } = await import("../liberty/openstaticgraph_8y1y.service.js");
+            const res = await OpenStaticGraphService.execute(args.target || "system");
+            return { output: `### OpenStaticGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedmatrix_m3d9_logic": {
           try {
             const { OpenFederatedMatrixService } = await import("../liberty/openfederatedmatrix_m3d9.service.js");
