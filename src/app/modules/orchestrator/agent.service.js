@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedpipeline_olyk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedPipeline) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumdaemon_bosd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumDaemon) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscluster_xz9x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCluster) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosmatrix_9411_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosMatrix) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticchain_g5o6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticChain) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpupipeline_9mkw_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUPipeline) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21212,6 +21252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedpipeline_olyk_logic": {
+          try {
+            const { OpenDistributedPipelineService } = await import("../liberty/opendistributedpipeline_olyk.service.js");
+            const res = await OpenDistributedPipelineService.execute(args.target || "system");
+            return { output: `### OpenDistributedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumdaemon_bosd_logic": {
+          try {
+            const { OpenQuantumDaemonService } = await import("../liberty/openquantumdaemon_bosd.service.js");
+            const res = await OpenQuantumDaemonService.execute(args.target || "system");
+            return { output: `### OpenQuantumDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscluster_xz9x_logic": {
+          try {
+            const { OpenChaosClusterService } = await import("../liberty/openchaoscluster_xz9x.service.js");
+            const res = await OpenChaosClusterService.execute(args.target || "system");
+            return { output: `### OpenChaosCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosmatrix_9411_logic": {
+          try {
+            const { OpenChaosMatrixService } = await import("../liberty/openchaosmatrix_9411.service.js");
+            const res = await OpenChaosMatrixService.execute(args.target || "system");
+            return { output: `### OpenChaosMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticchain_g5o6_logic": {
+          try {
+            const { OpenStaticChainService } = await import("../liberty/openstaticchain_g5o6.service.js");
+            const res = await OpenStaticChainService.execute(args.target || "system");
+            return { output: `### OpenStaticChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticChain failed: ${err.message}` };
+          }
+        }
         case "execute_opengpupipeline_9mkw_logic": {
           try {
             const { OpenGPUPipelineService } = await import("../liberty/opengpupipeline_9mkw.service.js");
