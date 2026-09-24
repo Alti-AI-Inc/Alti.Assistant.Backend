@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivecluster_p6ty_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveCluster) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscluster_r5yq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCluster) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcore_h0s7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedCore) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpupipeline_8b0y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUPipeline) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalsync_psih_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalSync) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgedaemon_hrip_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeDaemon) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13092,6 +13132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivecluster_p6ty_logic": {
+          try {
+            const { OpenPredictiveClusterService } = await import("../liberty/openpredictivecluster_p6ty.service.js");
+            const res = await OpenPredictiveClusterService.execute(args.target || "system");
+            return { output: `### OpenPredictiveCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscluster_r5yq_logic": {
+          try {
+            const { OpenChaosClusterService } = await import("../liberty/openchaoscluster_r5yq.service.js");
+            const res = await OpenChaosClusterService.execute(args.target || "system");
+            return { output: `### OpenChaosCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcore_h0s7_logic": {
+          try {
+            const { OpenAdvancedCoreService } = await import("../liberty/openadvancedcore_h0s7.service.js");
+            const res = await OpenAdvancedCoreService.execute(args.target || "system");
+            return { output: `### OpenAdvancedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpupipeline_8b0y_logic": {
+          try {
+            const { OpenGPUPipelineService } = await import("../liberty/opengpupipeline_8b0y.service.js");
+            const res = await OpenGPUPipelineService.execute(args.target || "system");
+            return { output: `### OpenGPUPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalsync_psih_logic": {
+          try {
+            const { OpenHyperDimensionalSyncService } = await import("../liberty/openhyper-dimensionalsync_psih.service.js");
+            const res = await OpenHyperDimensionalSyncService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalSync failed: ${err.message}` };
+          }
+        }
         case "execute_openedgedaemon_hrip_logic": {
           try {
             const { OpenEdgeDaemonService } = await import("../liberty/openedgedaemon_hrip.service.js");
