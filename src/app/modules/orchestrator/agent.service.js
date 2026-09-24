@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedcluster_mwew_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCluster) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustledger_8vz7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustLedger) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partypipeline_yy9k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyPipeline) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaresync_2taw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareSync) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativebroker_9kdw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeBroker) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedgraph_bx4l_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedGraph) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4812,6 +4852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedcluster_mwew_logic": {
+          try {
+            const { OpenDecentralizedClusterService } = await import("../liberty/opendecentralizedcluster_mwew.service.js");
+            const res = await OpenDecentralizedClusterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustledger_8vz7_logic": {
+          try {
+            const { OpenZeroTrustLedgerService } = await import("../liberty/openzero-trustledger_8vz7.service.js");
+            const res = await OpenZeroTrustLedgerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partypipeline_yy9k_logic": {
+          try {
+            const { OpenMultiPartyPipelineService } = await import("../liberty/openmulti-partypipeline_yy9k.service.js");
+            const res = await OpenMultiPartyPipelineService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaresync_2taw_logic": {
+          try {
+            const { OpenHardwareSyncService } = await import("../liberty/openhardwaresync_2taw.service.js");
+            const res = await OpenHardwareSyncService.execute(args.target || "system");
+            return { output: `### OpenHardwareSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativebroker_9kdw_logic": {
+          try {
+            const { OpenCloudNativeBrokerService } = await import("../liberty/opencloud-nativebroker_9kdw.service.js");
+            const res = await OpenCloudNativeBrokerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeBroker failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedgraph_bx4l_logic": {
           try {
             const { OpenFederatedGraphService } = await import("../liberty/openfederatedgraph_bx4l.service.js");
