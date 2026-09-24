@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondcompiler_j86p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondCompiler) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticmatrix_ik78_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticMatrix) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphproxy_8neo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphProxy) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednode_bqic_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNode) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticplane_kui1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticPlane) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessplane_07tf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessPlane) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18852,6 +18892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondcompiler_j86p_logic": {
+          try {
+            const { OpenSubMillisecondCompilerService } = await import("../liberty/opensub-millisecondcompiler_j86p.service.js");
+            const res = await OpenSubMillisecondCompilerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticmatrix_ik78_logic": {
+          try {
+            const { OpenStaticMatrixService } = await import("../liberty/openstaticmatrix_ik78.service.js");
+            const res = await OpenStaticMatrixService.execute(args.target || "system");
+            return { output: `### OpenStaticMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphproxy_8neo_logic": {
+          try {
+            const { OpenGraphProxyService } = await import("../liberty/opengraphproxy_8neo.service.js");
+            const res = await OpenGraphProxyService.execute(args.target || "system");
+            return { output: `### OpenGraphProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednode_bqic_logic": {
+          try {
+            const { OpenDecentralizedNodeService } = await import("../liberty/opendecentralizednode_bqic.service.js");
+            const res = await OpenDecentralizedNodeService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticplane_kui1_logic": {
+          try {
+            const { OpenStaticPlaneService } = await import("../liberty/openstaticplane_kui1.service.js");
+            const res = await OpenStaticPlaneService.execute(args.target || "system");
+            return { output: `### OpenStaticPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessplane_07tf_logic": {
           try {
             const { OpenServerlessPlaneService } = await import("../liberty/openserverlessplane_07tf.service.js");
