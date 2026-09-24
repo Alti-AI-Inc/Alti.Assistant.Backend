@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivedaemon_wydn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveDaemon) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedchain_5neb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedChain) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractplane_icrc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractPlane) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendproxy_6lbg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendProxy) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedvortex_wvqx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedVortex) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialvault_efny_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialVault) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8932,6 +8972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivedaemon_wydn_logic": {
+          try {
+            const { OpenPredictiveDaemonService } = await import("../liberty/openpredictivedaemon_wydn.service.js");
+            const res = await OpenPredictiveDaemonService.execute(args.target || "system");
+            return { output: `### OpenPredictiveDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedchain_5neb_logic": {
+          try {
+            const { OpenDecentralizedChainService } = await import("../liberty/opendecentralizedchain_5neb.service.js");
+            const res = await OpenDecentralizedChainService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractplane_icrc_logic": {
+          try {
+            const { OpenAbstractPlaneService } = await import("../liberty/openabstractplane_icrc.service.js");
+            const res = await OpenAbstractPlaneService.execute(args.target || "system");
+            return { output: `### OpenAbstractPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendproxy_6lbg_logic": {
+          try {
+            const { OpenMicroFrontendProxyService } = await import("../liberty/openmicro-frontendproxy_6lbg.service.js");
+            const res = await OpenMicroFrontendProxyService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedvortex_wvqx_logic": {
+          try {
+            const { OpenDistributedVortexService } = await import("../liberty/opendistributedvortex_wvqx.service.js");
+            const res = await OpenDistributedVortexService.execute(args.target || "system");
+            return { output: `### OpenDistributedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialvault_efny_logic": {
           try {
             const { OpenFinancialVaultService } = await import("../liberty/openfinancialvault_efny.service.js");
