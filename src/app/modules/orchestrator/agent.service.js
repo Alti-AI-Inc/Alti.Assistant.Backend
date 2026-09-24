@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedbroker_acfv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedBroker) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantummesh_v7gu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumMesh) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedcluster_7a9t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedCluster) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendmatrix_9x4y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendMatrix) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisenexus_i3iv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNexus) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengraphfabric_le6v_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGraphFabric) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19292,6 +19332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedbroker_acfv_logic": {
+          try {
+            const { OpenDecentralizedBrokerService } = await import("../liberty/opendecentralizedbroker_acfv.service.js");
+            const res = await OpenDecentralizedBrokerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantummesh_v7gu_logic": {
+          try {
+            const { OpenQuantumMeshService } = await import("../liberty/openquantummesh_v7gu.service.js");
+            const res = await OpenQuantumMeshService.execute(args.target || "system");
+            return { output: `### OpenQuantumMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedcluster_7a9t_logic": {
+          try {
+            const { OpenDistributedClusterService } = await import("../liberty/opendistributedcluster_7a9t.service.js");
+            const res = await OpenDistributedClusterService.execute(args.target || "system");
+            return { output: `### OpenDistributedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendmatrix_9x4y_logic": {
+          try {
+            const { OpenMicroFrontendMatrixService } = await import("../liberty/openmicro-frontendmatrix_9x4y.service.js");
+            const res = await OpenMicroFrontendMatrixService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisenexus_i3iv_logic": {
+          try {
+            const { OpenEnterpriseNexusService } = await import("../liberty/openenterprisenexus_i3iv.service.js");
+            const res = await OpenEnterpriseNexusService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNexus failed: ${err.message}` };
+          }
+        }
         case "execute_opengraphfabric_le6v_logic": {
           try {
             const { OpenGraphFabricService } = await import("../liberty/opengraphfabric_le6v.service.js");
