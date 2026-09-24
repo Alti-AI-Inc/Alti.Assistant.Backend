@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendataproxy_tfuz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataProxy) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablestream_qagg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableStream) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpproxy_6f5y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPProxy) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuplane_tr21_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUPlane) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedstream_0cx8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedStream) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventnode_eqd9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventNode) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2492,6 +2532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendataproxy_tfuz_logic": {
+          try {
+            const { OpenDataProxyService } = await import("../liberty/opendataproxy_tfuz.service.js");
+            const res = await OpenDataProxyService.execute(args.target || "system");
+            return { output: `### OpenDataProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablestream_qagg_logic": {
+          try {
+            const { OpenImmutableStreamService } = await import("../liberty/openimmutablestream_qagg.service.js");
+            const res = await OpenImmutableStreamService.execute(args.target || "system");
+            return { output: `### OpenImmutableStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpproxy_6f5y_logic": {
+          try {
+            const { OpenBGPProxyService } = await import("../liberty/openbgpproxy_6f5y.service.js");
+            const res = await OpenBGPProxyService.execute(args.target || "system");
+            return { output: `### OpenBGPProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuplane_tr21_logic": {
+          try {
+            const { OpenGPUPlaneService } = await import("../liberty/opengpuplane_tr21.service.js");
+            const res = await OpenGPUPlaneService.execute(args.target || "system");
+            return { output: `### OpenGPUPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedstream_0cx8_logic": {
+          try {
+            const { OpenAutomatedStreamService } = await import("../liberty/openautomatedstream_0cx8.service.js");
+            const res = await OpenAutomatedStreamService.execute(args.target || "system");
+            return { output: `### OpenAutomatedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedStream failed: ${err.message}` };
+          }
+        }
         case "execute_openeventnode_eqd9_logic": {
           try {
             const { OpenEventNodeService } = await import("../liberty/openeventnode_eqd9.service.js");
