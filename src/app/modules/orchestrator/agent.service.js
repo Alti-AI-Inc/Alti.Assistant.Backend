@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivesync_uvrd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveSync) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpproxy_n4xl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPProxy) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecore_7gu1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCore) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedgraph_dm1l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedGraph) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustproxy_ktaj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustProxy) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterfabric_3imp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterFabric) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14292,6 +14332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivesync_uvrd_logic": {
+          try {
+            const { OpenPredictiveSyncService } = await import("../liberty/openpredictivesync_uvrd.service.js");
+            const res = await OpenPredictiveSyncService.execute(args.target || "system");
+            return { output: `### OpenPredictiveSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpproxy_n4xl_logic": {
+          try {
+            const { OpenBGPProxyService } = await import("../liberty/openbgpproxy_n4xl.service.js");
+            const res = await OpenBGPProxyService.execute(args.target || "system");
+            return { output: `### OpenBGPProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecore_7gu1_logic": {
+          try {
+            const { OpenCloudNativeCoreService } = await import("../liberty/opencloud-nativecore_7gu1.service.js");
+            const res = await OpenCloudNativeCoreService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedgraph_dm1l_logic": {
+          try {
+            const { OpenFederatedGraphService } = await import("../liberty/openfederatedgraph_dm1l.service.js");
+            const res = await OpenFederatedGraphService.execute(args.target || "system");
+            return { output: `### OpenFederatedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustproxy_ktaj_logic": {
+          try {
+            const { OpenZeroTrustProxyService } = await import("../liberty/openzero-trustproxy_ktaj.service.js");
+            const res = await OpenZeroTrustProxyService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustProxy failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterfabric_3imp_logic": {
           try {
             const { OpenCrossClusterFabricService } = await import("../liberty/opencross-clusterfabric_3imp.service.js");
