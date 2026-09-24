@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpuvortex_stch_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUVortex) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustpipeline_k0yi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustPipeline) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablemesh_t0aj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableMesh) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondoracle_mued_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondOracle) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partymesh_770g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyMesh) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivecompiler_t34a_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveCompiler) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5012,6 +5052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpuvortex_stch_logic": {
+          try {
+            const { OpenGPUVortexService } = await import("../liberty/opengpuvortex_stch.service.js");
+            const res = await OpenGPUVortexService.execute(args.target || "system");
+            return { output: `### OpenGPUVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustpipeline_k0yi_logic": {
+          try {
+            const { OpenZeroTrustPipelineService } = await import("../liberty/openzero-trustpipeline_k0yi.service.js");
+            const res = await OpenZeroTrustPipelineService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablemesh_t0aj_logic": {
+          try {
+            const { OpenImmutableMeshService } = await import("../liberty/openimmutablemesh_t0aj.service.js");
+            const res = await OpenImmutableMeshService.execute(args.target || "system");
+            return { output: `### OpenImmutableMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondoracle_mued_logic": {
+          try {
+            const { OpenSubMillisecondOracleService } = await import("../liberty/opensub-millisecondoracle_mued.service.js");
+            const res = await OpenSubMillisecondOracleService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partymesh_770g_logic": {
+          try {
+            const { OpenMultiPartyMeshService } = await import("../liberty/openmulti-partymesh_770g.service.js");
+            const res = await OpenMultiPartyMeshService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivecompiler_t34a_logic": {
           try {
             const { OpenPredictiveCompilerService } = await import("../liberty/openpredictivecompiler_t34a.service.js");
