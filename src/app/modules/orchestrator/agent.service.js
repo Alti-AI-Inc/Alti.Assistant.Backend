@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedrouter_2wdm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisedaemon_xlxx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseDaemon) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialvault_mn83_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialVault) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterrouter_58qq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterRouter) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticcompiler_3z4p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticCompiler) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgecore_0kef_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCore) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21692,6 +21732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedrouter_2wdm_logic": {
+          try {
+            const { OpenDecentralizedRouterService } = await import("../liberty/opendecentralizedrouter_2wdm.service.js");
+            const res = await OpenDecentralizedRouterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisedaemon_xlxx_logic": {
+          try {
+            const { OpenEnterpriseDaemonService } = await import("../liberty/openenterprisedaemon_xlxx.service.js");
+            const res = await OpenEnterpriseDaemonService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialvault_mn83_logic": {
+          try {
+            const { OpenFinancialVaultService } = await import("../liberty/openfinancialvault_mn83.service.js");
+            const res = await OpenFinancialVaultService.execute(args.target || "system");
+            return { output: `### OpenFinancialVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterrouter_58qq_logic": {
+          try {
+            const { OpenCrossClusterRouterService } = await import("../liberty/opencross-clusterrouter_58qq.service.js");
+            const res = await OpenCrossClusterRouterService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticcompiler_3z4p_logic": {
+          try {
+            const { OpenStaticCompilerService } = await import("../liberty/openstaticcompiler_3z4p.service.js");
+            const res = await OpenStaticCompilerService.execute(args.target || "system");
+            return { output: `### OpenStaticCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgecore_0kef_logic": {
           try {
             const { OpenZeroKnowledgeCoreService } = await import("../liberty/openzero-knowledgecore_0kef.service.js");
