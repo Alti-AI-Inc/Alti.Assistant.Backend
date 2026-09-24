@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectorstream_vh5s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorStream) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedbroker_6k1d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedBroker) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorsync_cxtw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorSync) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcontroller_e2y9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPController) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesstream_nqk7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesStream) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablelayer_knw5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableLayer) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9172,6 +9212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectorstream_vh5s_logic": {
+          try {
+            const { OpenVectorStreamService } = await import("../liberty/openvectorstream_vh5s.service.js");
+            const res = await OpenVectorStreamService.execute(args.target || "system");
+            return { output: `### OpenVectorStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedbroker_6k1d_logic": {
+          try {
+            const { OpenFederatedBrokerService } = await import("../liberty/openfederatedbroker_6k1d.service.js");
+            const res = await OpenFederatedBrokerService.execute(args.target || "system");
+            return { output: `### OpenFederatedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorsync_cxtw_logic": {
+          try {
+            const { OpenVectorSyncService } = await import("../liberty/openvectorsync_cxtw.service.js");
+            const res = await OpenVectorSyncService.execute(args.target || "system");
+            return { output: `### OpenVectorSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcontroller_e2y9_logic": {
+          try {
+            const { OpenBGPControllerService } = await import("../liberty/openbgpcontroller_e2y9.service.js");
+            const res = await OpenBGPControllerService.execute(args.target || "system");
+            return { output: `### OpenBGPController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPController failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesstream_nqk7_logic": {
+          try {
+            const { OpenTimeSeriesStreamService } = await import("../liberty/opentime-seriesstream_nqk7.service.js");
+            const res = await OpenTimeSeriesStreamService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesStream failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablelayer_knw5_logic": {
           try {
             const { OpenImmutableLayerService } = await import("../liberty/openimmutablelayer_knw5.service.js");
