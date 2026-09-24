@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticfabric_8206_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticFabric) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialdaemon_0bcu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialDaemon) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumnexus_7ilf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumNexus) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticring_xuf4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticRing) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicvortex_idvu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicVortex) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativepipeline_3k2o_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativePipeline) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2892,6 +2932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticfabric_8206_logic": {
+          try {
+            const { OpenSemanticFabricService } = await import("../liberty/opensemanticfabric_8206.service.js");
+            const res = await OpenSemanticFabricService.execute(args.target || "system");
+            return { output: `### OpenSemanticFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialdaemon_0bcu_logic": {
+          try {
+            const { OpenFinancialDaemonService } = await import("../liberty/openfinancialdaemon_0bcu.service.js");
+            const res = await OpenFinancialDaemonService.execute(args.target || "system");
+            return { output: `### OpenFinancialDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumnexus_7ilf_logic": {
+          try {
+            const { OpenQuantumNexusService } = await import("../liberty/openquantumnexus_7ilf.service.js");
+            const res = await OpenQuantumNexusService.execute(args.target || "system");
+            return { output: `### OpenQuantumNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticring_xuf4_logic": {
+          try {
+            const { OpenSemanticRingService } = await import("../liberty/opensemanticring_xuf4.service.js");
+            const res = await OpenSemanticRingService.execute(args.target || "system");
+            return { output: `### OpenSemanticRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicvortex_idvu_logic": {
+          try {
+            const { OpenHomomorphicVortexService } = await import("../liberty/openhomomorphicvortex_idvu.service.js");
+            const res = await OpenHomomorphicVortexService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicVortex failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativepipeline_3k2o_logic": {
           try {
             const { OpenCloudNativePipelineService } = await import("../liberty/opencloud-nativepipeline_3k2o.service.js");
