@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedgraph_bx4l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedGraph) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatamatrix_wcun_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataMatrix) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpufabric_3dmh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUFabric) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticstream_n23r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticStream) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticrouter_gulm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticRouter) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessledger_cnsd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessLedger) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4772,6 +4812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedgraph_bx4l_logic": {
+          try {
+            const { OpenFederatedGraphService } = await import("../liberty/openfederatedgraph_bx4l.service.js");
+            const res = await OpenFederatedGraphService.execute(args.target || "system");
+            return { output: `### OpenFederatedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatamatrix_wcun_logic": {
+          try {
+            const { OpenDataMatrixService } = await import("../liberty/opendatamatrix_wcun.service.js");
+            const res = await OpenDataMatrixService.execute(args.target || "system");
+            return { output: `### OpenDataMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpufabric_3dmh_logic": {
+          try {
+            const { OpenGPUFabricService } = await import("../liberty/opengpufabric_3dmh.service.js");
+            const res = await OpenGPUFabricService.execute(args.target || "system");
+            return { output: `### OpenGPUFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticstream_n23r_logic": {
+          try {
+            const { OpenSemanticStreamService } = await import("../liberty/opensemanticstream_n23r.service.js");
+            const res = await OpenSemanticStreamService.execute(args.target || "system");
+            return { output: `### OpenSemanticStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticrouter_gulm_logic": {
+          try {
+            const { OpenStaticRouterService } = await import("../liberty/openstaticrouter_gulm.service.js");
+            const res = await OpenStaticRouterService.execute(args.target || "system");
+            return { output: `### OpenStaticRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessledger_cnsd_logic": {
           try {
             const { OpenServerlessLedgerService } = await import("../liberty/openserverlessledger_cnsd.service.js");
