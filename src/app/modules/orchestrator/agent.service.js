@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgeengine_sdld_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeEngine) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpustream_d516_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUStream) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphlayer_l18r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphLayer) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpucluster_iul4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUCluster) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partysync_psd6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartySync) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfcontroller_hse9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFController) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3692,6 +3732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgeengine_sdld_logic": {
+          try {
+            const { OpenEdgeEngineService } = await import("../liberty/openedgeengine_sdld.service.js");
+            const res = await OpenEdgeEngineService.execute(args.target || "system");
+            return { output: `### OpenEdgeEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpustream_d516_logic": {
+          try {
+            const { OpenGPUStreamService } = await import("../liberty/opengpustream_d516.service.js");
+            const res = await OpenGPUStreamService.execute(args.target || "system");
+            return { output: `### OpenGPUStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphlayer_l18r_logic": {
+          try {
+            const { OpenGraphLayerService } = await import("../liberty/opengraphlayer_l18r.service.js");
+            const res = await OpenGraphLayerService.execute(args.target || "system");
+            return { output: `### OpenGraphLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpucluster_iul4_logic": {
+          try {
+            const { OpenGPUClusterService } = await import("../liberty/opengpucluster_iul4.service.js");
+            const res = await OpenGPUClusterService.execute(args.target || "system");
+            return { output: `### OpenGPUCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partysync_psd6_logic": {
+          try {
+            const { OpenMultiPartySyncService } = await import("../liberty/openmulti-partysync_psd6.service.js");
+            const res = await OpenMultiPartySyncService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartySync failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfcontroller_hse9_logic": {
           try {
             const { OpeneBPFControllerService } = await import("../liberty/openebpfcontroller_hse9.service.js");
