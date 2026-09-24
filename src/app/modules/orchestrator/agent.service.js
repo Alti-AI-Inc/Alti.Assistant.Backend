@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisesync_4owf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseSync) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessnet_b7d2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessNet) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-truststream_0uaq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustStream) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicsync_rh92_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicSync) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondswarm_ntg5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondSwarm) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgechain_7z87_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeChain) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14532,6 +14572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisesync_4owf_logic": {
+          try {
+            const { OpenEnterpriseSyncService } = await import("../liberty/openenterprisesync_4owf.service.js");
+            const res = await OpenEnterpriseSyncService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessnet_b7d2_logic": {
+          try {
+            const { OpenServerlessNetService } = await import("../liberty/openserverlessnet_b7d2.service.js");
+            const res = await OpenServerlessNetService.execute(args.target || "system");
+            return { output: `### OpenServerlessNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-truststream_0uaq_logic": {
+          try {
+            const { OpenZeroTrustStreamService } = await import("../liberty/openzero-truststream_0uaq.service.js");
+            const res = await OpenZeroTrustStreamService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicsync_rh92_logic": {
+          try {
+            const { OpenHomomorphicSyncService } = await import("../liberty/openhomomorphicsync_rh92.service.js");
+            const res = await OpenHomomorphicSyncService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondswarm_ntg5_logic": {
+          try {
+            const { OpenSubMillisecondSwarmService } = await import("../liberty/opensub-millisecondswarm_ntg5.service.js");
+            const res = await OpenSubMillisecondSwarmService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openedgechain_7z87_logic": {
           try {
             const { OpenEdgeChainService } = await import("../liberty/openedgechain_7z87.service.js");
