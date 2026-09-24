@@ -1,7 +1,7 @@
 import { WebSocketServer } from 'ws';
 import { logger } from '../../../shared/logger.js';
 import { SovereignRouterService } from '../orchestrator/sovereignRouter.service.js';
-
+import { SpeechService } from "./speech.service.js";
 export const VoiceGateway = {
   wss: null,
   
@@ -31,7 +31,7 @@ export const VoiceGateway = {
             
             if (data.type === 'end_of_speech') {
               // Simulate STT conversion
-              const transcribedText = "User voice query transcribed.";
+              const transcribedText = await SpeechService.transcribeAudio(Buffer.concat(audioBuffer));
               logger.info(`[Voice Gateway] Speech transcribed: ${transcribedText}`);
               
               // Route directly into the MoE Router
@@ -44,6 +44,8 @@ export const VoiceGateway = {
               
               // In a real system, we would stream binary TTS (e.g., ElevenLabs) back to the socket.
               // For now, we return the text and let Flutter handle local TTS.
+              const synthesizedAudio = await SpeechService.synthesizeSpeech(result.output);
+              ws.send(synthesizedAudio, { binary: true });
               ws.send(JSON.stringify({
                 type: 'voice_response',
                 text: result.output,
