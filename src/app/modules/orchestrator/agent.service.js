@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwaremesh_beno_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareMesh) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessnode_bax5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessNode) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfsync_h94h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFSync) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcore_bbox_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCore) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelplane_2b05_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelPlane) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfmatrix_sgb5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFMatrix) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21852,6 +21892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwaremesh_beno_logic": {
+          try {
+            const { OpenHardwareMeshService } = await import("../liberty/openhardwaremesh_beno.service.js");
+            const res = await OpenHardwareMeshService.execute(args.target || "system");
+            return { output: `### OpenHardwareMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessnode_bax5_logic": {
+          try {
+            const { OpenServerlessNodeService } = await import("../liberty/openserverlessnode_bax5.service.js");
+            const res = await OpenServerlessNodeService.execute(args.target || "system");
+            return { output: `### OpenServerlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfsync_h94h_logic": {
+          try {
+            const { OpeneBPFSyncService } = await import("../liberty/openebpfsync_h94h.service.js");
+            const res = await OpeneBPFSyncService.execute(args.target || "system");
+            return { output: `### OpeneBPFSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcore_bbox_logic": {
+          try {
+            const { OpenDecentralizedCoreService } = await import("../liberty/opendecentralizedcore_bbox.service.js");
+            const res = await OpenDecentralizedCoreService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelplane_2b05_logic": {
+          try {
+            const { OpenMicroKernelPlaneService } = await import("../liberty/openmicro-kernelplane_2b05.service.js");
+            const res = await OpenMicroKernelPlaneService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfmatrix_sgb5_logic": {
           try {
             const { OpeneBPFMatrixService } = await import("../liberty/openebpfmatrix_sgb5.service.js");
