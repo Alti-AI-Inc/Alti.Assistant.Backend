@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterswarm_xgp9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterSwarm) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatacluster_phxc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataCluster) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesvortex_7zbr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesVortex) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativevault_0xhd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVault) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedmesh_fgc6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedMesh) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelvault_r8f6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelVault) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21052,6 +21092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterswarm_xgp9_logic": {
+          try {
+            const { OpenCrossClusterSwarmService } = await import("../liberty/opencross-clusterswarm_xgp9.service.js");
+            const res = await OpenCrossClusterSwarmService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatacluster_phxc_logic": {
+          try {
+            const { OpenDataClusterService } = await import("../liberty/opendatacluster_phxc.service.js");
+            const res = await OpenDataClusterService.execute(args.target || "system");
+            return { output: `### OpenDataCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesvortex_7zbr_logic": {
+          try {
+            const { OpenTimeSeriesVortexService } = await import("../liberty/opentime-seriesvortex_7zbr.service.js");
+            const res = await OpenTimeSeriesVortexService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativevault_0xhd_logic": {
+          try {
+            const { OpenCloudNativeVaultService } = await import("../liberty/opencloud-nativevault_0xhd.service.js");
+            const res = await OpenCloudNativeVaultService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedmesh_fgc6_logic": {
+          try {
+            const { OpenFederatedMeshService } = await import("../liberty/openfederatedmesh_fgc6.service.js");
+            const res = await OpenFederatedMeshService.execute(args.target || "system");
+            return { output: `### OpenFederatedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelvault_r8f6_logic": {
           try {
             const { OpenMicroKernelVaultService } = await import("../liberty/openmicro-kernelvault_r8f6.service.js");
