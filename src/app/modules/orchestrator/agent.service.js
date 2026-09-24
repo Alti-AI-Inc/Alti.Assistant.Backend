@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openabstractrouter_ujcb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractRouter) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialnode_3071_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialNode) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgestream_ndvf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeStream) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablerouter_mxvk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableRouter) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarestream_ovsw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareStream) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengraphcontroller_hkp6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGraphController) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19012,6 +19052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openabstractrouter_ujcb_logic": {
+          try {
+            const { OpenAbstractRouterService } = await import("../liberty/openabstractrouter_ujcb.service.js");
+            const res = await OpenAbstractRouterService.execute(args.target || "system");
+            return { output: `### OpenAbstractRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialnode_3071_logic": {
+          try {
+            const { OpenFinancialNodeService } = await import("../liberty/openfinancialnode_3071.service.js");
+            const res = await OpenFinancialNodeService.execute(args.target || "system");
+            return { output: `### OpenFinancialNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgestream_ndvf_logic": {
+          try {
+            const { OpenZeroKnowledgeStreamService } = await import("../liberty/openzero-knowledgestream_ndvf.service.js");
+            const res = await OpenZeroKnowledgeStreamService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablerouter_mxvk_logic": {
+          try {
+            const { OpenImmutableRouterService } = await import("../liberty/openimmutablerouter_mxvk.service.js");
+            const res = await OpenImmutableRouterService.execute(args.target || "system");
+            return { output: `### OpenImmutableRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarestream_ovsw_logic": {
+          try {
+            const { OpenHardwareStreamService } = await import("../liberty/openhardwarestream_ovsw.service.js");
+            const res = await OpenHardwareStreamService.execute(args.target || "system");
+            return { output: `### OpenHardwareStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareStream failed: ${err.message}` };
+          }
+        }
         case "execute_opengraphcontroller_hkp6_logic": {
           try {
             const { OpenGraphControllerService } = await import("../liberty/opengraphcontroller_hkp6.service.js");
