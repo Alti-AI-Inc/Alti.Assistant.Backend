@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticoracle_d50o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticOracle) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelnet_1jvv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNet) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedengine_kiz8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedEngine) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablegrid_0yjs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableGrid) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscore_dbfn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCore) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondsync_itg5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondSync) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9292,6 +9332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticoracle_d50o_logic": {
+          try {
+            const { OpenStaticOracleService } = await import("../liberty/openstaticoracle_d50o.service.js");
+            const res = await OpenStaticOracleService.execute(args.target || "system");
+            return { output: `### OpenStaticOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelnet_1jvv_logic": {
+          try {
+            const { OpenMicroKernelNetService } = await import("../liberty/openmicro-kernelnet_1jvv.service.js");
+            const res = await OpenMicroKernelNetService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedengine_kiz8_logic": {
+          try {
+            const { OpenDecentralizedEngineService } = await import("../liberty/opendecentralizedengine_kiz8.service.js");
+            const res = await OpenDecentralizedEngineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablegrid_0yjs_logic": {
+          try {
+            const { OpenImmutableGridService } = await import("../liberty/openimmutablegrid_0yjs.service.js");
+            const res = await OpenImmutableGridService.execute(args.target || "system");
+            return { output: `### OpenImmutableGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscore_dbfn_logic": {
+          try {
+            const { OpenHeadlessCoreService } = await import("../liberty/openheadlesscore_dbfn.service.js");
+            const res = await OpenHeadlessCoreService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCore failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondsync_itg5_logic": {
           try {
             const { OpenSubMillisecondSyncService } = await import("../liberty/opensub-millisecondsync_itg5.service.js");
