@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessgraph_6ngm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessGraph) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedchain_8poj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedChain) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondbroker_biqv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondBroker) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialmatrix_goap_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialMatrix) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedcluster_t36z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedCluster) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openabstractrouter_ujcb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAbstractRouter) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19052,6 +19092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessgraph_6ngm_logic": {
+          try {
+            const { OpenHeadlessGraphService } = await import("../liberty/openheadlessgraph_6ngm.service.js");
+            const res = await OpenHeadlessGraphService.execute(args.target || "system");
+            return { output: `### OpenHeadlessGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedchain_8poj_logic": {
+          try {
+            const { OpenDecentralizedChainService } = await import("../liberty/opendecentralizedchain_8poj.service.js");
+            const res = await OpenDecentralizedChainService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondbroker_biqv_logic": {
+          try {
+            const { OpenSubMillisecondBrokerService } = await import("../liberty/opensub-millisecondbroker_biqv.service.js");
+            const res = await OpenSubMillisecondBrokerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialmatrix_goap_logic": {
+          try {
+            const { OpenFinancialMatrixService } = await import("../liberty/openfinancialmatrix_goap.service.js");
+            const res = await OpenFinancialMatrixService.execute(args.target || "system");
+            return { output: `### OpenFinancialMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedcluster_t36z_logic": {
+          try {
+            const { OpenAutomatedClusterService } = await import("../liberty/openautomatedcluster_t36z.service.js");
+            const res = await OpenAutomatedClusterService.execute(args.target || "system");
+            return { output: `### OpenAutomatedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openabstractrouter_ujcb_logic": {
           try {
             const { OpenAbstractRouterService } = await import("../liberty/openabstractrouter_ujcb.service.js");
