@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhigh-frequencypipeline_k5vb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyPipeline) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedvault_u2bn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVault) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondplane_o3fa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondPlane) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivestream_pv6s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveStream) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphplane_l5pd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphPlane) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpugraph_ms4u_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUGraph) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17092,6 +17132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhigh-frequencypipeline_k5vb_logic": {
+          try {
+            const { OpenHighFrequencyPipelineService } = await import("../liberty/openhigh-frequencypipeline_k5vb.service.js");
+            const res = await OpenHighFrequencyPipelineService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedvault_u2bn_logic": {
+          try {
+            const { OpenDecentralizedVaultService } = await import("../liberty/opendecentralizedvault_u2bn.service.js");
+            const res = await OpenDecentralizedVaultService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondplane_o3fa_logic": {
+          try {
+            const { OpenSubMillisecondPlaneService } = await import("../liberty/opensub-millisecondplane_o3fa.service.js");
+            const res = await OpenSubMillisecondPlaneService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivestream_pv6s_logic": {
+          try {
+            const { OpenPredictiveStreamService } = await import("../liberty/openpredictivestream_pv6s.service.js");
+            const res = await OpenPredictiveStreamService.execute(args.target || "system");
+            return { output: `### OpenPredictiveStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphplane_l5pd_logic": {
+          try {
+            const { OpenGraphPlaneService } = await import("../liberty/opengraphplane_l5pd.service.js");
+            const res = await OpenGraphPlaneService.execute(args.target || "system");
+            return { output: `### OpenGraphPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphPlane failed: ${err.message}` };
+          }
+        }
         case "execute_opengpugraph_ms4u_logic": {
           try {
             const { OpenGPUGraphService } = await import("../liberty/opengpugraph_ms4u.service.js");
