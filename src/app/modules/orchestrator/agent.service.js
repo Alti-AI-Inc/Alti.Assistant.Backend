@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedchain_zy85_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedChain) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedcluster_7eni_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedCluster) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfmatrix_iwi5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFMatrix) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventfabric_9zrm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventFabric) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalcontroller_wzq2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalController) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendproxy_6tyw_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendProxy) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10652,6 +10692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedchain_zy85_logic": {
+          try {
+            const { OpenAdvancedChainService } = await import("../liberty/openadvancedchain_zy85.service.js");
+            const res = await OpenAdvancedChainService.execute(args.target || "system");
+            return { output: `### OpenAdvancedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedcluster_7eni_logic": {
+          try {
+            const { OpenFederatedClusterService } = await import("../liberty/openfederatedcluster_7eni.service.js");
+            const res = await OpenFederatedClusterService.execute(args.target || "system");
+            return { output: `### OpenFederatedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfmatrix_iwi5_logic": {
+          try {
+            const { OpeneBPFMatrixService } = await import("../liberty/openebpfmatrix_iwi5.service.js");
+            const res = await OpeneBPFMatrixService.execute(args.target || "system");
+            return { output: `### OpeneBPFMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventfabric_9zrm_logic": {
+          try {
+            const { OpenEventFabricService } = await import("../liberty/openeventfabric_9zrm.service.js");
+            const res = await OpenEventFabricService.execute(args.target || "system");
+            return { output: `### OpenEventFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalcontroller_wzq2_logic": {
+          try {
+            const { OpenHyperDimensionalControllerService } = await import("../liberty/openhyper-dimensionalcontroller_wzq2.service.js");
+            const res = await OpenHyperDimensionalControllerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalController failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendproxy_6tyw_logic": {
           try {
             const { OpenMicroFrontendProxyService } = await import("../liberty/openmicro-frontendproxy_6tyw.service.js");
