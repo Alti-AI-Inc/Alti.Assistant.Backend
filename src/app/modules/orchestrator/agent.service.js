@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessoracle_7huj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessOracle) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractvault_1nh8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractVault) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpunexus_26l8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUNexus) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogvault_39lx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogVault) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivering_1ui9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveRing) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisedaemon_lzzw_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseDaemon) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5812,6 +5852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessoracle_7huj_logic": {
+          try {
+            const { OpenServerlessOracleService } = await import("../liberty/openserverlessoracle_7huj.service.js");
+            const res = await OpenServerlessOracleService.execute(args.target || "system");
+            return { output: `### OpenServerlessOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractvault_1nh8_logic": {
+          try {
+            const { OpenAbstractVaultService } = await import("../liberty/openabstractvault_1nh8.service.js");
+            const res = await OpenAbstractVaultService.execute(args.target || "system");
+            return { output: `### OpenAbstractVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpunexus_26l8_logic": {
+          try {
+            const { OpenGPUNexusService } = await import("../liberty/opengpunexus_26l8.service.js");
+            const res = await OpenGPUNexusService.execute(args.target || "system");
+            return { output: `### OpenGPUNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogvault_39lx_logic": {
+          try {
+            const { OpenLogVaultService } = await import("../liberty/openlogvault_39lx.service.js");
+            const res = await OpenLogVaultService.execute(args.target || "system");
+            return { output: `### OpenLogVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivering_1ui9_logic": {
+          try {
+            const { OpenPredictiveRingService } = await import("../liberty/openpredictivering_1ui9.service.js");
+            const res = await OpenPredictiveRingService.execute(args.target || "system");
+            return { output: `### OpenPredictiveRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveRing failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisedaemon_lzzw_logic": {
           try {
             const { OpenEnterpriseDaemonService } = await import("../liberty/openenterprisedaemon_lzzw.service.js");
