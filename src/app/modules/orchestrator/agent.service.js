@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventrouter_w4km_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventRouter) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicoracle_uo1b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicOracle) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarenode_ghdq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareNode) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatacompiler_qvao_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataCompiler) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgrid_tfnc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGrid) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedrouter_hjgh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedRouter) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16932,6 +16972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventrouter_w4km_logic": {
+          try {
+            const { OpenEventRouterService } = await import("../liberty/openeventrouter_w4km.service.js");
+            const res = await OpenEventRouterService.execute(args.target || "system");
+            return { output: `### OpenEventRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicoracle_uo1b_logic": {
+          try {
+            const { OpenHomomorphicOracleService } = await import("../liberty/openhomomorphicoracle_uo1b.service.js");
+            const res = await OpenHomomorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarenode_ghdq_logic": {
+          try {
+            const { OpenHardwareNodeService } = await import("../liberty/openhardwarenode_ghdq.service.js");
+            const res = await OpenHardwareNodeService.execute(args.target || "system");
+            return { output: `### OpenHardwareNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatacompiler_qvao_logic": {
+          try {
+            const { OpenDataCompilerService } = await import("../liberty/opendatacompiler_qvao.service.js");
+            const res = await OpenDataCompilerService.execute(args.target || "system");
+            return { output: `### OpenDataCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgrid_tfnc_logic": {
+          try {
+            const { OpenDecentralizedGridService } = await import("../liberty/opendecentralizedgrid_tfnc.service.js");
+            const res = await OpenDecentralizedGridService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedrouter_hjgh_logic": {
           try {
             const { OpenDistributedRouterService } = await import("../liberty/opendistributedrouter_hjgh.service.js");
