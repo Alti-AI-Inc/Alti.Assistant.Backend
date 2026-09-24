@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisecontroller_kdip_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseController) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelvortex_xkwx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelVortex) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphmesh_5b0u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphMesh) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcontroller_rgnl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPController) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractmatrix_pjf1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractMatrix) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarysync_ycs6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetarySync) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15492,6 +15532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisecontroller_kdip_logic": {
+          try {
+            const { OpenEnterpriseControllerService } = await import("../liberty/openenterprisecontroller_kdip.service.js");
+            const res = await OpenEnterpriseControllerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseController failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelvortex_xkwx_logic": {
+          try {
+            const { OpenMicroKernelVortexService } = await import("../liberty/openmicro-kernelvortex_xkwx.service.js");
+            const res = await OpenMicroKernelVortexService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphmesh_5b0u_logic": {
+          try {
+            const { OpenGraphMeshService } = await import("../liberty/opengraphmesh_5b0u.service.js");
+            const res = await OpenGraphMeshService.execute(args.target || "system");
+            return { output: `### OpenGraphMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcontroller_rgnl_logic": {
+          try {
+            const { OpenBGPControllerService } = await import("../liberty/openbgpcontroller_rgnl.service.js");
+            const res = await OpenBGPControllerService.execute(args.target || "system");
+            return { output: `### OpenBGPController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPController failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractmatrix_pjf1_logic": {
+          try {
+            const { OpenAbstractMatrixService } = await import("../liberty/openabstractmatrix_pjf1.service.js");
+            const res = await OpenAbstractMatrixService.execute(args.target || "system");
+            return { output: `### OpenAbstractMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarysync_ycs6_logic": {
           try {
             const { OpenPlanetarySyncService } = await import("../liberty/openplanetarysync_ycs6.service.js");
