@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwareswarm_4edb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareSwarm) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticengine_bs35_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticEngine) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedmesh_0kro_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedMesh) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphvortex_np08_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphVortex) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumproxy_d5fq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumProxy) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisenexus_oeqz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNexus) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -9772,6 +9812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwareswarm_4edb_logic": {
+          try {
+            const { OpenHardwareSwarmService } = await import("../liberty/openhardwareswarm_4edb.service.js");
+            const res = await OpenHardwareSwarmService.execute(args.target || "system");
+            return { output: `### OpenHardwareSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticengine_bs35_logic": {
+          try {
+            const { OpenSemanticEngineService } = await import("../liberty/opensemanticengine_bs35.service.js");
+            const res = await OpenSemanticEngineService.execute(args.target || "system");
+            return { output: `### OpenSemanticEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedmesh_0kro_logic": {
+          try {
+            const { OpenAdvancedMeshService } = await import("../liberty/openadvancedmesh_0kro.service.js");
+            const res = await OpenAdvancedMeshService.execute(args.target || "system");
+            return { output: `### OpenAdvancedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphvortex_np08_logic": {
+          try {
+            const { OpenGraphVortexService } = await import("../liberty/opengraphvortex_np08.service.js");
+            const res = await OpenGraphVortexService.execute(args.target || "system");
+            return { output: `### OpenGraphVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumproxy_d5fq_logic": {
+          try {
+            const { OpenQuantumProxyService } = await import("../liberty/openquantumproxy_d5fq.service.js");
+            const res = await OpenQuantumProxyService.execute(args.target || "system");
+            return { output: `### OpenQuantumProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisenexus_oeqz_logic": {
           try {
             const { OpenEnterpriseNexusService } = await import("../liberty/openenterprisenexus_oeqz.service.js");
