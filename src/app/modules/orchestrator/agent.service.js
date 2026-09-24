@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgebroker_3zhg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeBroker) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyproxy_xqxv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyProxy) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicrouter_7fj8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicRouter) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarynexus_0g1w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNexus) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphsync_jxu2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphSync) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosproxy_7fc7_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosProxy) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8772,6 +8812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgebroker_3zhg_logic": {
+          try {
+            const { OpenEdgeBrokerService } = await import("../liberty/openedgebroker_3zhg.service.js");
+            const res = await OpenEdgeBrokerService.execute(args.target || "system");
+            return { output: `### OpenEdgeBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyproxy_xqxv_logic": {
+          try {
+            const { OpenHighFrequencyProxyService } = await import("../liberty/openhigh-frequencyproxy_xqxv.service.js");
+            const res = await OpenHighFrequencyProxyService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicrouter_7fj8_logic": {
+          try {
+            const { OpenHomomorphicRouterService } = await import("../liberty/openhomomorphicrouter_7fj8.service.js");
+            const res = await OpenHomomorphicRouterService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarynexus_0g1w_logic": {
+          try {
+            const { OpenPlanetaryNexusService } = await import("../liberty/openplanetarynexus_0g1w.service.js");
+            const res = await OpenPlanetaryNexusService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphsync_jxu2_logic": {
+          try {
+            const { OpenGraphSyncService } = await import("../liberty/opengraphsync_jxu2.service.js");
+            const res = await OpenGraphSyncService.execute(args.target || "system");
+            return { output: `### OpenGraphSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphSync failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosproxy_7fc7_logic": {
           try {
             const { OpenChaosProxyService } = await import("../liberty/openchaosproxy_7fc7.service.js");
