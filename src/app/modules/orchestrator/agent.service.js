@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessnode_ig0h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessNode) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedlayer_olwo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedLayer) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiccore_fra0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicCore) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesoracle_lixz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesOracle) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogvault_t5e3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogVault) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeeprouter_txsm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepRouter) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5332,6 +5372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessnode_ig0h_logic": {
+          try {
+            const { OpenServerlessNodeService } = await import("../liberty/openserverlessnode_ig0h.service.js");
+            const res = await OpenServerlessNodeService.execute(args.target || "system");
+            return { output: `### OpenServerlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedlayer_olwo_logic": {
+          try {
+            const { OpenAutomatedLayerService } = await import("../liberty/openautomatedlayer_olwo.service.js");
+            const res = await OpenAutomatedLayerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiccore_fra0_logic": {
+          try {
+            const { OpenNeuromorphicCoreService } = await import("../liberty/openneuromorphiccore_fra0.service.js");
+            const res = await OpenNeuromorphicCoreService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesoracle_lixz_logic": {
+          try {
+            const { OpenTimeSeriesOracleService } = await import("../liberty/opentime-seriesoracle_lixz.service.js");
+            const res = await OpenTimeSeriesOracleService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogvault_t5e3_logic": {
+          try {
+            const { OpenLogVaultService } = await import("../liberty/openlogvault_t5e3.service.js");
+            const res = await OpenLogVaultService.execute(args.target || "system");
+            return { output: `### OpenLogVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogVault failed: ${err.message}` };
+          }
+        }
         case "execute_opendeeprouter_txsm_logic": {
           try {
             const { OpenDeepRouterService } = await import("../liberty/opendeeprouter_txsm.service.js");
