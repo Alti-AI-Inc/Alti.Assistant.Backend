@@ -1,0 +1,11 @@
+# ==========================================
+# LIBERTY CENTER ONE - SOVEREIGN ENGINE
+# ==========================================
+FROM node:20-alpine
+WORKDIR /opt/aphura/engine
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+ENV NODE_ENV=production
+ENV INFRASTRUCTURE_PROVIDER="Liberty Center One"
+CMD ["node", "src/server.js"]
