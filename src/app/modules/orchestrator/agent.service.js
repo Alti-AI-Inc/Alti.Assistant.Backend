@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivering_t5ke_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveRing) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicsync_dp38_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicSync) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partydaemon_jtfo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyDaemon) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogcontroller_35nh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogController) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfvault_atkv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFVault) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessgraph_4xgf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessGraph) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19132,6 +19172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivering_t5ke_logic": {
+          try {
+            const { OpenPredictiveRingService } = await import("../liberty/openpredictivering_t5ke.service.js");
+            const res = await OpenPredictiveRingService.execute(args.target || "system");
+            return { output: `### OpenPredictiveRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicsync_dp38_logic": {
+          try {
+            const { OpenHomomorphicSyncService } = await import("../liberty/openhomomorphicsync_dp38.service.js");
+            const res = await OpenHomomorphicSyncService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partydaemon_jtfo_logic": {
+          try {
+            const { OpenMultiPartyDaemonService } = await import("../liberty/openmulti-partydaemon_jtfo.service.js");
+            const res = await OpenMultiPartyDaemonService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogcontroller_35nh_logic": {
+          try {
+            const { OpenLogControllerService } = await import("../liberty/openlogcontroller_35nh.service.js");
+            const res = await OpenLogControllerService.execute(args.target || "system");
+            return { output: `### OpenLogController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogController failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfvault_atkv_logic": {
+          try {
+            const { OpeneBPFVaultService } = await import("../liberty/openebpfvault_atkv.service.js");
+            const res = await OpeneBPFVaultService.execute(args.target || "system");
+            return { output: `### OpeneBPFVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFVault failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessgraph_4xgf_logic": {
           try {
             const { OpenServerlessGraphService } = await import("../liberty/openserverlessgraph_4xgf.service.js");
