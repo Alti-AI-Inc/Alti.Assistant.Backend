@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openneuromorphicmesh_wqhi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicMesh) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivenexus_2aoq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNexus) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticsync_pnok_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticSync) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectornet_3w9d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorNet) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedplane_oubu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedPlane) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticnode_f35e_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticNode) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2732,6 +2772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openneuromorphicmesh_wqhi_logic": {
+          try {
+            const { OpenNeuromorphicMeshService } = await import("../liberty/openneuromorphicmesh_wqhi.service.js");
+            const res = await OpenNeuromorphicMeshService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivenexus_2aoq_logic": {
+          try {
+            const { OpenPredictiveNexusService } = await import("../liberty/openpredictivenexus_2aoq.service.js");
+            const res = await OpenPredictiveNexusService.execute(args.target || "system");
+            return { output: `### OpenPredictiveNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticsync_pnok_logic": {
+          try {
+            const { OpenStaticSyncService } = await import("../liberty/openstaticsync_pnok.service.js");
+            const res = await OpenStaticSyncService.execute(args.target || "system");
+            return { output: `### OpenStaticSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectornet_3w9d_logic": {
+          try {
+            const { OpenVectorNetService } = await import("../liberty/openvectornet_3w9d.service.js");
+            const res = await OpenVectorNetService.execute(args.target || "system");
+            return { output: `### OpenVectorNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedplane_oubu_logic": {
+          try {
+            const { OpenAdvancedPlaneService } = await import("../liberty/openadvancedplane_oubu.service.js");
+            const res = await OpenAdvancedPlaneService.execute(args.target || "system");
+            return { output: `### OpenAdvancedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticnode_f35e_logic": {
           try {
             const { OpenStaticNodeService } = await import("../liberty/openstaticnode_f35e.service.js");
