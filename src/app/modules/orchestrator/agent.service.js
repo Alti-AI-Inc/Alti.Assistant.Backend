@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepcore_04gf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepCore) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlognexus_lgnk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogNexus) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfsync_k1b7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFSync) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepcontroller_7osx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepController) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendnexus_6cd1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNexus) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedrouter_e4ko_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14132,6 +14172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepcore_04gf_logic": {
+          try {
+            const { OpenDeepCoreService } = await import("../liberty/opendeepcore_04gf.service.js");
+            const res = await OpenDeepCoreService.execute(args.target || "system");
+            return { output: `### OpenDeepCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openlognexus_lgnk_logic": {
+          try {
+            const { OpenLogNexusService } = await import("../liberty/openlognexus_lgnk.service.js");
+            const res = await OpenLogNexusService.execute(args.target || "system");
+            return { output: `### OpenLogNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfsync_k1b7_logic": {
+          try {
+            const { OpeneBPFSyncService } = await import("../liberty/openebpfsync_k1b7.service.js");
+            const res = await OpeneBPFSyncService.execute(args.target || "system");
+            return { output: `### OpeneBPFSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepcontroller_7osx_logic": {
+          try {
+            const { OpenDeepControllerService } = await import("../liberty/opendeepcontroller_7osx.service.js");
+            const res = await OpenDeepControllerService.execute(args.target || "system");
+            return { output: `### OpenDeepController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepController failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendnexus_6cd1_logic": {
+          try {
+            const { OpenMicroFrontendNexusService } = await import("../liberty/openmicro-frontendnexus_6cd1.service.js");
+            const res = await OpenMicroFrontendNexusService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendNexus failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedrouter_e4ko_logic": {
           try {
             const { OpenDecentralizedRouterService } = await import("../liberty/opendecentralizedrouter_e4ko.service.js");
