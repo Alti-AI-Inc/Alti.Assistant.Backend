@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partycontroller_oups_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyController) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedpipeline_0a0a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedPipeline) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepswarm_n8a2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepSwarm) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partycluster_of2h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyCluster) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-serieslayer_ywto_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesLayer) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaoscontroller_uqh5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosController) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11652,6 +11692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partycontroller_oups_logic": {
+          try {
+            const { OpenMultiPartyControllerService } = await import("../liberty/openmulti-partycontroller_oups.service.js");
+            const res = await OpenMultiPartyControllerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyController failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedpipeline_0a0a_logic": {
+          try {
+            const { OpenDecentralizedPipelineService } = await import("../liberty/opendecentralizedpipeline_0a0a.service.js");
+            const res = await OpenDecentralizedPipelineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepswarm_n8a2_logic": {
+          try {
+            const { OpenDeepSwarmService } = await import("../liberty/opendeepswarm_n8a2.service.js");
+            const res = await OpenDeepSwarmService.execute(args.target || "system");
+            return { output: `### OpenDeepSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partycluster_of2h_logic": {
+          try {
+            const { OpenMultiPartyClusterService } = await import("../liberty/openmulti-partycluster_of2h.service.js");
+            const res = await OpenMultiPartyClusterService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-serieslayer_ywto_logic": {
+          try {
+            const { OpenTimeSeriesLayerService } = await import("../liberty/opentime-serieslayer_ywto.service.js");
+            const res = await OpenTimeSeriesLayerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openchaoscontroller_uqh5_logic": {
           try {
             const { OpenChaosControllerService } = await import("../liberty/openchaoscontroller_uqh5.service.js");
