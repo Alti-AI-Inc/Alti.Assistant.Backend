@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedpipeline_dvz1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedPipeline) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventvortex_gr61_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventVortex) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticnode_qbw5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticNode) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarymesh_odss_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryMesh) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuchain_a2bj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUChain) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicmesh_r24f_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMesh) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19732,6 +19772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedpipeline_dvz1_logic": {
+          try {
+            const { OpenDecentralizedPipelineService } = await import("../liberty/opendecentralizedpipeline_dvz1.service.js");
+            const res = await OpenDecentralizedPipelineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventvortex_gr61_logic": {
+          try {
+            const { OpenEventVortexService } = await import("../liberty/openeventvortex_gr61.service.js");
+            const res = await OpenEventVortexService.execute(args.target || "system");
+            return { output: `### OpenEventVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticnode_qbw5_logic": {
+          try {
+            const { OpenSemanticNodeService } = await import("../liberty/opensemanticnode_qbw5.service.js");
+            const res = await OpenSemanticNodeService.execute(args.target || "system");
+            return { output: `### OpenSemanticNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarymesh_odss_logic": {
+          try {
+            const { OpenPlanetaryMeshService } = await import("../liberty/openplanetarymesh_odss.service.js");
+            const res = await OpenPlanetaryMeshService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuchain_a2bj_logic": {
+          try {
+            const { OpenGPUChainService } = await import("../liberty/opengpuchain_a2bj.service.js");
+            const res = await OpenGPUChainService.execute(args.target || "system");
+            return { output: `### OpenGPUChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUChain failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicmesh_r24f_logic": {
           try {
             const { OpenHomomorphicMeshService } = await import("../liberty/openhomomorphicmesh_r24f.service.js");
