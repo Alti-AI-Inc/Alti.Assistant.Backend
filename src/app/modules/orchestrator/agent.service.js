@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalstream_5k0w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalStream) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedvortex_h7lx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedVortex) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumring_57ee_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumRing) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendengine_4l8e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendEngine) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedmatrix_vyox_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedMatrix) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedcontroller_a94v_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedController) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3052,6 +3092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalstream_5k0w_logic": {
+          try {
+            const { OpenHyperDimensionalStreamService } = await import("../liberty/openhyper-dimensionalstream_5k0w.service.js");
+            const res = await OpenHyperDimensionalStreamService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedvortex_h7lx_logic": {
+          try {
+            const { OpenAdvancedVortexService } = await import("../liberty/openadvancedvortex_h7lx.service.js");
+            const res = await OpenAdvancedVortexService.execute(args.target || "system");
+            return { output: `### OpenAdvancedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumring_57ee_logic": {
+          try {
+            const { OpenQuantumRingService } = await import("../liberty/openquantumring_57ee.service.js");
+            const res = await OpenQuantumRingService.execute(args.target || "system");
+            return { output: `### OpenQuantumRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendengine_4l8e_logic": {
+          try {
+            const { OpenMicroFrontendEngineService } = await import("../liberty/openmicro-frontendengine_4l8e.service.js");
+            const res = await OpenMicroFrontendEngineService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedmatrix_vyox_logic": {
+          try {
+            const { OpenFederatedMatrixService } = await import("../liberty/openfederatedmatrix_vyox.service.js");
+            const res = await OpenFederatedMatrixService.execute(args.target || "system");
+            return { output: `### OpenFederatedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedcontroller_a94v_logic": {
           try {
             const { OpenDecentralizedControllerService } = await import("../liberty/opendecentralizedcontroller_a94v.service.js");
