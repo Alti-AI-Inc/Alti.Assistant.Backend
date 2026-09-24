@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfcontroller_hse9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFController) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentchain_tm8n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentChain) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisefabric_ns0v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseFabric) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelgrid_wjba_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelGrid) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesvortex_8dbv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesVortex) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedvortex_ob3v_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVortex) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3652,6 +3692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfcontroller_hse9_logic": {
+          try {
+            const { OpeneBPFControllerService } = await import("../liberty/openebpfcontroller_hse9.service.js");
+            const res = await OpeneBPFControllerService.execute(args.target || "system");
+            return { output: `### OpeneBPFController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFController failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentchain_tm8n_logic": {
+          try {
+            const { OpenPersistentChainService } = await import("../liberty/openpersistentchain_tm8n.service.js");
+            const res = await OpenPersistentChainService.execute(args.target || "system");
+            return { output: `### OpenPersistentChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisefabric_ns0v_logic": {
+          try {
+            const { OpenEnterpriseFabricService } = await import("../liberty/openenterprisefabric_ns0v.service.js");
+            const res = await OpenEnterpriseFabricService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelgrid_wjba_logic": {
+          try {
+            const { OpenMicroKernelGridService } = await import("../liberty/openmicro-kernelgrid_wjba.service.js");
+            const res = await OpenMicroKernelGridService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesvortex_8dbv_logic": {
+          try {
+            const { OpenTimeSeriesVortexService } = await import("../liberty/opentime-seriesvortex_8dbv.service.js");
+            const res = await OpenTimeSeriesVortexService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesVortex failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedvortex_ob3v_logic": {
           try {
             const { OpenDecentralizedVortexService } = await import("../liberty/opendecentralizedvortex_ob3v.service.js");
