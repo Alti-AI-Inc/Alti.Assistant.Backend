@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessnet_m45w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNet) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondring_jrcv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondRing) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentplane_wkv0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentPlane) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedledger_zqeh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedLedger) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventsync_532q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventSync) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialmatrix_faq0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialMatrix) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17772,6 +17812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessnet_m45w_logic": {
+          try {
+            const { OpenHeadlessNetService } = await import("../liberty/openheadlessnet_m45w.service.js");
+            const res = await OpenHeadlessNetService.execute(args.target || "system");
+            return { output: `### OpenHeadlessNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondring_jrcv_logic": {
+          try {
+            const { OpenSubMillisecondRingService } = await import("../liberty/opensub-millisecondring_jrcv.service.js");
+            const res = await OpenSubMillisecondRingService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentplane_wkv0_logic": {
+          try {
+            const { OpenPersistentPlaneService } = await import("../liberty/openpersistentplane_wkv0.service.js");
+            const res = await OpenPersistentPlaneService.execute(args.target || "system");
+            return { output: `### OpenPersistentPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedledger_zqeh_logic": {
+          try {
+            const { OpenAdvancedLedgerService } = await import("../liberty/openadvancedledger_zqeh.service.js");
+            const res = await OpenAdvancedLedgerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventsync_532q_logic": {
+          try {
+            const { OpenEventSyncService } = await import("../liberty/openeventsync_532q.service.js");
+            const res = await OpenEventSyncService.execute(args.target || "system");
+            return { output: `### OpenEventSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventSync failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialmatrix_faq0_logic": {
           try {
             const { OpenFinancialMatrixService } = await import("../liberty/openfinancialmatrix_faq0.service.js");
