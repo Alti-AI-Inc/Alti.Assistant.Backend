@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepbroker_wzeh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepBroker) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisenode_sf5b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNode) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgenexus_8jlq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeNexus) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyvortex_eta8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyVortex) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventcluster_qg43_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventCluster) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialnode_hmjr_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialNode) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4292,6 +4332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepbroker_wzeh_logic": {
+          try {
+            const { OpenDeepBrokerService } = await import("../liberty/opendeepbroker_wzeh.service.js");
+            const res = await OpenDeepBrokerService.execute(args.target || "system");
+            return { output: `### OpenDeepBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisenode_sf5b_logic": {
+          try {
+            const { OpenEnterpriseNodeService } = await import("../liberty/openenterprisenode_sf5b.service.js");
+            const res = await OpenEnterpriseNodeService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgenexus_8jlq_logic": {
+          try {
+            const { OpenZeroKnowledgeNexusService } = await import("../liberty/openzero-knowledgenexus_8jlq.service.js");
+            const res = await OpenZeroKnowledgeNexusService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyvortex_eta8_logic": {
+          try {
+            const { OpenMultiPartyVortexService } = await import("../liberty/openmulti-partyvortex_eta8.service.js");
+            const res = await OpenMultiPartyVortexService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventcluster_qg43_logic": {
+          try {
+            const { OpenEventClusterService } = await import("../liberty/openeventcluster_qg43.service.js");
+            const res = await OpenEventClusterService.execute(args.target || "system");
+            return { output: `### OpenEventCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialnode_hmjr_logic": {
           try {
             const { OpenFinancialNodeService } = await import("../liberty/openfinancialnode_hmjr.service.js");
