@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumledger_b6p6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumLedger) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticpipeline_kosq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticPipeline) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuplane_n6hk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUPlane) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedsync_ry97_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSync) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgemesh_a65j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeMesh) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomateddaemon_2rq0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedDaemon) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18572,6 +18612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumledger_b6p6_logic": {
+          try {
+            const { OpenQuantumLedgerService } = await import("../liberty/openquantumledger_b6p6.service.js");
+            const res = await OpenQuantumLedgerService.execute(args.target || "system");
+            return { output: `### OpenQuantumLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticpipeline_kosq_logic": {
+          try {
+            const { OpenSemanticPipelineService } = await import("../liberty/opensemanticpipeline_kosq.service.js");
+            const res = await OpenSemanticPipelineService.execute(args.target || "system");
+            return { output: `### OpenSemanticPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuplane_n6hk_logic": {
+          try {
+            const { OpenGPUPlaneService } = await import("../liberty/opengpuplane_n6hk.service.js");
+            const res = await OpenGPUPlaneService.execute(args.target || "system");
+            return { output: `### OpenGPUPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedsync_ry97_logic": {
+          try {
+            const { OpenDecentralizedSyncService } = await import("../liberty/opendecentralizedsync_ry97.service.js");
+            const res = await OpenDecentralizedSyncService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgemesh_a65j_logic": {
+          try {
+            const { OpenZeroKnowledgeMeshService } = await import("../liberty/openzero-knowledgemesh_a65j.service.js");
+            const res = await OpenZeroKnowledgeMeshService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openautomateddaemon_2rq0_logic": {
           try {
             const { OpenAutomatedDaemonService } = await import("../liberty/openautomateddaemon_2rq0.service.js");
