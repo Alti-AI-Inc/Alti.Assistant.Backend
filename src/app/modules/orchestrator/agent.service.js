@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openin-memorycluster_krhx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryCluster) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryledger_noqp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryLedger) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryring_3yb4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryRing) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractgraph_0bq2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractGraph) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedfabric_781r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedFabric) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlesscompiler_js8k_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCompiler) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5572,6 +5612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openin-memorycluster_krhx_logic": {
+          try {
+            const { OpenInMemoryClusterService } = await import("../liberty/openin-memorycluster_krhx.service.js");
+            const res = await OpenInMemoryClusterService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryledger_noqp_logic": {
+          try {
+            const { OpenInMemoryLedgerService } = await import("../liberty/openin-memoryledger_noqp.service.js");
+            const res = await OpenInMemoryLedgerService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryring_3yb4_logic": {
+          try {
+            const { OpenPlanetaryRingService } = await import("../liberty/openplanetaryring_3yb4.service.js");
+            const res = await OpenPlanetaryRingService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractgraph_0bq2_logic": {
+          try {
+            const { OpenAbstractGraphService } = await import("../liberty/openabstractgraph_0bq2.service.js");
+            const res = await OpenAbstractGraphService.execute(args.target || "system");
+            return { output: `### OpenAbstractGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedfabric_781r_logic": {
+          try {
+            const { OpenDistributedFabricService } = await import("../liberty/opendistributedfabric_781r.service.js");
+            const res = await OpenDistributedFabricService.execute(args.target || "system");
+            return { output: `### OpenDistributedFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlesscompiler_js8k_logic": {
           try {
             const { OpenHeadlessCompilerService } = await import("../liberty/openheadlesscompiler_js8k.service.js");
