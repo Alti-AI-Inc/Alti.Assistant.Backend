@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederateddaemon_0z8o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedDaemon) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedchain_zofb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedChain) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnexus_0n2f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNexus) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicoracle_yu0g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicOracle) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfplane_coju_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFPlane) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentsync_9406_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentSync) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4172,6 +4212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederateddaemon_0z8o_logic": {
+          try {
+            const { OpenFederatedDaemonService } = await import("../liberty/openfederateddaemon_0z8o.service.js");
+            const res = await OpenFederatedDaemonService.execute(args.target || "system");
+            return { output: `### OpenFederatedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedchain_zofb_logic": {
+          try {
+            const { OpenDecentralizedChainService } = await import("../liberty/opendecentralizedchain_zofb.service.js");
+            const res = await OpenDecentralizedChainService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnexus_0n2f_logic": {
+          try {
+            const { OpenGraphNexusService } = await import("../liberty/opengraphnexus_0n2f.service.js");
+            const res = await OpenGraphNexusService.execute(args.target || "system");
+            return { output: `### OpenGraphNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicoracle_yu0g_logic": {
+          try {
+            const { OpenHomomorphicOracleService } = await import("../liberty/openhomomorphicoracle_yu0g.service.js");
+            const res = await OpenHomomorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfplane_coju_logic": {
+          try {
+            const { OpeneBPFPlaneService } = await import("../liberty/openebpfplane_coju.service.js");
+            const res = await OpeneBPFPlaneService.execute(args.target || "system");
+            return { output: `### OpeneBPFPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentsync_9406_logic": {
           try {
             const { OpenPersistentSyncService } = await import("../liberty/openpersistentsync_9406.service.js");
