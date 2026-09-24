@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedlayer_6hsi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLayer) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgraph_pgxu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeeporacle_uz74_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepOracle) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorcontroller_7k7e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorController) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryvortex_nc0b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryVortex) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventcore_jwaa_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventCore) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10452,6 +10492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedlayer_6hsi_logic": {
+          try {
+            const { OpenDecentralizedLayerService } = await import("../liberty/opendecentralizedlayer_6hsi.service.js");
+            const res = await OpenDecentralizedLayerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgraph_pgxu_logic": {
+          try {
+            const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_pgxu.service.js");
+            const res = await OpenDecentralizedGraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeeporacle_uz74_logic": {
+          try {
+            const { OpenDeepOracleService } = await import("../liberty/opendeeporacle_uz74.service.js");
+            const res = await OpenDeepOracleService.execute(args.target || "system");
+            return { output: `### OpenDeepOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorcontroller_7k7e_logic": {
+          try {
+            const { OpenVectorControllerService } = await import("../liberty/openvectorcontroller_7k7e.service.js");
+            const res = await OpenVectorControllerService.execute(args.target || "system");
+            return { output: `### OpenVectorController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorController failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryvortex_nc0b_logic": {
+          try {
+            const { OpenInMemoryVortexService } = await import("../liberty/openin-memoryvortex_nc0b.service.js");
+            const res = await OpenInMemoryVortexService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openeventcore_jwaa_logic": {
           try {
             const { OpenEventCoreService } = await import("../liberty/openeventcore_jwaa.service.js");
