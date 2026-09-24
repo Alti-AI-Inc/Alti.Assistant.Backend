@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedrouter_0qiq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedRouter) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyvortex_g1dn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyVortex) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgegraph_sxti_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeGraph) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativegrid_c5fm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeGrid) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventvortex_58nk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventVortex) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partyvortex_y7hh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyVortex) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3972,6 +4012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedrouter_0qiq_logic": {
+          try {
+            const { OpenAdvancedRouterService } = await import("../liberty/openadvancedrouter_0qiq.service.js");
+            const res = await OpenAdvancedRouterService.execute(args.target || "system");
+            return { output: `### OpenAdvancedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyvortex_g1dn_logic": {
+          try {
+            const { OpenMultiPartyVortexService } = await import("../liberty/openmulti-partyvortex_g1dn.service.js");
+            const res = await OpenMultiPartyVortexService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgegraph_sxti_logic": {
+          try {
+            const { OpenEdgeGraphService } = await import("../liberty/openedgegraph_sxti.service.js");
+            const res = await OpenEdgeGraphService.execute(args.target || "system");
+            return { output: `### OpenEdgeGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativegrid_c5fm_logic": {
+          try {
+            const { OpenCloudNativeGridService } = await import("../liberty/opencloud-nativegrid_c5fm.service.js");
+            const res = await OpenCloudNativeGridService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventvortex_58nk_logic": {
+          try {
+            const { OpenEventVortexService } = await import("../liberty/openeventvortex_58nk.service.js");
+            const res = await OpenEventVortexService.execute(args.target || "system");
+            return { output: `### OpenEventVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partyvortex_y7hh_logic": {
           try {
             const { OpenMultiPartyVortexService } = await import("../liberty/openmulti-partyvortex_y7hh.service.js");
