@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgesync_21uz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSync) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessledger_cg53_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessLedger) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustcompiler_2w3f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustCompiler) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialdaemon_5kz3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialDaemon) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgeswarm_06d9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeSwarm) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhigh-frequencyoracle_30wz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyOracle) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18212,6 +18252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgesync_21uz_logic": {
+          try {
+            const { OpenEdgeSyncService } = await import("../liberty/openedgesync_21uz.service.js");
+            const res = await OpenEdgeSyncService.execute(args.target || "system");
+            return { output: `### OpenEdgeSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessledger_cg53_logic": {
+          try {
+            const { OpenServerlessLedgerService } = await import("../liberty/openserverlessledger_cg53.service.js");
+            const res = await OpenServerlessLedgerService.execute(args.target || "system");
+            return { output: `### OpenServerlessLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustcompiler_2w3f_logic": {
+          try {
+            const { OpenZeroTrustCompilerService } = await import("../liberty/openzero-trustcompiler_2w3f.service.js");
+            const res = await OpenZeroTrustCompilerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialdaemon_5kz3_logic": {
+          try {
+            const { OpenFinancialDaemonService } = await import("../liberty/openfinancialdaemon_5kz3.service.js");
+            const res = await OpenFinancialDaemonService.execute(args.target || "system");
+            return { output: `### OpenFinancialDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgeswarm_06d9_logic": {
+          try {
+            const { OpenZeroKnowledgeSwarmService } = await import("../liberty/openzero-knowledgeswarm_06d9.service.js");
+            const res = await OpenZeroKnowledgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openhigh-frequencyoracle_30wz_logic": {
           try {
             const { OpenHighFrequencyOracleService } = await import("../liberty/openhigh-frequencyoracle_30wz.service.js");
