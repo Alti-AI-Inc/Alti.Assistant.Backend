@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "deploy_visual_flow",
+      description: "Use the Aphura IoT Automation Engine (Node-RED) to autonomously wire hardware sensors, APIs, and microservices into a visual flow-based logic graph.",
+      parameters: { type: "object", properties: { flowDescription: { type: "string" } }, required: ["flowDescription"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "configure_edge_proxy",
+      description: "Use the Aphura Edge Security Engine (Envoy Proxy) to autonomously deploy dynamic load balancers, rate-limiters, and Layer 7 DDoS protections.",
+      parameters: { type: "object", properties: { domain: { type: "string" }, routingRules: { type: "string" } }, required: ["domain"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_to_webassembly",
+      description: "Use the Aphura WASM Engine (Wasmtime) to compile heavy C++ or Rust programs into WebAssembly (.wasm) for near-native execution speed directly in the browser.",
+      parameters: { type: "object", properties: { sourceCode: { type: "string" }, language: { type: "string" } }, required: ["sourceCode", "language"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deploy_kubernetes_manifest",
+      description: "Use the Aphura Orchestration Engine (Kubernetes) to autonomously deploy, scale, and manage massive containerized microservice fleets.",
+      parameters: { type: "object", properties: { manifestYaml: { type: "string" } }, required: ["manifestYaml"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "build_os_container",
+      description: "Use the Aphura Containerization Engine (Containerd) to autonomously package source code and dependencies into standardized, isolated OS containers.",
+      parameters: { type: "object", properties: { dockerfileConfig: { type: "string" } }, required: ["dockerfileConfig"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "provision_data_notebook",
       description: "Use the Aphura Analytics Engine (Apache Zeppelin) to autonomously deploy interactive, multi-language data notebooks for complex data science tasks.",
       parameters: { type: "object", properties: { notebookName: { type: "string" }, languages: { type: "array", items: { type: "string" } } }, required: ["notebookName"] }
@@ -932,7 +972,47 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "provision_data_notebook": {
+        case "deploy_visual_flow": {
+          try {
+            const { NodeRedService } = await import("../iot/nodered.service.js");
+            const res = await NodeRedService.deployFlow(args.flowDescription);
+            return { output: `### Node-RED Flow Deployed\\n\\n[Access Visual Editor](${res.url})` };
+          } catch (err) {
+            return { output: `Flow deployment failed: ${err.message}` };
+          }
+        }        case "configure_edge_proxy": {
+          try {
+            const { EnvoyService } = await import("../security/envoy.service.js");
+            const res = await EnvoyService.configureProxy(args.domain, args.routingRules);
+            return { output: `### Edge Proxy Configured\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Envoy configuration failed: ${err.message}` };
+          }
+        }        case "compile_to_webassembly": {
+          try {
+            const { WasmtimeService } = await import("../ide/wasmtime.service.js");
+            const res = await WasmtimeService.compileToWasm(args.sourceCode, args.language);
+            return { output: `### WASM Compilation Complete\\n\\n[Download .wasm Module](${res.wasmUrl})\\nStatus: ${res.status}` };
+          } catch (err) {
+            return { output: `WASM compilation failed: ${err.message}` };
+          }
+        }        case "deploy_kubernetes_manifest": {
+          try {
+            const { KubernetesService } = await import("../devops/kubernetes.service.js");
+            const res = await KubernetesService.deployToCluster(args.manifestYaml);
+            return { output: `### K8s Deployment Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `K8s deployment failed: ${err.message}` };
+          }
+        }        case "build_os_container": {
+          try {
+            const { ContainerdService } = await import("../devops/containerd.service.js");
+            const res = await ContainerdService.buildContainer(args.dockerfileConfig);
+            return { output: `### Container Build Complete\\n\\nImage: ${res.imageTag}\\nStatus: ${res.status}` };
+          } catch (err) {
+            return { output: `Container build failed: ${err.message}` };
+          }
+        }        case "provision_data_notebook": {
           try {
             const { ZeppelinService } = await import("../compute/zeppelin.service.js");
             const res = await ZeppelinService.provisionNotebook(args.notebookName, args.languages || ["python", "sql"]);
