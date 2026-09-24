@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedlayer_x0rg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedLayer) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryring_rea2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryRing) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticvortex_kztz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticVortex) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedstream_gqwy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedStream) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarystream_6ap0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryStream) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepmatrix_j8z7_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepMatrix) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16292,6 +16332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedlayer_x0rg_logic": {
+          try {
+            const { OpenAdvancedLayerService } = await import("../liberty/openadvancedlayer_x0rg.service.js");
+            const res = await OpenAdvancedLayerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryring_rea2_logic": {
+          try {
+            const { OpenInMemoryRingService } = await import("../liberty/openin-memoryring_rea2.service.js");
+            const res = await OpenInMemoryRingService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticvortex_kztz_logic": {
+          try {
+            const { OpenSemanticVortexService } = await import("../liberty/opensemanticvortex_kztz.service.js");
+            const res = await OpenSemanticVortexService.execute(args.target || "system");
+            return { output: `### OpenSemanticVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedstream_gqwy_logic": {
+          try {
+            const { OpenDecentralizedStreamService } = await import("../liberty/opendecentralizedstream_gqwy.service.js");
+            const res = await OpenDecentralizedStreamService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarystream_6ap0_logic": {
+          try {
+            const { OpenPlanetaryStreamService } = await import("../liberty/openplanetarystream_6ap0.service.js");
+            const res = await OpenPlanetaryStreamService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryStream failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepmatrix_j8z7_logic": {
           try {
             const { OpenDeepMatrixService } = await import("../liberty/opendeepmatrix_j8z7.service.js");
