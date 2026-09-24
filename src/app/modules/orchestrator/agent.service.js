@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openin-memoryledger_pku3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryLedger) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarymatrix_vtuk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryMatrix) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomateddaemon_aui6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedDaemon) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarystream_4wcg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryStream) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicswarm_s7ub_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicSwarm) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlesslayer_451f_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessLayer) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12812,6 +12852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openin-memoryledger_pku3_logic": {
+          try {
+            const { OpenInMemoryLedgerService } = await import("../liberty/openin-memoryledger_pku3.service.js");
+            const res = await OpenInMemoryLedgerService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarymatrix_vtuk_logic": {
+          try {
+            const { OpenPlanetaryMatrixService } = await import("../liberty/openplanetarymatrix_vtuk.service.js");
+            const res = await OpenPlanetaryMatrixService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomateddaemon_aui6_logic": {
+          try {
+            const { OpenAutomatedDaemonService } = await import("../liberty/openautomateddaemon_aui6.service.js");
+            const res = await OpenAutomatedDaemonService.execute(args.target || "system");
+            return { output: `### OpenAutomatedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarystream_4wcg_logic": {
+          try {
+            const { OpenPlanetaryStreamService } = await import("../liberty/openplanetarystream_4wcg.service.js");
+            const res = await OpenPlanetaryStreamService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicswarm_s7ub_logic": {
+          try {
+            const { OpenNeuromorphicSwarmService } = await import("../liberty/openneuromorphicswarm_s7ub.service.js");
+            const res = await OpenNeuromorphicSwarmService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlesslayer_451f_logic": {
           try {
             const { OpenServerlessLayerService } = await import("../liberty/openserverlesslayer_451f.service.js");
