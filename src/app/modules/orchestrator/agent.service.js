@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelmesh_45mb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMesh) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalplane_999j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalPlane) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivecompiler_mex7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveCompiler) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorgrid_oht8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorGrid) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatalayer_6w7c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataLayer) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendcore_wfak_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCore) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7412,6 +7452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelmesh_45mb_logic": {
+          try {
+            const { OpenMicroKernelMeshService } = await import("../liberty/openmicro-kernelmesh_45mb.service.js");
+            const res = await OpenMicroKernelMeshService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalplane_999j_logic": {
+          try {
+            const { OpenHyperDimensionalPlaneService } = await import("../liberty/openhyper-dimensionalplane_999j.service.js");
+            const res = await OpenHyperDimensionalPlaneService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivecompiler_mex7_logic": {
+          try {
+            const { OpenPredictiveCompilerService } = await import("../liberty/openpredictivecompiler_mex7.service.js");
+            const res = await OpenPredictiveCompilerService.execute(args.target || "system");
+            return { output: `### OpenPredictiveCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorgrid_oht8_logic": {
+          try {
+            const { OpenVectorGridService } = await import("../liberty/openvectorgrid_oht8.service.js");
+            const res = await OpenVectorGridService.execute(args.target || "system");
+            return { output: `### OpenVectorGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatalayer_6w7c_logic": {
+          try {
+            const { OpenDataLayerService } = await import("../liberty/opendatalayer_6w7c.service.js");
+            const res = await OpenDataLayerService.execute(args.target || "system");
+            return { output: `### OpenDataLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendcore_wfak_logic": {
           try {
             const { OpenMicroFrontendCoreService } = await import("../liberty/openmicro-frontendcore_wfak.service.js");
