@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventmatrix_d35k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventMatrix) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencysync_ko42_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencySync) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticproxy_si1b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticProxy) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalcontroller_3u7e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalController) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedcore_qjf7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedCore) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedcontroller_xvhf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedController) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12452,6 +12492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventmatrix_d35k_logic": {
+          try {
+            const { OpenEventMatrixService } = await import("../liberty/openeventmatrix_d35k.service.js");
+            const res = await OpenEventMatrixService.execute(args.target || "system");
+            return { output: `### OpenEventMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencysync_ko42_logic": {
+          try {
+            const { OpenHighFrequencySyncService } = await import("../liberty/openhigh-frequencysync_ko42.service.js");
+            const res = await OpenHighFrequencySyncService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencySync failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticproxy_si1b_logic": {
+          try {
+            const { OpenStaticProxyService } = await import("../liberty/openstaticproxy_si1b.service.js");
+            const res = await OpenStaticProxyService.execute(args.target || "system");
+            return { output: `### OpenStaticProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalcontroller_3u7e_logic": {
+          try {
+            const { OpenHyperDimensionalControllerService } = await import("../liberty/openhyper-dimensionalcontroller_3u7e.service.js");
+            const res = await OpenHyperDimensionalControllerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalController failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedcore_qjf7_logic": {
+          try {
+            const { OpenAutomatedCoreService } = await import("../liberty/openautomatedcore_qjf7.service.js");
+            const res = await OpenAutomatedCoreService.execute(args.target || "system");
+            return { output: `### OpenAutomatedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedCore failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedcontroller_xvhf_logic": {
           try {
             const { OpenAutomatedControllerService } = await import("../liberty/openautomatedcontroller_xvhf.service.js");
