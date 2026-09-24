@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustvault_66fx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustVault) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedstream_4vfk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedStream) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentpipeline_pdu1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentPipeline) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedbroker_mpbv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedBroker) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarerouter_zqev_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareRouter) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedstream_f3dw_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedStream) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13172,6 +13212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustvault_66fx_logic": {
+          try {
+            const { OpenZeroTrustVaultService } = await import("../liberty/openzero-trustvault_66fx.service.js");
+            const res = await OpenZeroTrustVaultService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedstream_4vfk_logic": {
+          try {
+            const { OpenDistributedStreamService } = await import("../liberty/opendistributedstream_4vfk.service.js");
+            const res = await OpenDistributedStreamService.execute(args.target || "system");
+            return { output: `### OpenDistributedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentpipeline_pdu1_logic": {
+          try {
+            const { OpenPersistentPipelineService } = await import("../liberty/openpersistentpipeline_pdu1.service.js");
+            const res = await OpenPersistentPipelineService.execute(args.target || "system");
+            return { output: `### OpenPersistentPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedbroker_mpbv_logic": {
+          try {
+            const { OpenFederatedBrokerService } = await import("../liberty/openfederatedbroker_mpbv.service.js");
+            const res = await OpenFederatedBrokerService.execute(args.target || "system");
+            return { output: `### OpenFederatedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarerouter_zqev_logic": {
+          try {
+            const { OpenHardwareRouterService } = await import("../liberty/openhardwarerouter_zqev.service.js");
+            const res = await OpenHardwareRouterService.execute(args.target || "system");
+            return { output: `### OpenHardwareRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedstream_f3dw_logic": {
           try {
             const { OpenFederatedStreamService } = await import("../liberty/openfederatedstream_f3dw.service.js");
