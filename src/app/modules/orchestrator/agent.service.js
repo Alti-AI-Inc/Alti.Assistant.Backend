@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizeddaemon_pimm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedDaemon) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticcluster_tc56_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticCluster) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedledger_1cvv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedLedger) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessnet_c4ma_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessNet) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesswarm_owzu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesSwarm) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustbroker_kdxj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustBroker) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6172,6 +6212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizeddaemon_pimm_logic": {
+          try {
+            const { OpenDecentralizedDaemonService } = await import("../liberty/opendecentralizeddaemon_pimm.service.js");
+            const res = await OpenDecentralizedDaemonService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticcluster_tc56_logic": {
+          try {
+            const { OpenStaticClusterService } = await import("../liberty/openstaticcluster_tc56.service.js");
+            const res = await OpenStaticClusterService.execute(args.target || "system");
+            return { output: `### OpenStaticCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedledger_1cvv_logic": {
+          try {
+            const { OpenFederatedLedgerService } = await import("../liberty/openfederatedledger_1cvv.service.js");
+            const res = await OpenFederatedLedgerService.execute(args.target || "system");
+            return { output: `### OpenFederatedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessnet_c4ma_logic": {
+          try {
+            const { OpenServerlessNetService } = await import("../liberty/openserverlessnet_c4ma.service.js");
+            const res = await OpenServerlessNetService.execute(args.target || "system");
+            return { output: `### OpenServerlessNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesswarm_owzu_logic": {
+          try {
+            const { OpenTimeSeriesSwarmService } = await import("../liberty/opentime-seriesswarm_owzu.service.js");
+            const res = await OpenTimeSeriesSwarmService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustbroker_kdxj_logic": {
           try {
             const { OpenZeroTrustBrokerService } = await import("../liberty/openzero-trustbroker_kdxj.service.js");
