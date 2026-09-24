@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendataproxy_logic",
+      description: "Use the Aphura Engine (OpenDataProxy) to Autonomously deploy Data Lineage architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedsync_logic",
+      description: "Use the Aphura Engine (OpenDecentralizedSync) to Autonomously deploy Decentralized Auth architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriescore_logic",
+      description: "Use the Aphura Engine (OpenTime-SeriesCore) to Autonomously deploy Time-Series Analytics architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorygraph_logic",
+      description: "Use the Aphura Engine (OpenIn-MemoryGraph) to Autonomously deploy In-Memory Data Grids architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentvortex_logic",
+      description: "Use the Aphura Engine (OpenPersistentVortex) to Autonomously deploy Persistent Memory architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlessproxy_logic",
       description: "Use the Aphura Engine (OpenHeadlessProxy) to Autonomously deploy Headless CMS Routing architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2052,6 +2092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendataproxy_logic": {
+          try {
+            const { OpendataproxyService } = await import("../enterprise/opendataproxy.service.js");
+            const res = await OpendataproxyService.execute(args.target || "system");
+            return { output: `### OpenDataProxy Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedsync_logic": {
+          try {
+            const { OpendecentralizedsyncService } = await import("../enterprise/opendecentralizedsync.service.js");
+            const res = await OpendecentralizedsyncService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedSync Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriescore_logic": {
+          try {
+            const { Opentime-seriescoreService } = await import("../enterprise/opentime-seriescore.service.js");
+            const res = await Opentime-seriescoreService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesCore Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorygraph_logic": {
+          try {
+            const { Openin-memorygraphService } = await import("../enterprise/openin-memorygraph.service.js");
+            const res = await Openin-memorygraphService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryGraph Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentvortex_logic": {
+          try {
+            const { OpenpersistentvortexService } = await import("../enterprise/openpersistentvortex.service.js");
+            const res = await OpenpersistentvortexService.execute(args.target || "system");
+            return { output: `### OpenPersistentVortex Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlessproxy_logic": {
           try {
             const { OpenheadlessproxyService } = await import("../enterprise/openheadlessproxy.service.js");
