@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentbroker_l1rd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentBroker) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustmesh_mntw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustMesh) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfgrid_zbzp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFGrid) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivegrid_jr3e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveGrid) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalmatrix_jjbk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalMatrix) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlesscore_sibm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCore) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7812,6 +7852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentbroker_l1rd_logic": {
+          try {
+            const { OpenPersistentBrokerService } = await import("../liberty/openpersistentbroker_l1rd.service.js");
+            const res = await OpenPersistentBrokerService.execute(args.target || "system");
+            return { output: `### OpenPersistentBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustmesh_mntw_logic": {
+          try {
+            const { OpenZeroTrustMeshService } = await import("../liberty/openzero-trustmesh_mntw.service.js");
+            const res = await OpenZeroTrustMeshService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfgrid_zbzp_logic": {
+          try {
+            const { OpeneBPFGridService } = await import("../liberty/openebpfgrid_zbzp.service.js");
+            const res = await OpeneBPFGridService.execute(args.target || "system");
+            return { output: `### OpeneBPFGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivegrid_jr3e_logic": {
+          try {
+            const { OpenPredictiveGridService } = await import("../liberty/openpredictivegrid_jr3e.service.js");
+            const res = await OpenPredictiveGridService.execute(args.target || "system");
+            return { output: `### OpenPredictiveGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalmatrix_jjbk_logic": {
+          try {
+            const { OpenHyperDimensionalMatrixService } = await import("../liberty/openhyper-dimensionalmatrix_jjbk.service.js");
+            const res = await OpenHyperDimensionalMatrixService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlesscore_sibm_logic": {
           try {
             const { OpenHeadlessCoreService } = await import("../liberty/openheadlesscore_sibm.service.js");
