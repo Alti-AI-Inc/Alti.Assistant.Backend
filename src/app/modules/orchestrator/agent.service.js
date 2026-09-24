@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengraphvortex_ow1e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphVortex) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedengine_3h64_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedEngine) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesssync_0f4o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessSync) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedswarm_zxhp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedSwarm) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventfabric_0sxf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventFabric) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partymesh_opgi_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyMesh) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8532,6 +8572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengraphvortex_ow1e_logic": {
+          try {
+            const { OpenGraphVortexService } = await import("../liberty/opengraphvortex_ow1e.service.js");
+            const res = await OpenGraphVortexService.execute(args.target || "system");
+            return { output: `### OpenGraphVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedengine_3h64_logic": {
+          try {
+            const { OpenAutomatedEngineService } = await import("../liberty/openautomatedengine_3h64.service.js");
+            const res = await OpenAutomatedEngineService.execute(args.target || "system");
+            return { output: `### OpenAutomatedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesssync_0f4o_logic": {
+          try {
+            const { OpenServerlessSyncService } = await import("../liberty/openserverlesssync_0f4o.service.js");
+            const res = await OpenServerlessSyncService.execute(args.target || "system");
+            return { output: `### OpenServerlessSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedswarm_zxhp_logic": {
+          try {
+            const { OpenAdvancedSwarmService } = await import("../liberty/openadvancedswarm_zxhp.service.js");
+            const res = await OpenAdvancedSwarmService.execute(args.target || "system");
+            return { output: `### OpenAdvancedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventfabric_0sxf_logic": {
+          try {
+            const { OpenEventFabricService } = await import("../liberty/openeventfabric_0sxf.service.js");
+            const res = await OpenEventFabricService.execute(args.target || "system");
+            return { output: `### OpenEventFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partymesh_opgi_logic": {
           try {
             const { OpenMultiPartyMeshService } = await import("../liberty/openmulti-partymesh_opgi.service.js");
