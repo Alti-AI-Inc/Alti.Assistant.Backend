@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpudaemon_7ewi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUDaemon) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryrouter_no6n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryRouter) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessledger_qeh4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessLedger) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablepipeline_9396_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutablePipeline) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractlayer_impm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractLayer) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondcompiler_j86p_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondCompiler) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18892,6 +18932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpudaemon_7ewi_logic": {
+          try {
+            const { OpenGPUDaemonService } = await import("../liberty/opengpudaemon_7ewi.service.js");
+            const res = await OpenGPUDaemonService.execute(args.target || "system");
+            return { output: `### OpenGPUDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryrouter_no6n_logic": {
+          try {
+            const { OpenInMemoryRouterService } = await import("../liberty/openin-memoryrouter_no6n.service.js");
+            const res = await OpenInMemoryRouterService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessledger_qeh4_logic": {
+          try {
+            const { OpenServerlessLedgerService } = await import("../liberty/openserverlessledger_qeh4.service.js");
+            const res = await OpenServerlessLedgerService.execute(args.target || "system");
+            return { output: `### OpenServerlessLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablepipeline_9396_logic": {
+          try {
+            const { OpenImmutablePipelineService } = await import("../liberty/openimmutablepipeline_9396.service.js");
+            const res = await OpenImmutablePipelineService.execute(args.target || "system");
+            return { output: `### OpenImmutablePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutablePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractlayer_impm_logic": {
+          try {
+            const { OpenAbstractLayerService } = await import("../liberty/openabstractlayer_impm.service.js");
+            const res = await OpenAbstractLayerService.execute(args.target || "system");
+            return { output: `### OpenAbstractLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractLayer failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondcompiler_j86p_logic": {
           try {
             const { OpenSubMillisecondCompilerService } = await import("../liberty/opensub-millisecondcompiler_j86p.service.js");
