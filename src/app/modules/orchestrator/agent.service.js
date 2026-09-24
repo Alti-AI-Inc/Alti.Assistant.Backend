@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openin-memorymatrix_ieuk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryMatrix) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumengine_obfp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumEngine) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednexus_7wwp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNexus) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesmesh_90ix_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesMesh) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfproxy_mnfy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFProxy) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialcontroller_vrbl_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialController) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13772,6 +13812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openin-memorymatrix_ieuk_logic": {
+          try {
+            const { OpenInMemoryMatrixService } = await import("../liberty/openin-memorymatrix_ieuk.service.js");
+            const res = await OpenInMemoryMatrixService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumengine_obfp_logic": {
+          try {
+            const { OpenQuantumEngineService } = await import("../liberty/openquantumengine_obfp.service.js");
+            const res = await OpenQuantumEngineService.execute(args.target || "system");
+            return { output: `### OpenQuantumEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednexus_7wwp_logic": {
+          try {
+            const { OpenDecentralizedNexusService } = await import("../liberty/opendecentralizednexus_7wwp.service.js");
+            const res = await OpenDecentralizedNexusService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesmesh_90ix_logic": {
+          try {
+            const { OpenTimeSeriesMeshService } = await import("../liberty/opentime-seriesmesh_90ix.service.js");
+            const res = await OpenTimeSeriesMeshService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfproxy_mnfy_logic": {
+          try {
+            const { OpeneBPFProxyService } = await import("../liberty/openebpfproxy_mnfy.service.js");
+            const res = await OpeneBPFProxyService.execute(args.target || "system");
+            return { output: `### OpeneBPFProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialcontroller_vrbl_logic": {
           try {
             const { OpenFinancialControllerService } = await import("../liberty/openfinancialcontroller_vrbl.service.js");
