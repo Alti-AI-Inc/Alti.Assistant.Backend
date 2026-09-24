@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedrouter_s6hz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessdaemon_zekq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessDaemon) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosledger_zmrp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosLedger) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedvault_0tdd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVault) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfvortex_7377_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFVortex) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumchain_728j_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumChain) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11772,6 +11812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedrouter_s6hz_logic": {
+          try {
+            const { OpenDecentralizedRouterService } = await import("../liberty/opendecentralizedrouter_s6hz.service.js");
+            const res = await OpenDecentralizedRouterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessdaemon_zekq_logic": {
+          try {
+            const { OpenServerlessDaemonService } = await import("../liberty/openserverlessdaemon_zekq.service.js");
+            const res = await OpenServerlessDaemonService.execute(args.target || "system");
+            return { output: `### OpenServerlessDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosledger_zmrp_logic": {
+          try {
+            const { OpenChaosLedgerService } = await import("../liberty/openchaosledger_zmrp.service.js");
+            const res = await OpenChaosLedgerService.execute(args.target || "system");
+            return { output: `### OpenChaosLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedvault_0tdd_logic": {
+          try {
+            const { OpenDecentralizedVaultService } = await import("../liberty/opendecentralizedvault_0tdd.service.js");
+            const res = await OpenDecentralizedVaultService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfvortex_7377_logic": {
+          try {
+            const { OpeneBPFVortexService } = await import("../liberty/openebpfvortex_7377.service.js");
+            const res = await OpeneBPFVortexService.execute(args.target || "system");
+            return { output: `### OpeneBPFVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumchain_728j_logic": {
           try {
             const { OpenQuantumChainService } = await import("../liberty/openquantumchain_728j.service.js");
