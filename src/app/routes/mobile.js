@@ -1,6 +1,6 @@
 import express from 'express';
 import { ApiKeyService } from '../modules/api-keys/apikey.service.js';
-import { logger } from '../shared/logger.js';
+import { logger } from '../../shared/logger.js';
 import httpStatus from 'http-status';
 
 const router = express.Router();

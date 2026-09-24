@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { logger } from '../../shared/logger.js';
+import { logger } from '../../../shared/logger.js';
 import OpenStackService from '../../services/openstack.service.js';
 import { RedisClient } from '../../../shared/redis.js';
 import axios from 'axios';

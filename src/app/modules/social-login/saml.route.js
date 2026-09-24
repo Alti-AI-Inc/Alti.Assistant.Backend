@@ -1,7 +1,23 @@
 import express from 'express';
 import passport from 'passport';
-import { SocialLoginController } from './social-login.controller.js';
+import jwt from 'jsonwebtoken';
 import config from '../../../../config/index.js';
+
+const FRONTEND_URL = config.client_url || 'https://www.aphurahq.com';
+
+function sendTokenResponse(user, res) {
+  if (!user || !user._id) {
+    return res.redirect(`${FRONTEND_URL}/login?error=saml_failed`);
+  }
+  try {
+    const payload = { role: user.role, _id: user._id };
+    const secret = process.env.JWT_ACCESS_TOKEN_SECRET || config.jwt.access_token;
+    const token = jwt.sign(payload, secret, { expiresIn: config.jwt.access_token_expires_in || '1h' });
+    res.redirect(`${FRONTEND_URL}/callback?token=${token}`);
+  } catch (error) {
+    res.redirect(`${FRONTEND_URL}/login?error=saml_failed`);
+  }
+}
 
 const router = express.Router();
 
@@ -35,7 +51,7 @@ router.post(
   passport.authenticate('saml', {
     failureRedirect: `${config.clientUrl}/login?error=saml_failed`,
   }),
-  SocialLoginController.handleSocialLoginSuccess
+  (req, res) => sendTokenResponse(req.user, res)
 );
 
 export const samlRoutes = router;

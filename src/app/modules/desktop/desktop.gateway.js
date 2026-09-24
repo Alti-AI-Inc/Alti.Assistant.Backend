@@ -1,5 +1,5 @@
 import { WebSocketServer } from 'ws';
-import { logger } from '../../shared/logger.js';
+import { logger } from '../../../shared/logger.js';
 import { RedisClient } from '../../../shared/redis.js';
 import jwt from 'jsonwebtoken';
 import config from '../../../../config/index.js';

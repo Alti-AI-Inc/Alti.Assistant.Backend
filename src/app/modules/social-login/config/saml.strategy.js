@@ -1,8 +1,8 @@
 import { Strategy as SamlStrategy } from 'passport-saml';
 import passport from 'passport';
 import UserModel from '../../auth/auth.model.js';
-import config from '../../../../config/index.js';
-import { logger } from '../../../shared/logger.js';
+import config from '../../../../../config/index.js';
+import { logger } from '../../../../shared/logger.js';
 
 if (process.env.SAML_ENTRY_POINT) {
   logger.info('[SAML] Configuring Enterprise SAML 2.0 Strategy');
