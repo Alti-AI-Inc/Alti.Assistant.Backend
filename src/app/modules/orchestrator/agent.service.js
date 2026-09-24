@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedsync_em2v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSync) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelcontroller_ty1p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelController) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycore_fwec_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyCore) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicmesh_weko_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicMesh) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractpipeline_wi8w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractPipeline) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventrouter_w4km_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventRouter) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16972,6 +17012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedsync_em2v_logic": {
+          try {
+            const { OpenDecentralizedSyncService } = await import("../liberty/opendecentralizedsync_em2v.service.js");
+            const res = await OpenDecentralizedSyncService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelcontroller_ty1p_logic": {
+          try {
+            const { OpenMicroKernelControllerService } = await import("../liberty/openmicro-kernelcontroller_ty1p.service.js");
+            const res = await OpenMicroKernelControllerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycore_fwec_logic": {
+          try {
+            const { OpenHighFrequencyCoreService } = await import("../liberty/openhigh-frequencycore_fwec.service.js");
+            const res = await OpenHighFrequencyCoreService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicmesh_weko_logic": {
+          try {
+            const { OpenNeuromorphicMeshService } = await import("../liberty/openneuromorphicmesh_weko.service.js");
+            const res = await OpenNeuromorphicMeshService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractpipeline_wi8w_logic": {
+          try {
+            const { OpenAbstractPipelineService } = await import("../liberty/openabstractpipeline_wi8w.service.js");
+            const res = await OpenAbstractPipelineService.execute(args.target || "system");
+            return { output: `### OpenAbstractPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openeventrouter_w4km_logic": {
           try {
             const { OpenEventRouterService } = await import("../liberty/openeventrouter_w4km.service.js");
