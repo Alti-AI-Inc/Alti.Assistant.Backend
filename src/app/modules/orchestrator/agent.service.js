@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentvault_utif_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentVault) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfcontroller_0rp9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFController) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractcontroller_x1n2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractController) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialledger_jffr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialLedger) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaregrid_9b40_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareGrid) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticfabric_8206_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticFabric) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2932,6 +2972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentvault_utif_logic": {
+          try {
+            const { OpenPersistentVaultService } = await import("../liberty/openpersistentvault_utif.service.js");
+            const res = await OpenPersistentVaultService.execute(args.target || "system");
+            return { output: `### OpenPersistentVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfcontroller_0rp9_logic": {
+          try {
+            const { OpeneBPFControllerService } = await import("../liberty/openebpfcontroller_0rp9.service.js");
+            const res = await OpeneBPFControllerService.execute(args.target || "system");
+            return { output: `### OpeneBPFController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFController failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractcontroller_x1n2_logic": {
+          try {
+            const { OpenAbstractControllerService } = await import("../liberty/openabstractcontroller_x1n2.service.js");
+            const res = await OpenAbstractControllerService.execute(args.target || "system");
+            return { output: `### OpenAbstractController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractController failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialledger_jffr_logic": {
+          try {
+            const { OpenFinancialLedgerService } = await import("../liberty/openfinancialledger_jffr.service.js");
+            const res = await OpenFinancialLedgerService.execute(args.target || "system");
+            return { output: `### OpenFinancialLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaregrid_9b40_logic": {
+          try {
+            const { OpenHardwareGridService } = await import("../liberty/openhardwaregrid_9b40.service.js");
+            const res = await OpenHardwareGridService.execute(args.target || "system");
+            return { output: `### OpenHardwareGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticfabric_8206_logic": {
           try {
             const { OpenSemanticFabricService } = await import("../liberty/opensemanticfabric_8206.service.js");
