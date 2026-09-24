@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalproxy_pp6d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalProxy) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialstream_u3nu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialStream) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributednode_rrwh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedNode) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarystream_g0md_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryStream) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelring_zal2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelRing) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialchain_0l8w_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialChain) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17532,6 +17572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalproxy_pp6d_logic": {
+          try {
+            const { OpenHyperDimensionalProxyService } = await import("../liberty/openhyper-dimensionalproxy_pp6d.service.js");
+            const res = await OpenHyperDimensionalProxyService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialstream_u3nu_logic": {
+          try {
+            const { OpenFinancialStreamService } = await import("../liberty/openfinancialstream_u3nu.service.js");
+            const res = await OpenFinancialStreamService.execute(args.target || "system");
+            return { output: `### OpenFinancialStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributednode_rrwh_logic": {
+          try {
+            const { OpenDistributedNodeService } = await import("../liberty/opendistributednode_rrwh.service.js");
+            const res = await OpenDistributedNodeService.execute(args.target || "system");
+            return { output: `### OpenDistributedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarystream_g0md_logic": {
+          try {
+            const { OpenPlanetaryStreamService } = await import("../liberty/openplanetarystream_g0md.service.js");
+            const res = await OpenPlanetaryStreamService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelring_zal2_logic": {
+          try {
+            const { OpenMicroKernelRingService } = await import("../liberty/openmicro-kernelring_zal2.service.js");
+            const res = await OpenMicroKernelRingService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelRing failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialchain_0l8w_logic": {
           try {
             const { OpenFinancialChainService } = await import("../liberty/openfinancialchain_0l8w.service.js");
