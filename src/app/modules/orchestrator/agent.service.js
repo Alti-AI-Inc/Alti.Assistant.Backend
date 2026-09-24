@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedgraph_csen_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentledger_nkke_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentLedger) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativemesh_hago_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeMesh) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativestream_off5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeStream) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgppipeline_f6uz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPPipeline) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwareledger_qcdn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareLedger) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7892,6 +7932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedgraph_csen_logic": {
+          try {
+            const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_csen.service.js");
+            const res = await OpenDecentralizedGraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentledger_nkke_logic": {
+          try {
+            const { OpenPersistentLedgerService } = await import("../liberty/openpersistentledger_nkke.service.js");
+            const res = await OpenPersistentLedgerService.execute(args.target || "system");
+            return { output: `### OpenPersistentLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativemesh_hago_logic": {
+          try {
+            const { OpenCloudNativeMeshService } = await import("../liberty/opencloud-nativemesh_hago.service.js");
+            const res = await OpenCloudNativeMeshService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativestream_off5_logic": {
+          try {
+            const { OpenCloudNativeStreamService } = await import("../liberty/opencloud-nativestream_off5.service.js");
+            const res = await OpenCloudNativeStreamService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgppipeline_f6uz_logic": {
+          try {
+            const { OpenBGPPipelineService } = await import("../liberty/openbgppipeline_f6uz.service.js");
+            const res = await OpenBGPPipelineService.execute(args.target || "system");
+            return { output: `### OpenBGPPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwareledger_qcdn_logic": {
           try {
             const { OpenHardwareLedgerService } = await import("../liberty/openhardwareledger_qcdn.service.js");
