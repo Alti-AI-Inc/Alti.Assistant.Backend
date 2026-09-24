@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendatanexus_zlbn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataNexus) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisematrix_4w37_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseMatrix) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventpipeline_ecun_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventPipeline) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepbroker_lec4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepBroker) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialswarm_jnm3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialSwarm) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterledger_2mmv_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLedger) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8692,6 +8732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendatanexus_zlbn_logic": {
+          try {
+            const { OpenDataNexusService } = await import("../liberty/opendatanexus_zlbn.service.js");
+            const res = await OpenDataNexusService.execute(args.target || "system");
+            return { output: `### OpenDataNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisematrix_4w37_logic": {
+          try {
+            const { OpenEnterpriseMatrixService } = await import("../liberty/openenterprisematrix_4w37.service.js");
+            const res = await OpenEnterpriseMatrixService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventpipeline_ecun_logic": {
+          try {
+            const { OpenEventPipelineService } = await import("../liberty/openeventpipeline_ecun.service.js");
+            const res = await OpenEventPipelineService.execute(args.target || "system");
+            return { output: `### OpenEventPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepbroker_lec4_logic": {
+          try {
+            const { OpenDeepBrokerService } = await import("../liberty/opendeepbroker_lec4.service.js");
+            const res = await OpenDeepBrokerService.execute(args.target || "system");
+            return { output: `### OpenDeepBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialswarm_jnm3_logic": {
+          try {
+            const { OpenFinancialSwarmService } = await import("../liberty/openfinancialswarm_jnm3.service.js");
+            const res = await OpenFinancialSwarmService.execute(args.target || "system");
+            return { output: `### OpenFinancialSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterledger_2mmv_logic": {
           try {
             const { OpenCrossClusterLedgerService } = await import("../liberty/opencross-clusterledger_2mmv.service.js");
