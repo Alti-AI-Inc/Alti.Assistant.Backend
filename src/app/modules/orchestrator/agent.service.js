@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clustervortex_5dwj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterVortex) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseproxy_umev_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseProxy) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedplane_vohq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedPlane) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesrouter_fwu6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesRouter) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgelayer_5at3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeLayer) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativestream_0us3_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeStream) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16692,6 +16732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clustervortex_5dwj_logic": {
+          try {
+            const { OpenCrossClusterVortexService } = await import("../liberty/opencross-clustervortex_5dwj.service.js");
+            const res = await OpenCrossClusterVortexService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseproxy_umev_logic": {
+          try {
+            const { OpenEnterpriseProxyService } = await import("../liberty/openenterpriseproxy_umev.service.js");
+            const res = await OpenEnterpriseProxyService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedplane_vohq_logic": {
+          try {
+            const { OpenFederatedPlaneService } = await import("../liberty/openfederatedplane_vohq.service.js");
+            const res = await OpenFederatedPlaneService.execute(args.target || "system");
+            return { output: `### OpenFederatedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesrouter_fwu6_logic": {
+          try {
+            const { OpenTimeSeriesRouterService } = await import("../liberty/opentime-seriesrouter_fwu6.service.js");
+            const res = await OpenTimeSeriesRouterService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgelayer_5at3_logic": {
+          try {
+            const { OpenEdgeLayerService } = await import("../liberty/openedgelayer_5at3.service.js");
+            const res = await OpenEdgeLayerService.execute(args.target || "system");
+            return { output: `### OpenEdgeLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeLayer failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativestream_0us3_logic": {
           try {
             const { OpenCloudNativeStreamService } = await import("../liberty/opencloud-nativestream_0us3.service.js");
