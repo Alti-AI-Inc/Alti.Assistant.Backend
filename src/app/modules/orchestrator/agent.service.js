@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialmesh_mbsh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialMesh) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedpipeline_pnvc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedPipeline) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticmatrix_z1ca_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticMatrix) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcontroller_u2sc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPController) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyplane_up3t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyPlane) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partydaemon_c2ss_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyDaemon) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6732,6 +6772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialmesh_mbsh_logic": {
+          try {
+            const { OpenFinancialMeshService } = await import("../liberty/openfinancialmesh_mbsh.service.js");
+            const res = await OpenFinancialMeshService.execute(args.target || "system");
+            return { output: `### OpenFinancialMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedpipeline_pnvc_logic": {
+          try {
+            const { OpenAdvancedPipelineService } = await import("../liberty/openadvancedpipeline_pnvc.service.js");
+            const res = await OpenAdvancedPipelineService.execute(args.target || "system");
+            return { output: `### OpenAdvancedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticmatrix_z1ca_logic": {
+          try {
+            const { OpenSemanticMatrixService } = await import("../liberty/opensemanticmatrix_z1ca.service.js");
+            const res = await OpenSemanticMatrixService.execute(args.target || "system");
+            return { output: `### OpenSemanticMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcontroller_u2sc_logic": {
+          try {
+            const { OpenBGPControllerService } = await import("../liberty/openbgpcontroller_u2sc.service.js");
+            const res = await OpenBGPControllerService.execute(args.target || "system");
+            return { output: `### OpenBGPController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyplane_up3t_logic": {
+          try {
+            const { OpenHighFrequencyPlaneService } = await import("../liberty/openhigh-frequencyplane_up3t.service.js");
+            const res = await OpenHighFrequencyPlaneService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partydaemon_c2ss_logic": {
           try {
             const { OpenMultiPartyDaemonService } = await import("../liberty/openmulti-partydaemon_c2ss.service.js");
