@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "decompile_binary",
+      description: "Use the Aphura Reverse Engineering Engine (Ghidra/Radare2) to rip apart compiled binaries (.exe, .apk) and extract their underlying C/C++ logic.",
+      parameters: { type: "object", properties: { binaryPath: { type: "string" } }, required: ["binaryPath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "apply_multiplayer_edits",
       description: "Use the Aphura Yjs Sync Engine to seamlessly inject code edits into a live document that the user is currently typing in, preventing merge conflicts.",
       parameters: { type: "object", properties: { docId: { type: "string" }, edits: { type: "string" } }, required: ["docId", "edits"] }
@@ -724,7 +732,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "apply_multiplayer_edits": {
+        case "decompile_binary": {
+          try {
+            const { ReverseEngService } = await import("../security/reverse.service.js");
+            const res = await ReverseEngService.decompileBinary(args.binaryPath);
+            return { output: `### Reverse Engineering Complete\\n\\n```c\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Decompilation failed: ${err.message}` };
+          }
+        }        case "apply_multiplayer_edits": {
           try {
             const { YjsService } = await import("../collaboration/yjs.service.js");
             const res = await YjsService.syncDocumentState(args.docId, args.edits);
