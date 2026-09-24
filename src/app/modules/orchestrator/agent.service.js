@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectorproxy_52jd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorProxy) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarycompiler_52ig_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCompiler) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalledger_r0nt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalLedger) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorcluster_b1v6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorCluster) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarymatrix_ftqq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryMatrix) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisecontroller_kdip_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseController) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15532,6 +15572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectorproxy_52jd_logic": {
+          try {
+            const { OpenVectorProxyService } = await import("../liberty/openvectorproxy_52jd.service.js");
+            const res = await OpenVectorProxyService.execute(args.target || "system");
+            return { output: `### OpenVectorProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarycompiler_52ig_logic": {
+          try {
+            const { OpenPlanetaryCompilerService } = await import("../liberty/openplanetarycompiler_52ig.service.js");
+            const res = await OpenPlanetaryCompilerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalledger_r0nt_logic": {
+          try {
+            const { OpenHyperDimensionalLedgerService } = await import("../liberty/openhyper-dimensionalledger_r0nt.service.js");
+            const res = await OpenHyperDimensionalLedgerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorcluster_b1v6_logic": {
+          try {
+            const { OpenVectorClusterService } = await import("../liberty/openvectorcluster_b1v6.service.js");
+            const res = await OpenVectorClusterService.execute(args.target || "system");
+            return { output: `### OpenVectorCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarymatrix_ftqq_logic": {
+          try {
+            const { OpenPlanetaryMatrixService } = await import("../liberty/openplanetarymatrix_ftqq.service.js");
+            const res = await OpenPlanetaryMatrixService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisecontroller_kdip_logic": {
           try {
             const { OpenEnterpriseControllerService } = await import("../liberty/openenterprisecontroller_kdip.service.js");
