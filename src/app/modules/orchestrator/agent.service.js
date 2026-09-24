@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusternexus_nbqe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterNexus) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgecompiler_85cw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeCompiler) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialring_13nc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialRing) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryledger_wakl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryLedger) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustnode_t6k9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustNode) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelcore_4acj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelCore) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18412,6 +18452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusternexus_nbqe_logic": {
+          try {
+            const { OpenCrossClusterNexusService } = await import("../liberty/opencross-clusternexus_nbqe.service.js");
+            const res = await OpenCrossClusterNexusService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgecompiler_85cw_logic": {
+          try {
+            const { OpenEdgeCompilerService } = await import("../liberty/openedgecompiler_85cw.service.js");
+            const res = await OpenEdgeCompilerService.execute(args.target || "system");
+            return { output: `### OpenEdgeCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialring_13nc_logic": {
+          try {
+            const { OpenFinancialRingService } = await import("../liberty/openfinancialring_13nc.service.js");
+            const res = await OpenFinancialRingService.execute(args.target || "system");
+            return { output: `### OpenFinancialRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryledger_wakl_logic": {
+          try {
+            const { OpenPlanetaryLedgerService } = await import("../liberty/openplanetaryledger_wakl.service.js");
+            const res = await OpenPlanetaryLedgerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustnode_t6k9_logic": {
+          try {
+            const { OpenZeroTrustNodeService } = await import("../liberty/openzero-trustnode_t6k9.service.js");
+            const res = await OpenZeroTrustNodeService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustNode failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelcore_4acj_logic": {
           try {
             const { OpenMicroKernelCoreService } = await import("../liberty/openmicro-kernelcore_4acj.service.js");
