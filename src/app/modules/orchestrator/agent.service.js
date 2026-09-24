@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepnode_dzb0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepNode) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedrouter_1vz5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedRouter) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgraph_twiv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendring_620x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRing) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenode_01yb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNode) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partydaemon_xdtb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyDaemon) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6052,6 +6092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepnode_dzb0_logic": {
+          try {
+            const { OpenDeepNodeService } = await import("../liberty/opendeepnode_dzb0.service.js");
+            const res = await OpenDeepNodeService.execute(args.target || "system");
+            return { output: `### OpenDeepNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedrouter_1vz5_logic": {
+          try {
+            const { OpenAdvancedRouterService } = await import("../liberty/openadvancedrouter_1vz5.service.js");
+            const res = await OpenAdvancedRouterService.execute(args.target || "system");
+            return { output: `### OpenAdvancedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgraph_twiv_logic": {
+          try {
+            const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_twiv.service.js");
+            const res = await OpenDecentralizedGraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendring_620x_logic": {
+          try {
+            const { OpenMicroFrontendRingService } = await import("../liberty/openmicro-frontendring_620x.service.js");
+            const res = await OpenMicroFrontendRingService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenode_01yb_logic": {
+          try {
+            const { OpenCloudNativeNodeService } = await import("../liberty/opencloud-nativenode_01yb.service.js");
+            const res = await OpenCloudNativeNodeService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNode failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partydaemon_xdtb_logic": {
           try {
             const { OpenMultiPartyDaemonService } = await import("../liberty/openmulti-partydaemon_xdtb.service.js");
