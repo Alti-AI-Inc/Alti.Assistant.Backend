@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicfabric_thr9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicFabric) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgepipeline_qa5h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgePipeline) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyengine_66xo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyEngine) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseengine_qqr7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseEngine) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumcluster_jrmp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumCluster) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalring_i5kp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalRing) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -7052,6 +7092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicfabric_thr9_logic": {
+          try {
+            const { OpenHomomorphicFabricService } = await import("../liberty/openhomomorphicfabric_thr9.service.js");
+            const res = await OpenHomomorphicFabricService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgepipeline_qa5h_logic": {
+          try {
+            const { OpenEdgePipelineService } = await import("../liberty/openedgepipeline_qa5h.service.js");
+            const res = await OpenEdgePipelineService.execute(args.target || "system");
+            return { output: `### OpenEdgePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyengine_66xo_logic": {
+          try {
+            const { OpenHighFrequencyEngineService } = await import("../liberty/openhigh-frequencyengine_66xo.service.js");
+            const res = await OpenHighFrequencyEngineService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseengine_qqr7_logic": {
+          try {
+            const { OpenEnterpriseEngineService } = await import("../liberty/openenterpriseengine_qqr7.service.js");
+            const res = await OpenEnterpriseEngineService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumcluster_jrmp_logic": {
+          try {
+            const { OpenQuantumClusterService } = await import("../liberty/openquantumcluster_jrmp.service.js");
+            const res = await OpenQuantumClusterService.execute(args.target || "system");
+            return { output: `### OpenQuantumCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalring_i5kp_logic": {
           try {
             const { OpenHyperDimensionalRingService } = await import("../liberty/openhyper-dimensionalring_i5kp.service.js");
