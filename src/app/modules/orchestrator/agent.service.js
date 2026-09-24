@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpuswarm_26sk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUSwarm) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablevault_0omd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableVault) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicgrid_8sqx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicGrid) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumbroker_5es9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumBroker) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphlayer_qtr9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphLayer) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentmatrix_mdu9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentMatrix) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20212,6 +20252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpuswarm_26sk_logic": {
+          try {
+            const { OpenGPUSwarmService } = await import("../liberty/opengpuswarm_26sk.service.js");
+            const res = await OpenGPUSwarmService.execute(args.target || "system");
+            return { output: `### OpenGPUSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablevault_0omd_logic": {
+          try {
+            const { OpenImmutableVaultService } = await import("../liberty/openimmutablevault_0omd.service.js");
+            const res = await OpenImmutableVaultService.execute(args.target || "system");
+            return { output: `### OpenImmutableVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicgrid_8sqx_logic": {
+          try {
+            const { OpenHomomorphicGridService } = await import("../liberty/openhomomorphicgrid_8sqx.service.js");
+            const res = await OpenHomomorphicGridService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumbroker_5es9_logic": {
+          try {
+            const { OpenQuantumBrokerService } = await import("../liberty/openquantumbroker_5es9.service.js");
+            const res = await OpenQuantumBrokerService.execute(args.target || "system");
+            return { output: `### OpenQuantumBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphlayer_qtr9_logic": {
+          try {
+            const { OpenGraphLayerService } = await import("../liberty/opengraphlayer_qtr9.service.js");
+            const res = await OpenGraphLayerService.execute(args.target || "system");
+            return { output: `### OpenGraphLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentmatrix_mdu9_logic": {
           try {
             const { OpenPersistentMatrixService } = await import("../liberty/openpersistentmatrix_mdu9.service.js");
