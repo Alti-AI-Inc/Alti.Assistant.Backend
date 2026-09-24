@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablegraph_psw5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableGraph) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessgrid_tq0g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessGrid) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kerneloracle_h7yt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelOracle) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpucore_9u9l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUCore) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosvault_3drw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosVault) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedengine_w449_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedEngine) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6412,6 +6452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablegraph_psw5_logic": {
+          try {
+            const { OpenImmutableGraphService } = await import("../liberty/openimmutablegraph_psw5.service.js");
+            const res = await OpenImmutableGraphService.execute(args.target || "system");
+            return { output: `### OpenImmutableGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessgrid_tq0g_logic": {
+          try {
+            const { OpenServerlessGridService } = await import("../liberty/openserverlessgrid_tq0g.service.js");
+            const res = await OpenServerlessGridService.execute(args.target || "system");
+            return { output: `### OpenServerlessGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kerneloracle_h7yt_logic": {
+          try {
+            const { OpenMicroKernelOracleService } = await import("../liberty/openmicro-kerneloracle_h7yt.service.js");
+            const res = await OpenMicroKernelOracleService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpucore_9u9l_logic": {
+          try {
+            const { OpenGPUCoreService } = await import("../liberty/opengpucore_9u9l.service.js");
+            const res = await OpenGPUCoreService.execute(args.target || "system");
+            return { output: `### OpenGPUCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosvault_3drw_logic": {
+          try {
+            const { OpenChaosVaultService } = await import("../liberty/openchaosvault_3drw.service.js");
+            const res = await OpenChaosVaultService.execute(args.target || "system");
+            return { output: `### OpenChaosVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosVault failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedengine_w449_logic": {
           try {
             const { OpenDecentralizedEngineService } = await import("../liberty/opendecentralizedengine_w449.service.js");
