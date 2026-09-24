@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendcore_lfvn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendCore) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpfabric_urpq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPFabric) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativegraph_7kvc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeGraph) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogledger_h4x6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogLedger) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedcompiler_71ku_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedCompiler) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativering_q2sq_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeRing) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -5652,6 +5692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendcore_lfvn_logic": {
+          try {
+            const { OpenMicroFrontendCoreService } = await import("../liberty/openmicro-frontendcore_lfvn.service.js");
+            const res = await OpenMicroFrontendCoreService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpfabric_urpq_logic": {
+          try {
+            const { OpenBGPFabricService } = await import("../liberty/openbgpfabric_urpq.service.js");
+            const res = await OpenBGPFabricService.execute(args.target || "system");
+            return { output: `### OpenBGPFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativegraph_7kvc_logic": {
+          try {
+            const { OpenCloudNativeGraphService } = await import("../liberty/opencloud-nativegraph_7kvc.service.js");
+            const res = await OpenCloudNativeGraphService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogledger_h4x6_logic": {
+          try {
+            const { OpenLogLedgerService } = await import("../liberty/openlogledger_h4x6.service.js");
+            const res = await OpenLogLedgerService.execute(args.target || "system");
+            return { output: `### OpenLogLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedcompiler_71ku_logic": {
+          try {
+            const { OpenFederatedCompilerService } = await import("../liberty/openfederatedcompiler_71ku.service.js");
+            const res = await OpenFederatedCompilerService.execute(args.target || "system");
+            return { output: `### OpenFederatedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativering_q2sq_logic": {
           try {
             const { OpenCloudNativeRingService } = await import("../liberty/opencloud-nativering_q2sq.service.js");
