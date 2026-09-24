@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "deploy_bookkeeper_wal",
+      description: "Use the Aphura Engine (Apache BookKeeper) to Deploy distributed, fault-tolerant write-ahead logging streams for data consistency.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "route_rocketmq_finance",
+      description: "Use the Aphura Engine (Apache RocketMQ) to Execute low-latency, high-reliability message routing for financial transaction architectures.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "provision_activemq_broker",
+      description: "Use the Aphura Engine (Apache ActiveMQ) to Provision enterprise-grade multi-protocol message brokers.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deploy_nats_mesh",
+      description: "Use the Aphura Engine (NATS) to Deploy hyper-fast, lightweight distributed messaging nervous systems for edge microservices.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "deploy_pulsar_cluster",
+      description: "Use the Aphura Engine (Apache Pulsar) to Deploy geo-replicated pub-sub messaging systems capable of handling millions of events per second.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "provision_skywalking_apm",
       description: "Use the Aphura Engine (Apache SkyWalking) to Provision Application Performance Monitoring (APM) for distributed mesh architectures.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1492,6 +1532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "deploy_bookkeeper_wal": {
+          try {
+            const { BookkeeperService } = await import("../data/bookkeeper.service.js");
+            const res = await BookkeeperService.execute(args.target || "system");
+            return { output: `### Apache BookKeeper Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Apache BookKeeper failed: ${err.message}` };
+          }
+        }
+        case "route_rocketmq_finance": {
+          try {
+            const { RocketmqService } = await import("../data/rocketmq.service.js");
+            const res = await RocketmqService.execute(args.target || "system");
+            return { output: `### Apache RocketMQ Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Apache RocketMQ failed: ${err.message}` };
+          }
+        }
+        case "provision_activemq_broker": {
+          try {
+            const { ActivemqService } = await import("../data/activemq.service.js");
+            const res = await ActivemqService.execute(args.target || "system");
+            return { output: `### Apache ActiveMQ Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Apache ActiveMQ failed: ${err.message}` };
+          }
+        }
+        case "deploy_nats_mesh": {
+          try {
+            const { NatsService } = await import("../data/nats.service.js");
+            const res = await NatsService.execute(args.target || "system");
+            return { output: `### NATS Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `NATS failed: ${err.message}` };
+          }
+        }
+        case "deploy_pulsar_cluster": {
+          try {
+            const { PulsarService } = await import("../data/pulsar.service.js");
+            const res = await PulsarService.execute(args.target || "system");
+            return { output: `### Apache Pulsar Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Apache Pulsar failed: ${err.message}` };
+          }
+        }
         case "provision_skywalking_apm": {
           try {
             const { SkywalkingService } = await import("../devops/skywalking.service.js");
