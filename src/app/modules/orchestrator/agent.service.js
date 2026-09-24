@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalcluster_yoz0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalCluster) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partynode_k7fm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyNode) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessrouter_2vt0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessRouter) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosoracle_zqbg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosOracle) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialnexus_mje7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialNexus) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalmesh_e5hl_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalMesh) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14452,6 +14492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalcluster_yoz0_logic": {
+          try {
+            const { OpenHyperDimensionalClusterService } = await import("../liberty/openhyper-dimensionalcluster_yoz0.service.js");
+            const res = await OpenHyperDimensionalClusterService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partynode_k7fm_logic": {
+          try {
+            const { OpenMultiPartyNodeService } = await import("../liberty/openmulti-partynode_k7fm.service.js");
+            const res = await OpenMultiPartyNodeService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessrouter_2vt0_logic": {
+          try {
+            const { OpenHeadlessRouterService } = await import("../liberty/openheadlessrouter_2vt0.service.js");
+            const res = await OpenHeadlessRouterService.execute(args.target || "system");
+            return { output: `### OpenHeadlessRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosoracle_zqbg_logic": {
+          try {
+            const { OpenChaosOracleService } = await import("../liberty/openchaosoracle_zqbg.service.js");
+            const res = await OpenChaosOracleService.execute(args.target || "system");
+            return { output: `### OpenChaosOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialnexus_mje7_logic": {
+          try {
+            const { OpenFinancialNexusService } = await import("../liberty/openfinancialnexus_mje7.service.js");
+            const res = await OpenFinancialNexusService.execute(args.target || "system");
+            return { output: `### OpenFinancialNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalmesh_e5hl_logic": {
           try {
             const { OpenHyperDimensionalMeshService } = await import("../liberty/openhyper-dimensionalmesh_e5hl.service.js");
