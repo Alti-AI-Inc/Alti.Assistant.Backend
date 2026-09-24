@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativepipeline_3k2o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativePipeline) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpflayer_qzfu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFLayer) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialcluster_6z5b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialCluster) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalplane_dgx2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalPlane) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventstream_adf2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventStream) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlessfabric_xgzh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessFabric) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2852,6 +2892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativepipeline_3k2o_logic": {
+          try {
+            const { OpenCloudNativePipelineService } = await import("../liberty/opencloud-nativepipeline_3k2o.service.js");
+            const res = await OpenCloudNativePipelineService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpflayer_qzfu_logic": {
+          try {
+            const { OpeneBPFLayerService } = await import("../liberty/openebpflayer_qzfu.service.js");
+            const res = await OpeneBPFLayerService.execute(args.target || "system");
+            return { output: `### OpeneBPFLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialcluster_6z5b_logic": {
+          try {
+            const { OpenFinancialClusterService } = await import("../liberty/openfinancialcluster_6z5b.service.js");
+            const res = await OpenFinancialClusterService.execute(args.target || "system");
+            return { output: `### OpenFinancialCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalplane_dgx2_logic": {
+          try {
+            const { OpenHyperDimensionalPlaneService } = await import("../liberty/openhyper-dimensionalplane_dgx2.service.js");
+            const res = await OpenHyperDimensionalPlaneService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventstream_adf2_logic": {
+          try {
+            const { OpenEventStreamService } = await import("../liberty/openeventstream_adf2.service.js");
+            const res = await OpenEventStreamService.execute(args.target || "system");
+            return { output: `### OpenEventStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventStream failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlessfabric_xgzh_logic": {
           try {
             const { OpenHeadlessFabricService } = await import("../liberty/openheadlessfabric_xgzh.service.js");
