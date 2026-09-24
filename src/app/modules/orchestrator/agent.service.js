@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativecore_d9ro_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCore) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepsync_owet_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepSync) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphlayer_wajf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphLayer) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphledger_f1wb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphLedger) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicfabric_kb98_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicFabric) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfcontroller_qzxt_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFController) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8212,6 +8252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativecore_d9ro_logic": {
+          try {
+            const { OpenCloudNativeCoreService } = await import("../liberty/opencloud-nativecore_d9ro.service.js");
+            const res = await OpenCloudNativeCoreService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepsync_owet_logic": {
+          try {
+            const { OpenDeepSyncService } = await import("../liberty/opendeepsync_owet.service.js");
+            const res = await OpenDeepSyncService.execute(args.target || "system");
+            return { output: `### OpenDeepSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphlayer_wajf_logic": {
+          try {
+            const { OpenGraphLayerService } = await import("../liberty/opengraphlayer_wajf.service.js");
+            const res = await OpenGraphLayerService.execute(args.target || "system");
+            return { output: `### OpenGraphLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphledger_f1wb_logic": {
+          try {
+            const { OpenGraphLedgerService } = await import("../liberty/opengraphledger_f1wb.service.js");
+            const res = await OpenGraphLedgerService.execute(args.target || "system");
+            return { output: `### OpenGraphLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicfabric_kb98_logic": {
+          try {
+            const { OpenHomomorphicFabricService } = await import("../liberty/openhomomorphicfabric_kb98.service.js");
+            const res = await OpenHomomorphicFabricService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfcontroller_qzxt_logic": {
           try {
             const { OpeneBPFControllerService } = await import("../liberty/openebpfcontroller_qzxt.service.js");
