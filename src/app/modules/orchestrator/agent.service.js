@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentfabric_snw8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentFabric) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgepipeline_6irx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgePipeline) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedfabric_1bki_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedFabric) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarycompiler_p4xw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCompiler) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventmatrix_wt79_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventMatrix) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengraphnode_24j8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGraphNode) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20732,6 +20772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentfabric_snw8_logic": {
+          try {
+            const { OpenPersistentFabricService } = await import("../liberty/openpersistentfabric_snw8.service.js");
+            const res = await OpenPersistentFabricService.execute(args.target || "system");
+            return { output: `### OpenPersistentFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgepipeline_6irx_logic": {
+          try {
+            const { OpenEdgePipelineService } = await import("../liberty/openedgepipeline_6irx.service.js");
+            const res = await OpenEdgePipelineService.execute(args.target || "system");
+            return { output: `### OpenEdgePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedfabric_1bki_logic": {
+          try {
+            const { OpenDecentralizedFabricService } = await import("../liberty/opendecentralizedfabric_1bki.service.js");
+            const res = await OpenDecentralizedFabricService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarycompiler_p4xw_logic": {
+          try {
+            const { OpenPlanetaryCompilerService } = await import("../liberty/openplanetarycompiler_p4xw.service.js");
+            const res = await OpenPlanetaryCompilerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventmatrix_wt79_logic": {
+          try {
+            const { OpenEventMatrixService } = await import("../liberty/openeventmatrix_wt79.service.js");
+            const res = await OpenEventMatrixService.execute(args.target || "system");
+            return { output: `### OpenEventMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_opengraphnode_24j8_logic": {
           try {
             const { OpenGraphNodeService } = await import("../liberty/opengraphnode_24j8.service.js");
