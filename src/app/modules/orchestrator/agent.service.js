@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedengine_3g6y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedEngine) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisering_16xm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseRing) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatanode_bv6b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataNode) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractplane_j7qs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractPlane) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaregraph_d9gi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareGraph) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriesproxy_26gs_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesProxy) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15732,6 +15772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedengine_3g6y_logic": {
+          try {
+            const { OpenDistributedEngineService } = await import("../liberty/opendistributedengine_3g6y.service.js");
+            const res = await OpenDistributedEngineService.execute(args.target || "system");
+            return { output: `### OpenDistributedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisering_16xm_logic": {
+          try {
+            const { OpenEnterpriseRingService } = await import("../liberty/openenterprisering_16xm.service.js");
+            const res = await OpenEnterpriseRingService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatanode_bv6b_logic": {
+          try {
+            const { OpenDataNodeService } = await import("../liberty/opendatanode_bv6b.service.js");
+            const res = await OpenDataNodeService.execute(args.target || "system");
+            return { output: `### OpenDataNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractplane_j7qs_logic": {
+          try {
+            const { OpenAbstractPlaneService } = await import("../liberty/openabstractplane_j7qs.service.js");
+            const res = await OpenAbstractPlaneService.execute(args.target || "system");
+            return { output: `### OpenAbstractPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaregraph_d9gi_logic": {
+          try {
+            const { OpenHardwareGraphService } = await import("../liberty/openhardwaregraph_d9gi.service.js");
+            const res = await OpenHardwareGraphService.execute(args.target || "system");
+            return { output: `### OpenHardwareGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareGraph failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriesproxy_26gs_logic": {
           try {
             const { OpenTimeSeriesProxyService } = await import("../liberty/opentime-seriesproxy_26gs.service.js");
