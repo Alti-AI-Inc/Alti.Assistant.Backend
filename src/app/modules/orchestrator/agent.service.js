@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgecontroller_09f6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeController) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorpipeline_36ij_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorPipeline) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessplane_rzem_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessPlane) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustermesh_l19l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterMesh) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustermesh_aq8n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterMesh) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativenet_bcef_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNet) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21332,6 +21372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgecontroller_09f6_logic": {
+          try {
+            const { OpenZeroKnowledgeControllerService } = await import("../liberty/openzero-knowledgecontroller_09f6.service.js");
+            const res = await OpenZeroKnowledgeControllerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeController failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorpipeline_36ij_logic": {
+          try {
+            const { OpenVectorPipelineService } = await import("../liberty/openvectorpipeline_36ij.service.js");
+            const res = await OpenVectorPipelineService.execute(args.target || "system");
+            return { output: `### OpenVectorPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessplane_rzem_logic": {
+          try {
+            const { OpenServerlessPlaneService } = await import("../liberty/openserverlessplane_rzem.service.js");
+            const res = await OpenServerlessPlaneService.execute(args.target || "system");
+            return { output: `### OpenServerlessPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustermesh_l19l_logic": {
+          try {
+            const { OpenCrossClusterMeshService } = await import("../liberty/opencross-clustermesh_l19l.service.js");
+            const res = await OpenCrossClusterMeshService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustermesh_aq8n_logic": {
+          try {
+            const { OpenCrossClusterMeshService } = await import("../liberty/opencross-clustermesh_aq8n.service.js");
+            const res = await OpenCrossClusterMeshService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterMesh failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativenet_bcef_logic": {
           try {
             const { OpenCloudNativeNetService } = await import("../liberty/opencloud-nativenet_bcef.service.js");
