@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedrouter_alca_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedRouter) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcluster_ez9c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedCluster) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictiveplane_noa6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictivePlane) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedring_6wxi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedRing) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractcore_fvcn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractCore) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepdaemon_fwow_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepDaemon) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -18292,6 +18332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedrouter_alca_logic": {
+          try {
+            const { OpenAutomatedRouterService } = await import("../liberty/openautomatedrouter_alca.service.js");
+            const res = await OpenAutomatedRouterService.execute(args.target || "system");
+            return { output: `### OpenAutomatedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcluster_ez9c_logic": {
+          try {
+            const { OpenAdvancedClusterService } = await import("../liberty/openadvancedcluster_ez9c.service.js");
+            const res = await OpenAdvancedClusterService.execute(args.target || "system");
+            return { output: `### OpenAdvancedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictiveplane_noa6_logic": {
+          try {
+            const { OpenPredictivePlaneService } = await import("../liberty/openpredictiveplane_noa6.service.js");
+            const res = await OpenPredictivePlaneService.execute(args.target || "system");
+            return { output: `### OpenPredictivePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictivePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedring_6wxi_logic": {
+          try {
+            const { OpenFederatedRingService } = await import("../liberty/openfederatedring_6wxi.service.js");
+            const res = await OpenFederatedRingService.execute(args.target || "system");
+            return { output: `### OpenFederatedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractcore_fvcn_logic": {
+          try {
+            const { OpenAbstractCoreService } = await import("../liberty/openabstractcore_fvcn.service.js");
+            const res = await OpenAbstractCoreService.execute(args.target || "system");
+            return { output: `### OpenAbstractCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractCore failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepdaemon_fwow_logic": {
           try {
             const { OpenDeepDaemonService } = await import("../liberty/opendeepdaemon_fwow.service.js");
