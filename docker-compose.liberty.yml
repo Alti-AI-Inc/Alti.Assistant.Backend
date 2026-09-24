@@ -23998,3 +23998,68 @@ services:
       - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
       - LICENSE_VALIDATION="Apache 2.0"
     restart: always
+
+  engine-openquantumproxy_xjwd:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENQUANTUMPROXY
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-opendecentralizedcompiler_d93r:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENDECENTRALIZEDCOMPILER
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-openquantumvortex_8b1u:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENQUANTUMVORTEX
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-openmicro-kernelcompiler_elm9:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENMICRO-KERNELCOMPILER
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-openplanetarysync_ycs6:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENPLANETARYSYNC
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always

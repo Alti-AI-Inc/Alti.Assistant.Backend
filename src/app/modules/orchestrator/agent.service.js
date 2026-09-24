@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarysync_ycs6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetarySync) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelcompiler_elm9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelCompiler) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumvortex_8b1u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumVortex) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcompiler_d93r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCompiler) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumproxy_xjwd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumProxy) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedvault_x76i_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVault) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15452,6 +15492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarysync_ycs6_logic": {
+          try {
+            const { OpenPlanetarySyncService } = await import("../liberty/openplanetarysync_ycs6.service.js");
+            const res = await OpenPlanetarySyncService.execute(args.target || "system");
+            return { output: `### OpenPlanetarySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetarySync failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelcompiler_elm9_logic": {
+          try {
+            const { OpenMicroKernelCompilerService } = await import("../liberty/openmicro-kernelcompiler_elm9.service.js");
+            const res = await OpenMicroKernelCompilerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumvortex_8b1u_logic": {
+          try {
+            const { OpenQuantumVortexService } = await import("../liberty/openquantumvortex_8b1u.service.js");
+            const res = await OpenQuantumVortexService.execute(args.target || "system");
+            return { output: `### OpenQuantumVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcompiler_d93r_logic": {
+          try {
+            const { OpenDecentralizedCompilerService } = await import("../liberty/opendecentralizedcompiler_d93r.service.js");
+            const res = await OpenDecentralizedCompilerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumproxy_xjwd_logic": {
+          try {
+            const { OpenQuantumProxyService } = await import("../liberty/openquantumproxy_xjwd.service.js");
+            const res = await OpenQuantumProxyService.execute(args.target || "system");
+            return { output: `### OpenQuantumProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumProxy failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedvault_x76i_logic": {
           try {
             const { OpenDecentralizedVaultService } = await import("../liberty/opendecentralizedvault_x76i.service.js");
