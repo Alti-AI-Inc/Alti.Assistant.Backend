@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialchain_xbxh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialChain) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpumesh_pvri_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUMesh) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustcontroller_egh0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustController) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicsync_xw28_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicSync) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicoracle_82bp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicOracle) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgeswarm_frmp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeSwarm) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14692,6 +14732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialchain_xbxh_logic": {
+          try {
+            const { OpenFinancialChainService } = await import("../liberty/openfinancialchain_xbxh.service.js");
+            const res = await OpenFinancialChainService.execute(args.target || "system");
+            return { output: `### OpenFinancialChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpumesh_pvri_logic": {
+          try {
+            const { OpenGPUMeshService } = await import("../liberty/opengpumesh_pvri.service.js");
+            const res = await OpenGPUMeshService.execute(args.target || "system");
+            return { output: `### OpenGPUMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustcontroller_egh0_logic": {
+          try {
+            const { OpenZeroTrustControllerService } = await import("../liberty/openzero-trustcontroller_egh0.service.js");
+            const res = await OpenZeroTrustControllerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustController failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicsync_xw28_logic": {
+          try {
+            const { OpenNeuromorphicSyncService } = await import("../liberty/openneuromorphicsync_xw28.service.js");
+            const res = await OpenNeuromorphicSyncService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicoracle_82bp_logic": {
+          try {
+            const { OpenNeuromorphicOracleService } = await import("../liberty/openneuromorphicoracle_82bp.service.js");
+            const res = await OpenNeuromorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openedgeswarm_frmp_logic": {
           try {
             const { OpenEdgeSwarmService } = await import("../liberty/openedgeswarm_frmp.service.js");
