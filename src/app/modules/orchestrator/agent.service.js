@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedgraph_04ro_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedGraph) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepfabric_f34y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepFabric) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessmesh_oqgo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessMesh) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumring_1c2i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumRing) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriserouter_odfu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseRouter) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutableswarm_hkn1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableSwarm) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10172,6 +10212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedgraph_04ro_logic": {
+          try {
+            const { OpenDistributedGraphService } = await import("../liberty/opendistributedgraph_04ro.service.js");
+            const res = await OpenDistributedGraphService.execute(args.target || "system");
+            return { output: `### OpenDistributedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepfabric_f34y_logic": {
+          try {
+            const { OpenDeepFabricService } = await import("../liberty/opendeepfabric_f34y.service.js");
+            const res = await OpenDeepFabricService.execute(args.target || "system");
+            return { output: `### OpenDeepFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessmesh_oqgo_logic": {
+          try {
+            const { OpenServerlessMeshService } = await import("../liberty/openserverlessmesh_oqgo.service.js");
+            const res = await OpenServerlessMeshService.execute(args.target || "system");
+            return { output: `### OpenServerlessMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumring_1c2i_logic": {
+          try {
+            const { OpenQuantumRingService } = await import("../liberty/openquantumring_1c2i.service.js");
+            const res = await OpenQuantumRingService.execute(args.target || "system");
+            return { output: `### OpenQuantumRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriserouter_odfu_logic": {
+          try {
+            const { OpenEnterpriseRouterService } = await import("../liberty/openenterpriserouter_odfu.service.js");
+            const res = await OpenEnterpriseRouterService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutableswarm_hkn1_logic": {
           try {
             const { OpenImmutableSwarmService } = await import("../liberty/openimmutableswarm_hkn1.service.js");
