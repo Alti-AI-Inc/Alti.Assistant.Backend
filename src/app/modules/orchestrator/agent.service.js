@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectorrouter_17so_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorRouter) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterfabric_5os9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterFabric) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpledger_b9ig_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPLedger) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivemesh_y8s4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveMesh) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwareengine_vdoz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareEngine) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partycontroller_oups_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyController) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -11692,6 +11732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectorrouter_17so_logic": {
+          try {
+            const { OpenVectorRouterService } = await import("../liberty/openvectorrouter_17so.service.js");
+            const res = await OpenVectorRouterService.execute(args.target || "system");
+            return { output: `### OpenVectorRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterfabric_5os9_logic": {
+          try {
+            const { OpenCrossClusterFabricService } = await import("../liberty/opencross-clusterfabric_5os9.service.js");
+            const res = await OpenCrossClusterFabricService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpledger_b9ig_logic": {
+          try {
+            const { OpenBGPLedgerService } = await import("../liberty/openbgpledger_b9ig.service.js");
+            const res = await OpenBGPLedgerService.execute(args.target || "system");
+            return { output: `### OpenBGPLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivemesh_y8s4_logic": {
+          try {
+            const { OpenPredictiveMeshService } = await import("../liberty/openpredictivemesh_y8s4.service.js");
+            const res = await OpenPredictiveMeshService.execute(args.target || "system");
+            return { output: `### OpenPredictiveMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwareengine_vdoz_logic": {
+          try {
+            const { OpenHardwareEngineService } = await import("../liberty/openhardwareengine_vdoz.service.js");
+            const res = await OpenHardwareEngineService.execute(args.target || "system");
+            return { output: `### OpenHardwareEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partycontroller_oups_logic": {
           try {
             const { OpenMultiPartyControllerService } = await import("../liberty/openmulti-partycontroller_oups.service.js");
