@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivegraph_erbx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveGraph) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterledger_l6j8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLedger) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticnexus_32or_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticNexus) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessnode_jv3e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessNode) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpring_ecae_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPRing) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalpipeline_ssk5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalPipeline) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20532,6 +20572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivegraph_erbx_logic": {
+          try {
+            const { OpenPredictiveGraphService } = await import("../liberty/openpredictivegraph_erbx.service.js");
+            const res = await OpenPredictiveGraphService.execute(args.target || "system");
+            return { output: `### OpenPredictiveGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterledger_l6j8_logic": {
+          try {
+            const { OpenCrossClusterLedgerService } = await import("../liberty/opencross-clusterledger_l6j8.service.js");
+            const res = await OpenCrossClusterLedgerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticnexus_32or_logic": {
+          try {
+            const { OpenSemanticNexusService } = await import("../liberty/opensemanticnexus_32or.service.js");
+            const res = await OpenSemanticNexusService.execute(args.target || "system");
+            return { output: `### OpenSemanticNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessnode_jv3e_logic": {
+          try {
+            const { OpenServerlessNodeService } = await import("../liberty/openserverlessnode_jv3e.service.js");
+            const res = await OpenServerlessNodeService.execute(args.target || "system");
+            return { output: `### OpenServerlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpring_ecae_logic": {
+          try {
+            const { OpenBGPRingService } = await import("../liberty/openbgpring_ecae.service.js");
+            const res = await OpenBGPRingService.execute(args.target || "system");
+            return { output: `### OpenBGPRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPRing failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalpipeline_ssk5_logic": {
           try {
             const { OpenHyperDimensionalPipelineService } = await import("../liberty/openhyper-dimensionalpipeline_ssk5.service.js");
