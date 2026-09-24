@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticcluster_alo4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticCluster) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatadaemon_r9ht_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataDaemon) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialpipeline_vdr2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialPipeline) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatastream_u49d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataStream) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivematrix_0cjb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveMatrix) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedgraph_04ro_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedGraph) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10212,6 +10252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticcluster_alo4_logic": {
+          try {
+            const { OpenStaticClusterService } = await import("../liberty/openstaticcluster_alo4.service.js");
+            const res = await OpenStaticClusterService.execute(args.target || "system");
+            return { output: `### OpenStaticCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatadaemon_r9ht_logic": {
+          try {
+            const { OpenDataDaemonService } = await import("../liberty/opendatadaemon_r9ht.service.js");
+            const res = await OpenDataDaemonService.execute(args.target || "system");
+            return { output: `### OpenDataDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialpipeline_vdr2_logic": {
+          try {
+            const { OpenFinancialPipelineService } = await import("../liberty/openfinancialpipeline_vdr2.service.js");
+            const res = await OpenFinancialPipelineService.execute(args.target || "system");
+            return { output: `### OpenFinancialPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatastream_u49d_logic": {
+          try {
+            const { OpenDataStreamService } = await import("../liberty/opendatastream_u49d.service.js");
+            const res = await OpenDataStreamService.execute(args.target || "system");
+            return { output: `### OpenDataStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivematrix_0cjb_logic": {
+          try {
+            const { OpenPredictiveMatrixService } = await import("../liberty/openpredictivematrix_0cjb.service.js");
+            const res = await OpenPredictiveMatrixService.execute(args.target || "system");
+            return { output: `### OpenPredictiveMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedgraph_04ro_logic": {
           try {
             const { OpenDistributedGraphService } = await import("../liberty/opendistributedgraph_04ro.service.js");
