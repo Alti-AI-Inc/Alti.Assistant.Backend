@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfcontroller_qzxt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFController) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaregrid_we4z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareGrid) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablecluster_izbl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableCluster) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialengine_odqb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialEngine) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesnode_a0qd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNode) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partycontroller_fadk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyController) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8172,6 +8212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfcontroller_qzxt_logic": {
+          try {
+            const { OpeneBPFControllerService } = await import("../liberty/openebpfcontroller_qzxt.service.js");
+            const res = await OpeneBPFControllerService.execute(args.target || "system");
+            return { output: `### OpeneBPFController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaregrid_we4z_logic": {
+          try {
+            const { OpenHardwareGridService } = await import("../liberty/openhardwaregrid_we4z.service.js");
+            const res = await OpenHardwareGridService.execute(args.target || "system");
+            return { output: `### OpenHardwareGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablecluster_izbl_logic": {
+          try {
+            const { OpenImmutableClusterService } = await import("../liberty/openimmutablecluster_izbl.service.js");
+            const res = await OpenImmutableClusterService.execute(args.target || "system");
+            return { output: `### OpenImmutableCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialengine_odqb_logic": {
+          try {
+            const { OpenFinancialEngineService } = await import("../liberty/openfinancialengine_odqb.service.js");
+            const res = await OpenFinancialEngineService.execute(args.target || "system");
+            return { output: `### OpenFinancialEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesnode_a0qd_logic": {
+          try {
+            const { OpenTimeSeriesNodeService } = await import("../liberty/opentime-seriesnode_a0qd.service.js");
+            const res = await OpenTimeSeriesNodeService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNode failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partycontroller_fadk_logic": {
           try {
             const { OpenMultiPartyControllerService } = await import("../liberty/openmulti-partycontroller_fadk.service.js");
