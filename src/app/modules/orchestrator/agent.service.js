@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumring_y25y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumRing) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedring_82g9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRing) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwareplane_3wlv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwarePlane) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondmatrix_cmaf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondMatrix) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivenode_laiq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNode) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterlayer_du72_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLayer) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16412,6 +16452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumring_y25y_logic": {
+          try {
+            const { OpenQuantumRingService } = await import("../liberty/openquantumring_y25y.service.js");
+            const res = await OpenQuantumRingService.execute(args.target || "system");
+            return { output: `### OpenQuantumRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedring_82g9_logic": {
+          try {
+            const { OpenDecentralizedRingService } = await import("../liberty/opendecentralizedring_82g9.service.js");
+            const res = await OpenDecentralizedRingService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwareplane_3wlv_logic": {
+          try {
+            const { OpenHardwarePlaneService } = await import("../liberty/openhardwareplane_3wlv.service.js");
+            const res = await OpenHardwarePlaneService.execute(args.target || "system");
+            return { output: `### OpenHardwarePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwarePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondmatrix_cmaf_logic": {
+          try {
+            const { OpenSubMillisecondMatrixService } = await import("../liberty/opensub-millisecondmatrix_cmaf.service.js");
+            const res = await OpenSubMillisecondMatrixService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivenode_laiq_logic": {
+          try {
+            const { OpenPredictiveNodeService } = await import("../liberty/openpredictivenode_laiq.service.js");
+            const res = await OpenPredictiveNodeService.execute(args.target || "system");
+            return { output: `### OpenPredictiveNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveNode failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterlayer_du72_logic": {
           try {
             const { OpenCrossClusterLayerService } = await import("../liberty/opencross-clusterlayer_du72.service.js");
