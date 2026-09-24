@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openlogmesh_d4zp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogMesh) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgedaemon_cxt1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeDaemon) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialoracle_3drw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialOracle) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarerouter_4zin_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareRouter) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventvault_rvj7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventVault) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessnet_ihq8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessNet) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -8292,6 +8332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openlogmesh_d4zp_logic": {
+          try {
+            const { OpenLogMeshService } = await import("../liberty/openlogmesh_d4zp.service.js");
+            const res = await OpenLogMeshService.execute(args.target || "system");
+            return { output: `### OpenLogMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgedaemon_cxt1_logic": {
+          try {
+            const { OpenEdgeDaemonService } = await import("../liberty/openedgedaemon_cxt1.service.js");
+            const res = await OpenEdgeDaemonService.execute(args.target || "system");
+            return { output: `### OpenEdgeDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialoracle_3drw_logic": {
+          try {
+            const { OpenFinancialOracleService } = await import("../liberty/openfinancialoracle_3drw.service.js");
+            const res = await OpenFinancialOracleService.execute(args.target || "system");
+            return { output: `### OpenFinancialOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarerouter_4zin_logic": {
+          try {
+            const { OpenHardwareRouterService } = await import("../liberty/openhardwarerouter_4zin.service.js");
+            const res = await OpenHardwareRouterService.execute(args.target || "system");
+            return { output: `### OpenHardwareRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventvault_rvj7_logic": {
+          try {
+            const { OpenEventVaultService } = await import("../liberty/openeventvault_rvj7.service.js");
+            const res = await OpenEventVaultService.execute(args.target || "system");
+            return { output: `### OpenEventVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventVault failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessnet_ihq8_logic": {
           try {
             const { OpenServerlessNetService } = await import("../liberty/openserverlessnet_ihq8.service.js");
