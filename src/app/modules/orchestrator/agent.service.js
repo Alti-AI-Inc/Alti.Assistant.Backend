@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosstream_logic",
+      description: "Use the Aphura Engine (OpenChaosStream) to Autonomously deploy Chaos Engineering architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogplane_logic",
+      description: "Use the Aphura Engine (OpenLogPlane) to Autonomously deploy Log Aggregation architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaossync_logic",
+      description: "Use the Aphura Engine (OpenChaosSync) to Autonomously deploy Chaos Engineering architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesnexus_logic",
+      description: "Use the Aphura Engine (OpenTime-SeriesNexus) to Autonomously deploy Time-Series Analytics architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesmatrix_logic",
+      description: "Use the Aphura Engine (OpenTime-SeriesMatrix) to Autonomously deploy Time-Series Analytics architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendatanexus_logic",
       description: "Use the Aphura Engine (OpenDataNexus) to Autonomously deploy Data Lineage architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1892,6 +1932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosstream_logic": {
+          try {
+            const { OpenchaosstreamService } = await import("../enterprise/openchaosstream.service.js");
+            const res = await OpenchaosstreamService.execute(args.target || "system");
+            return { output: `### OpenChaosStream Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogplane_logic": {
+          try {
+            const { OpenlogplaneService } = await import("../enterprise/openlogplane.service.js");
+            const res = await OpenlogplaneService.execute(args.target || "system");
+            return { output: `### OpenLogPlane Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaossync_logic": {
+          try {
+            const { OpenchaossyncService } = await import("../enterprise/openchaossync.service.js");
+            const res = await OpenchaossyncService.execute(args.target || "system");
+            return { output: `### OpenChaosSync Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesnexus_logic": {
+          try {
+            const { Opentime-seriesnexusService } = await import("../enterprise/opentime-seriesnexus.service.js");
+            const res = await Opentime-seriesnexusService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNexus Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesmatrix_logic": {
+          try {
+            const { Opentime-seriesmatrixService } = await import("../enterprise/opentime-seriesmatrix.service.js");
+            const res = await Opentime-seriesmatrixService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesMatrix Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_opendatanexus_logic": {
           try {
             const { OpendatanexusService } = await import("../enterprise/opendatanexus.service.js");
