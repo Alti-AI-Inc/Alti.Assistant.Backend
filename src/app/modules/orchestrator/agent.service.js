@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalfabric_pq5r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalFabric) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpnexus_6lfv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPNexus) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseoracle_mwu4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseOracle) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partygrid_hxkf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyGrid) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencygrid_7lh4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyGrid) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengraphrouter_p1ej_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGraphRouter) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4892,6 +4932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalfabric_pq5r_logic": {
+          try {
+            const { OpenHyperDimensionalFabricService } = await import("../liberty/openhyper-dimensionalfabric_pq5r.service.js");
+            const res = await OpenHyperDimensionalFabricService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpnexus_6lfv_logic": {
+          try {
+            const { OpenBGPNexusService } = await import("../liberty/openbgpnexus_6lfv.service.js");
+            const res = await OpenBGPNexusService.execute(args.target || "system");
+            return { output: `### OpenBGPNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseoracle_mwu4_logic": {
+          try {
+            const { OpenEnterpriseOracleService } = await import("../liberty/openenterpriseoracle_mwu4.service.js");
+            const res = await OpenEnterpriseOracleService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partygrid_hxkf_logic": {
+          try {
+            const { OpenMultiPartyGridService } = await import("../liberty/openmulti-partygrid_hxkf.service.js");
+            const res = await OpenMultiPartyGridService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencygrid_7lh4_logic": {
+          try {
+            const { OpenHighFrequencyGridService } = await import("../liberty/openhigh-frequencygrid_7lh4.service.js");
+            const res = await OpenHighFrequencyGridService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opengraphrouter_p1ej_logic": {
           try {
             const { OpenGraphRouterService } = await import("../liberty/opengraphrouter_p1ej.service.js");
