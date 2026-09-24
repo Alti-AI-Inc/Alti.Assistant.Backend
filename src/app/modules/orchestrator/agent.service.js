@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialstream_g247_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialStream) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpubroker_858m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUBroker) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycontroller_pa2j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyController) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogbroker_pzhv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogBroker) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeswarm_pvfm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSwarm) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelplane_0zjn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelPlane) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12732,6 +12772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialstream_g247_logic": {
+          try {
+            const { OpenFinancialStreamService } = await import("../liberty/openfinancialstream_g247.service.js");
+            const res = await OpenFinancialStreamService.execute(args.target || "system");
+            return { output: `### OpenFinancialStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpubroker_858m_logic": {
+          try {
+            const { OpenGPUBrokerService } = await import("../liberty/opengpubroker_858m.service.js");
+            const res = await OpenGPUBrokerService.execute(args.target || "system");
+            return { output: `### OpenGPUBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycontroller_pa2j_logic": {
+          try {
+            const { OpenHighFrequencyControllerService } = await import("../liberty/openhigh-frequencycontroller_pa2j.service.js");
+            const res = await OpenHighFrequencyControllerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyController failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogbroker_pzhv_logic": {
+          try {
+            const { OpenLogBrokerService } = await import("../liberty/openlogbroker_pzhv.service.js");
+            const res = await OpenLogBrokerService.execute(args.target || "system");
+            return { output: `### OpenLogBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeswarm_pvfm_logic": {
+          try {
+            const { OpenEdgeSwarmService } = await import("../liberty/openedgeswarm_pvfm.service.js");
+            const res = await OpenEdgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenEdgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelplane_0zjn_logic": {
           try {
             const { OpenMicroKernelPlaneService } = await import("../liberty/openmicro-kernelplane_0zjn.service.js");
