@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterbroker_logic",
+      description: "Use the Aphura Engine (OpenCross-ClusterBroker) to Autonomously deploy Cross-Cluster Replication architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticmesh_logic",
+      description: "Use the Aphura Engine (OpenStaticMesh) to Autonomously deploy Static Code Analysis architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphgrid_logic",
+      description: "Use the Aphura Engine (OpenGraphGrid) to Autonomously deploy Graph Neural Networks architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventvault_logic",
+      description: "Use the Aphura Engine (OpenEventVault) to Autonomously deploy Event Streaming architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialmesh_logic",
+      description: "Use the Aphura Engine (OpenFinancialMesh) to Autonomously deploy Financial Ledger State architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openloggrid_logic",
       description: "Use the Aphura Engine (OpenLogGrid) to Autonomously deploy Log Aggregation architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -1612,6 +1652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterbroker_logic": {
+          try {
+            const { Opencross-clusterbrokerService } = await import("../enterprise/opencross-clusterbroker.service.js");
+            const res = await Opencross-clusterbrokerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterBroker Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticmesh_logic": {
+          try {
+            const { OpenstaticmeshService } = await import("../enterprise/openstaticmesh.service.js");
+            const res = await OpenstaticmeshService.execute(args.target || "system");
+            return { output: `### OpenStaticMesh Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphgrid_logic": {
+          try {
+            const { OpengraphgridService } = await import("../enterprise/opengraphgrid.service.js");
+            const res = await OpengraphgridService.execute(args.target || "system");
+            return { output: `### OpenGraphGrid Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventvault_logic": {
+          try {
+            const { OpeneventvaultService } = await import("../enterprise/openeventvault.service.js");
+            const res = await OpeneventvaultService.execute(args.target || "system");
+            return { output: `### OpenEventVault Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialmesh_logic": {
+          try {
+            const { OpenfinancialmeshService } = await import("../enterprise/openfinancialmesh.service.js");
+            const res = await OpenfinancialmeshService.execute(args.target || "system");
+            return { output: `### OpenFinancialMesh Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openloggrid_logic": {
           try {
             const { OpenloggridService } = await import("../enterprise/openloggrid.service.js");
