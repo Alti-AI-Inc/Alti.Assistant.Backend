@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivenet_1ui9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNet) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarydaemon_83gl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryDaemon) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarycompiler_6ca6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCompiler) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorgraph_9uim_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorGraph) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectormatrix_n68o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorMatrix) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openlogsync_fp6g_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenLogSync) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15972,6 +16012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivenet_1ui9_logic": {
+          try {
+            const { OpenPredictiveNetService } = await import("../liberty/openpredictivenet_1ui9.service.js");
+            const res = await OpenPredictiveNetService.execute(args.target || "system");
+            return { output: `### OpenPredictiveNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarydaemon_83gl_logic": {
+          try {
+            const { OpenPlanetaryDaemonService } = await import("../liberty/openplanetarydaemon_83gl.service.js");
+            const res = await OpenPlanetaryDaemonService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarycompiler_6ca6_logic": {
+          try {
+            const { OpenPlanetaryCompilerService } = await import("../liberty/openplanetarycompiler_6ca6.service.js");
+            const res = await OpenPlanetaryCompilerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorgraph_9uim_logic": {
+          try {
+            const { OpenVectorGraphService } = await import("../liberty/openvectorgraph_9uim.service.js");
+            const res = await OpenVectorGraphService.execute(args.target || "system");
+            return { output: `### OpenVectorGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectormatrix_n68o_logic": {
+          try {
+            const { OpenVectorMatrixService } = await import("../liberty/openvectormatrix_n68o.service.js");
+            const res = await OpenVectorMatrixService.execute(args.target || "system");
+            return { output: `### OpenVectorMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openlogsync_fp6g_logic": {
           try {
             const { OpenLogSyncService } = await import("../liberty/openlogsync_fp6g.service.js");
