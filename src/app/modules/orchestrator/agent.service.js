@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessgraph_4xgf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessGraph) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partycompiler_wji1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyCompiler) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcore_mdn9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedCore) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyfabric_6ucb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyFabric) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractplane_nj9f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractPlane) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlessgraph_6ngm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessGraph) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -19092,6 +19132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessgraph_4xgf_logic": {
+          try {
+            const { OpenServerlessGraphService } = await import("../liberty/openserverlessgraph_4xgf.service.js");
+            const res = await OpenServerlessGraphService.execute(args.target || "system");
+            return { output: `### OpenServerlessGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partycompiler_wji1_logic": {
+          try {
+            const { OpenMultiPartyCompilerService } = await import("../liberty/openmulti-partycompiler_wji1.service.js");
+            const res = await OpenMultiPartyCompilerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcore_mdn9_logic": {
+          try {
+            const { OpenAdvancedCoreService } = await import("../liberty/openadvancedcore_mdn9.service.js");
+            const res = await OpenAdvancedCoreService.execute(args.target || "system");
+            return { output: `### OpenAdvancedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyfabric_6ucb_logic": {
+          try {
+            const { OpenMultiPartyFabricService } = await import("../liberty/openmulti-partyfabric_6ucb.service.js");
+            const res = await OpenMultiPartyFabricService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractplane_nj9f_logic": {
+          try {
+            const { OpenAbstractPlaneService } = await import("../liberty/openabstractplane_nj9f.service.js");
+            const res = await OpenAbstractPlaneService.execute(args.target || "system");
+            return { output: `### OpenAbstractPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlessgraph_6ngm_logic": {
           try {
             const { OpenHeadlessGraphService } = await import("../liberty/openheadlessgraph_6ngm.service.js");
