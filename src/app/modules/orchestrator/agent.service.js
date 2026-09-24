@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfnexus_agb6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFNexus) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednet_kbhk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNet) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendpipeline_z787_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendPipeline) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaresync_b3kp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareSync) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticrouter_17v8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticRouter) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelplane_zxkj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelPlane) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -6852,6 +6892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfnexus_agb6_logic": {
+          try {
+            const { OpeneBPFNexusService } = await import("../liberty/openebpfnexus_agb6.service.js");
+            const res = await OpeneBPFNexusService.execute(args.target || "system");
+            return { output: `### OpeneBPFNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednet_kbhk_logic": {
+          try {
+            const { OpenDecentralizedNetService } = await import("../liberty/opendecentralizednet_kbhk.service.js");
+            const res = await OpenDecentralizedNetService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendpipeline_z787_logic": {
+          try {
+            const { OpenMicroFrontendPipelineService } = await import("../liberty/openmicro-frontendpipeline_z787.service.js");
+            const res = await OpenMicroFrontendPipelineService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaresync_b3kp_logic": {
+          try {
+            const { OpenHardwareSyncService } = await import("../liberty/openhardwaresync_b3kp.service.js");
+            const res = await OpenHardwareSyncService.execute(args.target || "system");
+            return { output: `### OpenHardwareSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticrouter_17v8_logic": {
+          try {
+            const { OpenStaticRouterService } = await import("../liberty/openstaticrouter_17v8.service.js");
+            const res = await OpenStaticRouterService.execute(args.target || "system");
+            return { output: `### OpenStaticRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelplane_zxkj_logic": {
           try {
             const { OpenMicroKernelPlaneService } = await import("../liberty/openmicro-kernelplane_zxkj.service.js");
