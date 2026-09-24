@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clustercontroller_logic",
+      description: "Use the Aphura Engine (OpenCross-ClusterController) to Autonomously deploy Cross-Cluster Replication architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessledger_logic",
+      description: "Use the Aphura Engine (OpenServerlessLedger) to Autonomously deploy Serverless Orchestration architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogbroker_logic",
+      description: "Use the Aphura Engine (OpenLogBroker) to Autonomously deploy Log Aggregation architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticcontroller_logic",
+      description: "Use the Aphura Engine (OpenStaticController) to Autonomously deploy Static Code Analysis architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenexus_logic",
+      description: "Use the Aphura Engine (OpenCloud-NativeNexus) to Autonomously deploy Cloud-Native Networking architectures across massive enterprise OpenStack clusters.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendataproxy_logic",
       description: "Use the Aphura Engine (OpenDataProxy) to Autonomously deploy Data Lineage architectures across massive enterprise OpenStack clusters.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -2092,6 +2132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clustercontroller_logic": {
+          try {
+            const { Opencross-clustercontrollerService } = await import("../enterprise/opencross-clustercontroller.service.js");
+            const res = await Opencross-clustercontrollerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterController Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterController failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessledger_logic": {
+          try {
+            const { OpenserverlessledgerService } = await import("../enterprise/openserverlessledger.service.js");
+            const res = await OpenserverlessledgerService.execute(args.target || "system");
+            return { output: `### OpenServerlessLedger Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogbroker_logic": {
+          try {
+            const { OpenlogbrokerService } = await import("../enterprise/openlogbroker.service.js");
+            const res = await OpenlogbrokerService.execute(args.target || "system");
+            return { output: `### OpenLogBroker Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticcontroller_logic": {
+          try {
+            const { OpenstaticcontrollerService } = await import("../enterprise/openstaticcontroller.service.js");
+            const res = await OpenstaticcontrollerService.execute(args.target || "system");
+            return { output: `### OpenStaticController Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticController failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenexus_logic": {
+          try {
+            const { Opencloud-nativenexusService } = await import("../enterprise/opencloud-nativenexus.service.js");
+            const res = await Opencloud-nativenexusService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNexus Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNexus failed: ${err.message}` };
+          }
+        }
         case "execute_opendataproxy_logic": {
           try {
             const { OpendataproxyService } = await import("../enterprise/opendataproxy.service.js");
