@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondgraph_o7df_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondGraph) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgechain_b9o3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeChain) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedrouter_9qbq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedswarm_4e07_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSwarm) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticring_4ivd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticRing) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosbroker_o4c9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosBroker) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4052,6 +4092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondgraph_o7df_logic": {
+          try {
+            const { OpenSubMillisecondGraphService } = await import("../liberty/opensub-millisecondgraph_o7df.service.js");
+            const res = await OpenSubMillisecondGraphService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgechain_b9o3_logic": {
+          try {
+            const { OpenEdgeChainService } = await import("../liberty/openedgechain_b9o3.service.js");
+            const res = await OpenEdgeChainService.execute(args.target || "system");
+            return { output: `### OpenEdgeChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedrouter_9qbq_logic": {
+          try {
+            const { OpenDecentralizedRouterService } = await import("../liberty/opendecentralizedrouter_9qbq.service.js");
+            const res = await OpenDecentralizedRouterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedswarm_4e07_logic": {
+          try {
+            const { OpenDecentralizedSwarmService } = await import("../liberty/opendecentralizedswarm_4e07.service.js");
+            const res = await OpenDecentralizedSwarmService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticring_4ivd_logic": {
+          try {
+            const { OpenStaticRingService } = await import("../liberty/openstaticring_4ivd.service.js");
+            const res = await OpenStaticRingService.execute(args.target || "system");
+            return { output: `### OpenStaticRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticRing failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosbroker_o4c9_logic": {
           try {
             const { OpenChaosBrokerService } = await import("../liberty/openchaosbroker_o4c9.service.js");
