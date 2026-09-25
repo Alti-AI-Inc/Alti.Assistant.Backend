@@ -1,115 +1,36 @@
-# Aphura AI — Docker Compose
-# Sovereign deployment on Liberty Center One
-# Services: Backend + Redis + MongoDB
+version: '3.8'
 
 services:
+  # Cognitive Memory Graph
+  memgraph:
+    image: memgraph/memgraph-platform:latest
+    container_name: aphura-memgraph
+    ports:
+      - "7687:7687"
+      - "3000:3000" # Memgraph Lab UI
+
+  # Distributed Semantic Cache
   redis:
-    image: redis/redis-stack:7.4.0-v3
+    image: redis:alpine
     container_name: aphura-redis
-    restart: unless-stopped
     ports:
-      - "6379:6379"   # Redis
-      - "8001:8001"   # Redis Insight UI
-    volumes:
-      - redis_data:/data
-    environment:
-      - REDIS_ARGS=--save 900 1 --maxmemory 512mb --maxmemory-policy allkeys-lru
-    networks:
-      - aphura-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - "6379:6379"
 
-  mongodb:
-    image: mongo:7
-    container_name: aphura-mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - aphura-network
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: aphura-backend:latest
-    container_name: aphura-backend
-    restart: unless-stopped
-    ports:
-      - "${PORT:-5100}:${PORT:-5100}"
-    env_file:
-      - .env
-    depends_on:
-      redis:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-    networks:
-      - aphura-network
-    environment:
-      - NODE_ENV=production
-      - PORT=${PORT:-5100}
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_LOCAL=mongodb://mongodb:27017/aphura-ai
-      - MONGODB_URL=mongodb://mongodb:27017/aphura-ai
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:' + (process.env.PORT || 5100) + '/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
-      interval: 30s
-      timeout: 15s
-      retries: 3
-      start_period: 120s
-
-  temporal:
-    image: temporalio/auto-setup:1.24.2
-    container_name: aphura-temporal
-    restart: unless-stopped
-    ports:
-      - "7233:7233"
-      - "8233:8233"
-    environment:
-      - DB=postgresql
-      - DB_PORT=5432
-      - POSTGRES_USER=temporal
-      - POSTGRES_PWD=temporal
-      - POSTGRES_SEEDS=postgres
-      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
-    networks:
-      - aphura-network
-    depends_on:
-      - postgres
-    
+  # Core Relational Data
   postgres:
-    image: postgres:14
-    container_name: aphura-postgres-temporal
-    restart: unless-stopped
+    image: postgres:15-alpine
+    container_name: aphura-postgres
     environment:
-      - POSTGRES_USER=temporal
-      - POSTGRES_PASSWORD=temporal
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: aphura
     ports:
       - "5432:5432"
-    networks:
-      - aphura-network
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
 
-networks:
-  aphura-network:
-    driver: bridge
-
-volumes:
-  redis_data:
-    driver: local
-  mongodb_data:
-    driver: local
-  postgres_data:
-    driver: local
+  # OpenTelemetry Collector (Mock)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: aphura-jaeger
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4318:4318"   # OTLP HTTP

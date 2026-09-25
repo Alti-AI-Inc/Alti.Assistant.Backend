@@ -1,0 +1,23 @@
+name: Deep Research Swarm
+description: Dispatches Exa.ai search and debate swarm for complex topics.
+
+steps:
+  - id: exa_search
+    action: exa_search
+    inputs:
+      query: "{{ prompt }}"
+      numResults: 5
+
+  - id: debate_analysis
+    action: mixture_of_agents_debate
+    inputs:
+      context: "{{ steps.exa_search.outputs.results }}"
+      prompt: "Analyze the findings."
+
+  - id: final_synthesis
+    action: synthesize_report
+    inputs:
+      debate_log: "{{ steps.debate_analysis.outputs.log }}"
+      
+output:
+  report: "{{ steps.final_synthesis.outputs.report }}"
