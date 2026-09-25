@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriescore_v2j5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCore) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusteroracle_xxoh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterOracle) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicrouter_rxxw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicRouter) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticledger_dfv7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticLedger) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogengine_zwm9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogEngine) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhigh-frequencystream_irut_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyStream) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28612,6 +28652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriescore_v2j5_logic": {
+          try {
+            const { OpenTimeSeriesCoreService } = await import("../liberty/opentime-seriescore_v2j5.service.js");
+            const res = await OpenTimeSeriesCoreService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusteroracle_xxoh_logic": {
+          try {
+            const { OpenCrossClusterOracleService } = await import("../liberty/opencross-clusteroracle_xxoh.service.js");
+            const res = await OpenCrossClusterOracleService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicrouter_rxxw_logic": {
+          try {
+            const { OpenHomomorphicRouterService } = await import("../liberty/openhomomorphicrouter_rxxw.service.js");
+            const res = await OpenHomomorphicRouterService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticledger_dfv7_logic": {
+          try {
+            const { OpenSemanticLedgerService } = await import("../liberty/opensemanticledger_dfv7.service.js");
+            const res = await OpenSemanticLedgerService.execute(args.target || "system");
+            return { output: `### OpenSemanticLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogengine_zwm9_logic": {
+          try {
+            const { OpenLogEngineService } = await import("../liberty/openlogengine_zwm9.service.js");
+            const res = await OpenLogEngineService.execute(args.target || "system");
+            return { output: `### OpenLogEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openhigh-frequencystream_irut_logic": {
           try {
             const { OpenHighFrequencyStreamService } = await import("../liberty/openhigh-frequencystream_irut.service.js");
