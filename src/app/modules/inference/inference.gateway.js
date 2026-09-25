@@ -53,6 +53,11 @@ import {
   llmUpdateCluster,
   llmDeleteCluster,
   llmListClusterRegions,
+  llmCreateClusterStorage,
+  llmListClusterStorages,
+  llmGetClusterStorage,
+  llmUpdateClusterStorage,
+  llmDeleteClusterStorage,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -1892,6 +1897,92 @@ export const InferenceGateway = {
   async handleListClusterRegions(req, res) {
     try {
       const data = await llmListClusterRegions();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Creates shared storage volume for GPU cluster (POST /compute/clusters/storage/volumes & aliases)
+   * Official Reference: https://docs.together.ai/reference/clusters_storages-create
+   */
+  async handleCreateClusterStorage(req, res) {
+    try {
+      const data = await llmCreateClusterStorage(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists all shared storage volumes (GET /compute/clusters/storage/volumes & aliases)
+   * Official Reference: https://docs.together.ai/reference/clusters_storages-list
+   */
+  async handleListClusterStorages(req, res) {
+    try {
+      const data = await llmListClusterStorages(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves shared storage volume details (GET /compute/clusters/storage/volumes/:id & aliases)
+   * Official Reference: https://docs.together.ai/reference/clusters_storages-get
+   */
+  async handleGetClusterStorage(req, res) {
+    const volumeId = req.params?.id || req.params?.volume_id;
+    if (!volumeId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'volume_id'.",
+          type: 'invalid_request_error',
+          param: 'volume_id',
+        },
+      });
+    }
+    try {
+      const data = await llmGetClusterStorage(volumeId);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Updates shared storage volume configuration (PUT /compute/clusters/storage/volumes/:id & aliases)
+   * Official Reference: https://docs.together.ai/reference/clusters_storages-update
+   */
+  async handleUpdateClusterStorage(req, res) {
+    const volumeId = req.params?.id || req.params?.volume_id || req.body?.id || req.body?.volume_id;
+    try {
+      const data = await llmUpdateClusterStorage(volumeId, req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Deletes shared storage volume (DELETE /compute/clusters/storage/volumes/:id & aliases)
+   * Official Reference: https://docs.together.ai/reference/clusters_storages-delete
+   */
+  async handleDeleteClusterStorage(req, res) {
+    const volumeId = req.params?.id || req.params?.volume_id;
+    if (!volumeId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'volume_id'.",
+          type: 'invalid_request_error',
+          param: 'volume_id',
+        },
+      });
+    }
+    try {
+      const data = await llmDeleteClusterStorage(volumeId);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });

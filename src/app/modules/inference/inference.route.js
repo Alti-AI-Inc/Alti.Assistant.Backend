@@ -524,6 +524,93 @@ listClusterRoutes.forEach((path) => {
   });
 });
 
+// ── GPU Cluster Shared Storage Volumes (Official: https://docs.together.ai/reference/clusters_storages)
+// Must be registered before /compute/clusters/:id so 'storage' is not matched as a cluster ID
+const createStorageRoutes = [
+  '/compute/clusters/storage/volumes',
+  '/v1/compute/clusters/storage/volumes',
+  '/clusters/storage/volumes',
+  '/v1/clusters/storage/volumes',
+  '/clusters_storages',
+  '/v1/clusters_storages',
+  '/clusters/storage',
+  '/v1/clusters/storage',
+];
+createStorageRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleCreateClusterStorage(req, res);
+  });
+});
+
+const listStorageRoutes = [
+  '/compute/clusters/storage/volumes',
+  '/v1/compute/clusters/storage/volumes',
+  '/clusters/storage/volumes',
+  '/v1/clusters/storage/volumes',
+  '/clusters_storages',
+  '/v1/clusters_storages',
+  '/clusters/storage',
+  '/v1/clusters/storage',
+];
+listStorageRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleListClusterStorages(req, res);
+  });
+});
+
+const getStorageRoutes = [
+  '/compute/clusters/storage/volumes/:id',
+  '/v1/compute/clusters/storage/volumes/:id',
+  '/clusters/storage/volumes/:id',
+  '/v1/clusters/storage/volumes/:id',
+  '/clusters_storages/:id',
+  '/v1/clusters_storages/:id',
+  '/clusters/storage/:id',
+  '/v1/clusters/storage/:id',
+];
+getStorageRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetClusterStorage(req, res);
+  });
+});
+
+const updateStorageRoutes = [
+  '/compute/clusters/storage/volumes',
+  '/v1/compute/clusters/storage/volumes',
+  '/compute/clusters/storage/volumes/:id',
+  '/v1/compute/clusters/storage/volumes/:id',
+  '/clusters/storage/volumes/:id',
+  '/v1/clusters/storage/volumes/:id',
+  '/clusters_storages/:id',
+  '/v1/clusters_storages/:id',
+  '/clusters/storage/:id',
+  '/v1/clusters/storage/:id',
+];
+updateStorageRoutes.forEach((path) => {
+  router.put(path, async (req, res) => {
+    await InferenceGateway.handleUpdateClusterStorage(req, res);
+  });
+  router.patch(path, async (req, res) => {
+    await InferenceGateway.handleUpdateClusterStorage(req, res);
+  });
+});
+
+const deleteStorageRoutes = [
+  '/compute/clusters/storage/volumes/:id',
+  '/v1/compute/clusters/storage/volumes/:id',
+  '/clusters/storage/volumes/:id',
+  '/v1/clusters/storage/volumes/:id',
+  '/clusters_storages/:id',
+  '/v1/clusters_storages/:id',
+  '/clusters/storage/:id',
+  '/v1/clusters/storage/:id',
+];
+deleteStorageRoutes.forEach((path) => {
+  router.delete(path, async (req, res) => {
+    await InferenceGateway.handleDeleteClusterStorage(req, res);
+  });
+});
+
 // 4. Get GPU cluster details (GET /compute/clusters/:id, GET /clusters/:id & /v1/ aliases)
 const getClusterRoutes = ['/compute/clusters/:id', '/v1/compute/clusters/:id', '/clusters/:id', '/v1/clusters/:id'];
 getClusterRoutes.forEach((path) => {
