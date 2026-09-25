@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgeswarm_e7y5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeSwarm) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalledger_ek9d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalLedger) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisenet_slc1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNet) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedvault_ep9k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVault) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablestream_1l3m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableStream) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriescore_v2j5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCore) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28652,6 +28692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgeswarm_e7y5_logic": {
+          try {
+            const { OpenZeroKnowledgeSwarmService } = await import("../liberty/openzero-knowledgeswarm_e7y5.service.js");
+            const res = await OpenZeroKnowledgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalledger_ek9d_logic": {
+          try {
+            const { OpenHyperDimensionalLedgerService } = await import("../liberty/openhyper-dimensionalledger_ek9d.service.js");
+            const res = await OpenHyperDimensionalLedgerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisenet_slc1_logic": {
+          try {
+            const { OpenEnterpriseNetService } = await import("../liberty/openenterprisenet_slc1.service.js");
+            const res = await OpenEnterpriseNetService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedvault_ep9k_logic": {
+          try {
+            const { OpenDecentralizedVaultService } = await import("../liberty/opendecentralizedvault_ep9k.service.js");
+            const res = await OpenDecentralizedVaultService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablestream_1l3m_logic": {
+          try {
+            const { OpenImmutableStreamService } = await import("../liberty/openimmutablestream_1l3m.service.js");
+            const res = await OpenImmutableStreamService.execute(args.target || "system");
+            return { output: `### OpenImmutableStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableStream failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriescore_v2j5_logic": {
           try {
             const { OpenTimeSeriesCoreService } = await import("../liberty/opentime-seriescore_v2j5.service.js");
