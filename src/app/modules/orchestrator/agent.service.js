@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondlayer_s3li_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondLayer) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycore_gqtb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyCore) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumcompiler_9o1j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumCompiler) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialcluster_7se8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialCluster) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarevortex_hyff_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareVortex) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedcore_lk1g_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedCore) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23572,6 +23612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondlayer_s3li_logic": {
+          try {
+            const { OpenSubMillisecondLayerService } = await import("../liberty/opensub-millisecondlayer_s3li.service.js");
+            const res = await OpenSubMillisecondLayerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycore_gqtb_logic": {
+          try {
+            const { OpenHighFrequencyCoreService } = await import("../liberty/openhigh-frequencycore_gqtb.service.js");
+            const res = await OpenHighFrequencyCoreService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumcompiler_9o1j_logic": {
+          try {
+            const { OpenQuantumCompilerService } = await import("../liberty/openquantumcompiler_9o1j.service.js");
+            const res = await OpenQuantumCompilerService.execute(args.target || "system");
+            return { output: `### OpenQuantumCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialcluster_7se8_logic": {
+          try {
+            const { OpenFinancialClusterService } = await import("../liberty/openfinancialcluster_7se8.service.js");
+            const res = await OpenFinancialClusterService.execute(args.target || "system");
+            return { output: `### OpenFinancialCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarevortex_hyff_logic": {
+          try {
+            const { OpenHardwareVortexService } = await import("../liberty/openhardwarevortex_hyff.service.js");
+            const res = await OpenHardwareVortexService.execute(args.target || "system");
+            return { output: `### OpenHardwareVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareVortex failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedcore_lk1g_logic": {
           try {
             const { OpenDistributedCoreService } = await import("../liberty/opendistributedcore_lk1g.service.js");
