@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedring_qx8g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRing) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondring_0sab_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondRing) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosrouter_dgpi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosRouter) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-serieslayer_2w1c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesLayer) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedengine_ekyx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedEngine) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarycontroller_67hf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryController) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26332,6 +26372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedring_qx8g_logic": {
+          try {
+            const { OpenDecentralizedRingService } = await import("../liberty/opendecentralizedring_qx8g.service.js");
+            const res = await OpenDecentralizedRingService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondring_0sab_logic": {
+          try {
+            const { OpenSubMillisecondRingService } = await import("../liberty/opensub-millisecondring_0sab.service.js");
+            const res = await OpenSubMillisecondRingService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosrouter_dgpi_logic": {
+          try {
+            const { OpenChaosRouterService } = await import("../liberty/openchaosrouter_dgpi.service.js");
+            const res = await OpenChaosRouterService.execute(args.target || "system");
+            return { output: `### OpenChaosRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-serieslayer_2w1c_logic": {
+          try {
+            const { OpenTimeSeriesLayerService } = await import("../liberty/opentime-serieslayer_2w1c.service.js");
+            const res = await OpenTimeSeriesLayerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedengine_ekyx_logic": {
+          try {
+            const { OpenAdvancedEngineService } = await import("../liberty/openadvancedengine_ekyx.service.js");
+            const res = await OpenAdvancedEngineService.execute(args.target || "system");
+            return { output: `### OpenAdvancedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarycontroller_67hf_logic": {
           try {
             const { OpenPlanetaryControllerService } = await import("../liberty/openplanetarycontroller_67hf.service.js");
