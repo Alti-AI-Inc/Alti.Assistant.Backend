@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustcompiler_1gqv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustCompiler) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partybroker_nf8a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyBroker) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessoracle_eagp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessOracle) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedledger_0qwq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedLedger) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessnode_iuwp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNode) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterswarm_b873_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterSwarm) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28492,6 +28532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustcompiler_1gqv_logic": {
+          try {
+            const { OpenZeroTrustCompilerService } = await import("../liberty/openzero-trustcompiler_1gqv.service.js");
+            const res = await OpenZeroTrustCompilerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partybroker_nf8a_logic": {
+          try {
+            const { OpenMultiPartyBrokerService } = await import("../liberty/openmulti-partybroker_nf8a.service.js");
+            const res = await OpenMultiPartyBrokerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessoracle_eagp_logic": {
+          try {
+            const { OpenServerlessOracleService } = await import("../liberty/openserverlessoracle_eagp.service.js");
+            const res = await OpenServerlessOracleService.execute(args.target || "system");
+            return { output: `### OpenServerlessOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedledger_0qwq_logic": {
+          try {
+            const { OpenDistributedLedgerService } = await import("../liberty/opendistributedledger_0qwq.service.js");
+            const res = await OpenDistributedLedgerService.execute(args.target || "system");
+            return { output: `### OpenDistributedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessnode_iuwp_logic": {
+          try {
+            const { OpenHeadlessNodeService } = await import("../liberty/openheadlessnode_iuwp.service.js");
+            const res = await OpenHeadlessNodeService.execute(args.target || "system");
+            return { output: `### OpenHeadlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessNode failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterswarm_b873_logic": {
           try {
             const { OpenCrossClusterSwarmService } = await import("../liberty/opencross-clusterswarm_b873.service.js");
