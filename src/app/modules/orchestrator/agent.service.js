@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedcore_lk1g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedCore) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondchain_vnso_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondChain) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventchain_767i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventChain) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumnet_zfmj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumNet) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcontroller_ra9q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedController) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancedgraph_tsti_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedGraph) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23532,6 +23572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedcore_lk1g_logic": {
+          try {
+            const { OpenDistributedCoreService } = await import("../liberty/opendistributedcore_lk1g.service.js");
+            const res = await OpenDistributedCoreService.execute(args.target || "system");
+            return { output: `### OpenDistributedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondchain_vnso_logic": {
+          try {
+            const { OpenSubMillisecondChainService } = await import("../liberty/opensub-millisecondchain_vnso.service.js");
+            const res = await OpenSubMillisecondChainService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventchain_767i_logic": {
+          try {
+            const { OpenEventChainService } = await import("../liberty/openeventchain_767i.service.js");
+            const res = await OpenEventChainService.execute(args.target || "system");
+            return { output: `### OpenEventChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumnet_zfmj_logic": {
+          try {
+            const { OpenQuantumNetService } = await import("../liberty/openquantumnet_zfmj.service.js");
+            const res = await OpenQuantumNetService.execute(args.target || "system");
+            return { output: `### OpenQuantumNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcontroller_ra9q_logic": {
+          try {
+            const { OpenDecentralizedControllerService } = await import("../liberty/opendecentralizedcontroller_ra9q.service.js");
+            const res = await OpenDecentralizedControllerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedController failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancedgraph_tsti_logic": {
           try {
             const { OpenAdvancedGraphService } = await import("../liberty/openadvancedgraph_tsti.service.js");
