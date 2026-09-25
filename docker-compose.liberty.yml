@@ -39793,3 +39793,68 @@ services:
       - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
       - LICENSE_VALIDATION="Apache 2.0"
     restart: always
+
+  engine-opentime-seriesvault_nx96:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENTIME-SERIESVAULT
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-openstaticcluster_bgvq:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENSTATICCLUSTER
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always
+
+  engine-openheadlesscore_6v5c:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENHEADLESSCORE
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always
+
+  engine-openneuromorphicsync_lwl7:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENNEUROMORPHICSYNC
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always
+
+  engine-opencross-clusternexus_r7ke:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENCROSS-CLUSTERNEXUS
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always

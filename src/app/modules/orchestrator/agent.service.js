@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusternexus_r7ke_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterNexus) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicsync_lwl7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicSync) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscore_6v5c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCore) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticcluster_bgvq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticCluster) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesvault_nx96_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesVault) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustrouter_7dl7_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustRouter) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25172,6 +25212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusternexus_r7ke_logic": {
+          try {
+            const { OpenCrossClusterNexusService } = await import("../liberty/opencross-clusternexus_r7ke.service.js");
+            const res = await OpenCrossClusterNexusService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicsync_lwl7_logic": {
+          try {
+            const { OpenNeuromorphicSyncService } = await import("../liberty/openneuromorphicsync_lwl7.service.js");
+            const res = await OpenNeuromorphicSyncService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscore_6v5c_logic": {
+          try {
+            const { OpenHeadlessCoreService } = await import("../liberty/openheadlesscore_6v5c.service.js");
+            const res = await OpenHeadlessCoreService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticcluster_bgvq_logic": {
+          try {
+            const { OpenStaticClusterService } = await import("../liberty/openstaticcluster_bgvq.service.js");
+            const res = await OpenStaticClusterService.execute(args.target || "system");
+            return { output: `### OpenStaticCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesvault_nx96_logic": {
+          try {
+            const { OpenTimeSeriesVaultService } = await import("../liberty/opentime-seriesvault_nx96.service.js");
+            const res = await OpenTimeSeriesVaultService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesVault failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustrouter_7dl7_logic": {
           try {
             const { OpenZeroTrustRouterService } = await import("../liberty/openzero-trustrouter_7dl7.service.js");
