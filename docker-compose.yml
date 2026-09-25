@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: aphura-opensearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - DISABLE_SECURITY_PLUGIN=true
+    ports:
+      - "9200:9200"
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: aphura-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
   # Async Message Queue (Kafka)
   kafka:
     image: bitnami/kafka:latest
