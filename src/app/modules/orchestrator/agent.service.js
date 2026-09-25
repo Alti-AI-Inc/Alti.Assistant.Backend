@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_sovereign_etl_pipeline",
+      description: "Use the Aphura Sovereign ETL Engine to natively connect to 3rd party apps (Stripe, Salesforce, GitHub, etc.) and extract their data via a strict one-way airgap. Data is pulled in and localized, but absolutely no data is permitted to exit the network.",
+      parameters: { type: "object", properties: { connectorName: { type: "string" }, destinationLake: { type: "string" } }, required: ["connectorName", "destinationLake"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpcompiler_x8cg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPCompiler) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29932,6 +29940,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_sovereign_etl_pipeline": {
+          try {
+            const { AphuraETLService } = await import("../data/aphura_etl.service.js");
+            const res = await AphuraETLService.executeAirgappedExtraction(args.connectorName, args.destinationLake);
+            return { output: `### Sovereign ETL Extraction\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `ETL failure: ${err.message}` };
+          }
+        }
         case "execute_openbgpcompiler_x8cg_logic": {
           try {
             const { OpenBGPCompilerService } = await import("../liberty/openbgpcompiler_x8cg.service.js");
