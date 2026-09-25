@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpuring_i0ep_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPURing) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentcompiler_7ibg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentCompiler) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryoracle_p8n2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryOracle) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticproxy_gfc3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticProxy) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicplane_9axv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicPlane) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedengine_h4ls_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedEngine) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27172,6 +27212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpuring_i0ep_logic": {
+          try {
+            const { OpenGPURingService } = await import("../liberty/opengpuring_i0ep.service.js");
+            const res = await OpenGPURingService.execute(args.target || "system");
+            return { output: `### OpenGPURing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPURing failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentcompiler_7ibg_logic": {
+          try {
+            const { OpenPersistentCompilerService } = await import("../liberty/openpersistentcompiler_7ibg.service.js");
+            const res = await OpenPersistentCompilerService.execute(args.target || "system");
+            return { output: `### OpenPersistentCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryoracle_p8n2_logic": {
+          try {
+            const { OpenInMemoryOracleService } = await import("../liberty/openin-memoryoracle_p8n2.service.js");
+            const res = await OpenInMemoryOracleService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticproxy_gfc3_logic": {
+          try {
+            const { OpenStaticProxyService } = await import("../liberty/openstaticproxy_gfc3.service.js");
+            const res = await OpenStaticProxyService.execute(args.target || "system");
+            return { output: `### OpenStaticProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicplane_9axv_logic": {
+          try {
+            const { OpenNeuromorphicPlaneService } = await import("../liberty/openneuromorphicplane_9axv.service.js");
+            const res = await OpenNeuromorphicPlaneService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedengine_h4ls_logic": {
           try {
             const { OpenAutomatedEngineService } = await import("../liberty/openautomatedengine_h4ls.service.js");
