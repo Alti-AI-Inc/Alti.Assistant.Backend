@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumplane_jl6b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumPlane) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgevortex_z4td_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeVortex) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablegrid_q0jq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableGrid) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgestream_tu5f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeStream) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgrid_6lh4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGrid) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendpipeline_vhrg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendPipeline) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25292,6 +25332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumplane_jl6b_logic": {
+          try {
+            const { OpenQuantumPlaneService } = await import("../liberty/openquantumplane_jl6b.service.js");
+            const res = await OpenQuantumPlaneService.execute(args.target || "system");
+            return { output: `### OpenQuantumPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgevortex_z4td_logic": {
+          try {
+            const { OpenZeroKnowledgeVortexService } = await import("../liberty/openzero-knowledgevortex_z4td.service.js");
+            const res = await OpenZeroKnowledgeVortexService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablegrid_q0jq_logic": {
+          try {
+            const { OpenImmutableGridService } = await import("../liberty/openimmutablegrid_q0jq.service.js");
+            const res = await OpenImmutableGridService.execute(args.target || "system");
+            return { output: `### OpenImmutableGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgestream_tu5f_logic": {
+          try {
+            const { OpenZeroKnowledgeStreamService } = await import("../liberty/openzero-knowledgestream_tu5f.service.js");
+            const res = await OpenZeroKnowledgeStreamService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgrid_6lh4_logic": {
+          try {
+            const { OpenDecentralizedGridService } = await import("../liberty/opendecentralizedgrid_6lh4.service.js");
+            const res = await OpenDecentralizedGridService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendpipeline_vhrg_logic": {
           try {
             const { OpenMicroFrontendPipelineService } = await import("../liberty/openmicro-frontendpipeline_vhrg.service.js");
