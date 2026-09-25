@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgenet_ebmr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeNet) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesstream_x1me_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesStream) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgestream_o6u1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeStream) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelmesh_w6g8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMesh) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencysync_ekt3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencySync) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openin-memorychain_z1fu_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryChain) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22612,6 +22652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgenet_ebmr_logic": {
+          try {
+            const { OpenEdgeNetService } = await import("../liberty/openedgenet_ebmr.service.js");
+            const res = await OpenEdgeNetService.execute(args.target || "system");
+            return { output: `### OpenEdgeNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesstream_x1me_logic": {
+          try {
+            const { OpenTimeSeriesStreamService } = await import("../liberty/opentime-seriesstream_x1me.service.js");
+            const res = await OpenTimeSeriesStreamService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgestream_o6u1_logic": {
+          try {
+            const { OpenZeroKnowledgeStreamService } = await import("../liberty/openzero-knowledgestream_o6u1.service.js");
+            const res = await OpenZeroKnowledgeStreamService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelmesh_w6g8_logic": {
+          try {
+            const { OpenMicroKernelMeshService } = await import("../liberty/openmicro-kernelmesh_w6g8.service.js");
+            const res = await OpenMicroKernelMeshService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencysync_ekt3_logic": {
+          try {
+            const { OpenHighFrequencySyncService } = await import("../liberty/openhigh-frequencysync_ekt3.service.js");
+            const res = await OpenHighFrequencySyncService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencySync failed: ${err.message}` };
+          }
+        }
         case "execute_openin-memorychain_z1fu_logic": {
           try {
             const { OpenInMemoryChainService } = await import("../liberty/openin-memorychain_z1fu.service.js");
