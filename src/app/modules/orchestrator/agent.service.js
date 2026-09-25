@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfcompiler_62w9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFCompiler) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogmatrix_slp8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogMatrix) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialgraph_gpg1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialGraph) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesnet_nm1u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNet) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarenet_2pzj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareNet) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventcluster_010g_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventCluster) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27292,6 +27332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfcompiler_62w9_logic": {
+          try {
+            const { OpeneBPFCompilerService } = await import("../liberty/openebpfcompiler_62w9.service.js");
+            const res = await OpeneBPFCompilerService.execute(args.target || "system");
+            return { output: `### OpeneBPFCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogmatrix_slp8_logic": {
+          try {
+            const { OpenLogMatrixService } = await import("../liberty/openlogmatrix_slp8.service.js");
+            const res = await OpenLogMatrixService.execute(args.target || "system");
+            return { output: `### OpenLogMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialgraph_gpg1_logic": {
+          try {
+            const { OpenFinancialGraphService } = await import("../liberty/openfinancialgraph_gpg1.service.js");
+            const res = await OpenFinancialGraphService.execute(args.target || "system");
+            return { output: `### OpenFinancialGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesnet_nm1u_logic": {
+          try {
+            const { OpenTimeSeriesNetService } = await import("../liberty/opentime-seriesnet_nm1u.service.js");
+            const res = await OpenTimeSeriesNetService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarenet_2pzj_logic": {
+          try {
+            const { OpenHardwareNetService } = await import("../liberty/openhardwarenet_2pzj.service.js");
+            const res = await OpenHardwareNetService.execute(args.target || "system");
+            return { output: `### OpenHardwareNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareNet failed: ${err.message}` };
+          }
+        }
         case "execute_openeventcluster_010g_logic": {
           try {
             const { OpenEventClusterService } = await import("../liberty/openeventcluster_010g.service.js");
