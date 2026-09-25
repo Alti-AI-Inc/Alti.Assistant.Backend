@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "register_cdc_stream", description: "Use the Aphura Change Data Capture Engine (Debezium, Apache 2.0) to stream row-level database changes in real time from transaction logs into Kafka with zero polling. Replaces Oracle GoldenGate and IBM InfoSphere CDC.", parameters: { type: "object", properties: { connectorName: { type: "string" }, databaseEngine: { type: "string" } }, required: ["connectorName"] } } },
+  { type: "function", function: { name: "rotate_enterprise_secret", description: "Use the Aphura Secrets Management Engine (Infisical, MIT) to manage zero-knowledge encrypted credentials and automate secret rotation across all environments. Replaces CyberArk and Azure Key Vault.", parameters: { type: "object", properties: { secretName: { type: "string" }, environment: { type: "string" } }, required: ["secretName"] } } },
+  { type: "function", function: { name: "trace_request_apm", description: "Use the Aphura Distributed Tracing Engine (Jaeger, Apache 2.0) to inspect end-to-end execution paths, latency bottlenecks, and microservice call graphs in real time. Replaces IBM Instana and Dynatrace.", parameters: { type: "object", properties: { traceId: { type: "string" } }, required: ["traceId"] } } },
+  { type: "function", function: { name: "search_vector_similarity", description: "Use the Aphura Vector Similarity Engine (Qdrant, 21k stars, Apache 2.0) for ultra-low latency semantic retrieval and RAG indexing with metadata payload filtering. Replaces Oracle AI Vector Search.", parameters: { type: "object", properties: { collectionName: { type: "string" }, filterCriteria: { type: "string" } }, required: ["collectionName"] } } },
+  { type: "function", function: { name: "fill_sign_pdf", description: "Use the Aphura PDF Automation Engine (PDF-lib, MIT) to programmatically fill interactive form fields, merge documents, and apply digital signatures natively across web, mobile, and desktop. Replaces Adobe Document Cloud.", parameters: { type: "object", properties: { templatePath: { type: "string" }, formValues: { type: "string" } }, required: ["templatePath"] } } },
   { type: "function", function: { name: "extract_ocr_document", description: "Use the Aphura OCR Engine (Tesseract.js, 34k stars, Apache 2.0) to parse text, line items, and numbers from scanned physical receipts, IDs, and invoices locally with zero data egress. Replaces IBM Datacap and Azure Document Intelligence.", parameters: { type: "object", properties: { imagePath: { type: "string" }, language: { type: "string" } }, required: ["imagePath"] } } },
   { type: "function", function: { name: "instant_search_query", description: "Use the Aphura Instant Search Engine (Meilisearch, 46k stars, MIT) for sub-10ms typo-tolerant search across web, iOS, Android, and Desktop platforms. Replaces Algolia and Azure AI Search.", parameters: { type: "object", properties: { indexName: { type: "string" }, query: { type: "string" } }, required: ["indexName", "query"] } } },
   { type: "function", function: { name: "publish_nats_event", description: "Use the Aphura High-Speed Messaging Engine (NATS, 15k stars, Apache 2.0) to broadcast microsecond pub/sub events across internal services with exactly-once delivery guarantees. Replaces IBM MQ.", parameters: { type: "object", properties: { subject: { type: "string" }, payload: { type: "string" } }, required: ["subject"] } } },
@@ -8875,6 +8880,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "register_cdc_stream": {
+          try {
+            const { DebeziumService } = await import("../data/debezium.service.js");
+            const res = await DebeziumService.registerCDCConnector(args.connectorName, { engine: args.databaseEngine });
+            return { output: "### CDC Stream Registered\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "CDC registration failed: " + err.message };
+          }
+        }
+        case "rotate_enterprise_secret": {
+          try {
+            const { InfisicalService } = await import("../security/infisical.service.js");
+            const res = await InfisicalService.rotateSecret(args.secretName, args.environment);
+            return { output: "### Secret Rotated\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Secret rotation failed: " + err.message };
+          }
+        }
+        case "trace_request_apm": {
+          try {
+            const { JaegerService } = await import("../devops/jaeger.service.js");
+            const res = await JaegerService.traceRequestLifecycle(args.traceId);
+            return { output: "### Distributed Trace\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Trace failed: " + err.message };
+          }
+        }
+        case "search_vector_similarity": {
+          try {
+            const { QdrantService } = await import("../ai/qdrant.service.js");
+            const res = await QdrantService.vectorSearch(args.collectionName, [], { query: args.filterCriteria });
+            return { output: "### Vector Similarity Search\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Vector search failed: " + err.message };
+          }
+        }
+        case "fill_sign_pdf": {
+          try {
+            const { PDFLibService } = await import("../business/pdflib.service.js");
+            const res = await PDFLibService.fillAndSignPDF(args.templatePath, { data: args.formValues }, true);
+            return { output: "### PDF Form Filled & Signed\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "PDF manipulation failed: " + err.message };
+          }
+        }
         case "extract_ocr_document": {
           try {
             const { TesseractService } = await import("../enterprise/tesseract.service.js");
