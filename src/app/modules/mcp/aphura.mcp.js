@@ -9,6 +9,39 @@ export const AphuraMCPServer = {
   async handleJsonRpc(request) {
     logger.info(`[MCP Server] Received JSON-RPC method: ${request.method}`);
     
+    if (request.method === "resources/list") {
+      return {
+        jsonrpc: "2.0",
+        id: request.id,
+        result: {
+          resources: [
+            {
+              uri: "memgraph://proprietary-data/market-trends",
+              name: "Market Trends Analysis",
+              mimeType: "text/plain",
+              description: "Proprietary market insights extracted by the OCR pipeline."
+            }
+          ]
+        }
+      };
+    }
+    if (request.method === "resources/read") {
+      const uri = request.params?.uri;
+      logger.info(`[MCP Server] Client reading resource: ${uri}`);
+      return {
+        jsonrpc: "2.0",
+        id: request.id,
+        result: {
+          contents: [
+            {
+              uri,
+              mimeType: "text/plain",
+              text: "SIMULATED MEMGRAPH VECTOR DATA: Market is trending towards autonomous orchestration platforms."
+            }
+          ]
+        }
+      };
+    }
     if (request.method === "tools/list") {
       return {
         jsonrpc: "2.0",
