@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventmesh_a6vm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventMesh) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryplane_cutl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryPlane) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedmatrix_w59t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedMatrix) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfnet_zqma_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFNet) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedstream_5oz9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedStream) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriesnode_k4l5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNode) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22212,6 +22252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventmesh_a6vm_logic": {
+          try {
+            const { OpenEventMeshService } = await import("../liberty/openeventmesh_a6vm.service.js");
+            const res = await OpenEventMeshService.execute(args.target || "system");
+            return { output: `### OpenEventMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryplane_cutl_logic": {
+          try {
+            const { OpenPlanetaryPlaneService } = await import("../liberty/openplanetaryplane_cutl.service.js");
+            const res = await OpenPlanetaryPlaneService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedmatrix_w59t_logic": {
+          try {
+            const { OpenDecentralizedMatrixService } = await import("../liberty/opendecentralizedmatrix_w59t.service.js");
+            const res = await OpenDecentralizedMatrixService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfnet_zqma_logic": {
+          try {
+            const { OpeneBPFNetService } = await import("../liberty/openebpfnet_zqma.service.js");
+            const res = await OpeneBPFNetService.execute(args.target || "system");
+            return { output: `### OpeneBPFNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedstream_5oz9_logic": {
+          try {
+            const { OpenFederatedStreamService } = await import("../liberty/openfederatedstream_5oz9.service.js");
+            const res = await OpenFederatedStreamService.execute(args.target || "system");
+            return { output: `### OpenFederatedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedStream failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriesnode_k4l5_logic": {
           try {
             const { OpenTimeSeriesNodeService } = await import("../liberty/opentime-seriesnode_k4l5.service.js");
