@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedbroker_s6qm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedBroker) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepproxy_k8bk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepProxy) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelmesh_9jc5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMesh) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgraph_4ovp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedcontroller_fxz0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedController) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablecluster_wqmm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableCluster) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28772,6 +28812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedbroker_s6qm_logic": {
+          try {
+            const { OpenDistributedBrokerService } = await import("../liberty/opendistributedbroker_s6qm.service.js");
+            const res = await OpenDistributedBrokerService.execute(args.target || "system");
+            return { output: `### OpenDistributedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepproxy_k8bk_logic": {
+          try {
+            const { OpenDeepProxyService } = await import("../liberty/opendeepproxy_k8bk.service.js");
+            const res = await OpenDeepProxyService.execute(args.target || "system");
+            return { output: `### OpenDeepProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelmesh_9jc5_logic": {
+          try {
+            const { OpenMicroKernelMeshService } = await import("../liberty/openmicro-kernelmesh_9jc5.service.js");
+            const res = await OpenMicroKernelMeshService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgraph_4ovp_logic": {
+          try {
+            const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_4ovp.service.js");
+            const res = await OpenDecentralizedGraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedcontroller_fxz0_logic": {
+          try {
+            const { OpenFederatedControllerService } = await import("../liberty/openfederatedcontroller_fxz0.service.js");
+            const res = await OpenFederatedControllerService.execute(args.target || "system");
+            return { output: `### OpenFederatedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedController failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablecluster_wqmm_logic": {
           try {
             const { OpenImmutableClusterService } = await import("../liberty/openimmutablecluster_wqmm.service.js");
