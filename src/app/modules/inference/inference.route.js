@@ -1229,6 +1229,28 @@ diagnoseErrorRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai CLI Suite Execution & Telemetry (Official: https://docs.together.ai/reference/cli)
+const executeCliRoutes = ['/together/cli/execute', '/v1/together/cli/execute', '/cli/execute', '/v1/cli/execute'];
+executeCliRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteCliCommand(req, res);
+  });
+});
+
+const getCliTelemetryRoutes = ['/together/cli/telemetry', '/v1/together/cli/telemetry', '/cli/telemetry', '/v1/cli/telemetry'];
+getCliTelemetryRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetCliTelemetry(req, res);
+  });
+});
+
+const updateCliTelemetryRoutes = ['/together/cli/telemetry', '/v1/together/cli/telemetry', '/cli/telemetry', '/v1/cli/telemetry'];
+updateCliTelemetryRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleUpdateCliTelemetry(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

@@ -111,6 +111,11 @@ import {
   llmGetErrorCode,
   llmDiagnoseTogetherError,
 } from '../../services/llm.client.js';
+import {
+  executeTogetherCliCommand,
+  getCliTelemetryConfig,
+  updateCliTelemetryConfig,
+} from '../../services/together.cli.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -3107,6 +3112,51 @@ export const InferenceGateway = {
           type: 'api_error',
         },
       });
+    }
+  },
+
+  /**
+   * Executes a Together CLI command across all 13 official domains
+   * (POST /together/cli/execute, POST /v1/together/cli/execute, POST /cli/execute)
+   */
+  async handleExecuteCliCommand(req, res) {
+    try {
+      const command = req.body?.command || req.body?.cmd || req.body?.args || '';
+      const options = req.body?.options || {};
+      if (req.body?.json) options.json = true;
+      const result = await executeTogetherCliCommand(command, options);
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Error executing CLI command.',
+      });
+    }
+  },
+
+  /**
+   * Retrieves CLI telemetry configuration
+   * (GET /together/cli/telemetry, GET /v1/together/cli/telemetry, GET /cli/telemetry)
+   */
+  async handleGetCliTelemetry(req, res) {
+    try {
+      const data = getCliTelemetryConfig();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving CLI telemetry config.' });
+    }
+  },
+
+  /**
+   * Updates CLI telemetry configuration (enable/disable)
+   * (POST /together/cli/telemetry, POST /v1/together/cli/telemetry, POST /cli/telemetry)
+   */
+  async handleUpdateCliTelemetry(req, res) {
+    try {
+      const data = updateCliTelemetryConfig(req.body || {});
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error updating CLI telemetry config.' });
     }
   },
 };
