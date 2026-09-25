@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "scaffold_nestjs_backend", description: "Use the Aphura Enterprise Framework (NestJS, 69k stars, MIT) to scaffold scalable, clean-architecture TypeScript microservices with dependency injection and gRPC/NATS transports. Replaces Spring Boot.", parameters: { type: "object", properties: { moduleName: { type: "string" }, transportType: { type: "string" } }, required: ["moduleName"] } } },
+  { type: "function", function: { name: "search_billion_vectors_milvus", description: "Use the Aphura Billion-Scale Vector Database (Milvus, 33k stars, Apache 2.0) to execute sub-10ms similarity searches across billions of embeddings with GPU acceleration. Replaces Pinecone.", parameters: { type: "object", properties: { collectionName: { type: "string" }, topK: { type: "number" } }, required: ["collectionName"] } } },
+  { type: "function", function: { name: "synthesize_sovereign_voice", description: "Use the Aphura Neural Voice Engine (Piper TTS, 8k stars, MIT) to synthesize natural, human-like voice responses locally on Liberty Center One CPUs with zero cloud voice egress. Replaces ElevenLabs.", parameters: { type: "object", properties: { textPrompt: { type: "string" }, voiceId: { type: "string" } }, required: ["textPrompt"] } } },
+  { type: "function", function: { name: "sync_massive_seatunnel", description: "Use the Aphura Distributed Data Sync Engine (Apache SeaTunnel, 8k stars, Apache 2.0) to synchronize tens of billions of data rows daily across 100+ connectors with exactly-once delivery. Replaces Fivetran.", parameters: { type: "object", properties: { sourceConnector: { type: "string" }, sinkConnector: { type: "string" } }, required: ["sourceConnector", "sinkConnector"] } } },
+  { type: "function", function: { name: "upsert_hudi_lakehouse", description: "Use the Aphura Streaming Lakehouse Engine (Apache Hudi, 5k stars, Apache 2.0) to execute record-level upserts, incremental change streams, and ACID transactions on MinIO storage. Replaces Delta Lake.", parameters: { type: "object", properties: { tableName: { type: "string" } }, required: ["tableName"] } } },
   { type: "function", function: { name: "generate_whiteboard_canvas", description: "Use the Aphura Interactive Whiteboard Engine (Excalidraw, 85k stars, MIT) to compile editable, hand-drawn architecture diagrams, UI mockups, and database schemas directly inside the chat. Beats FigJam and Miro.", parameters: { type: "object", properties: { promptDescription: { type: "string" }, layoutTheme: { type: "string" } }, required: ["promptDescription"] } } },
   { type: "function", function: { name: "audit_web_performance", description: "Use the Aphura Web Performance Auditor (Google Lighthouse, 28k stars, Apache 2.0) to evaluate Core Web Vitals, accessibility, SEO, and security headers with automated remediation advice.", parameters: { type: "object", properties: { targetUrl: { type: "string" } }, required: ["targetUrl"] } } },
   { type: "function", function: { name: "scan_repo_secrets", description: "Use the Aphura Secret Leak Detection Engine (Gitleaks, 18k stars, MIT) to audit git repositories and codebases for leaked tokens, API keys, and private credentials. Replaces GitHub Advanced Security.", parameters: { type: "object", properties: { repoPath: { type: "string" } }, required: ["repoPath"] } } },
@@ -8936,6 +8941,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "scaffold_nestjs_backend": {
+          try {
+            const { NestJSService } = await import("../enterprise/nestjs.service.js");
+            const res = await NestJSService.scaffoldEnterpriseModule(args.moduleName, args.transportType);
+            return { output: "### NestJS Enterprise Scaffold\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "NestJS scaffold failed: " + err.message };
+          }
+        }
+        case "search_billion_vectors_milvus": {
+          try {
+            const { MilvusService } = await import("../ai/milvus.service.js");
+            const res = await MilvusService.executeBillionScaleSearch(args.collectionName, [], args.topK);
+            return { output: "### Milvus Vector Search Result\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Milvus search failed: " + err.message };
+          }
+        }
+        case "synthesize_sovereign_voice": {
+          try {
+            const { PiperService } = await import("../voice/piper.service.js");
+            const res = await PiperService.synthesizeSovereignSpeech(args.textPrompt, args.voiceId);
+            return { output: "### Piper Voice Synthesized\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Voice synthesis failed: " + err.message };
+          }
+        }
+        case "sync_massive_seatunnel": {
+          try {
+            const { SeaTunnelService } = await import("../data/seatunnel.service.js");
+            const res = await SeaTunnelService.executeMassiveSync(args.sourceConnector, args.sinkConnector);
+            return { output: "### SeaTunnel Bulk Sync\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "SeaTunnel sync failed: " + err.message };
+          }
+        }
+        case "upsert_hudi_lakehouse": {
+          try {
+            const { HudiService } = await import("../data/hudi.service.js");
+            const res = await HudiService.executeUpsertStream(args.tableName, []);
+            return { output: "### Hudi Lakehouse Upsert\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Hudi upsert failed: " + err.message };
+          }
+        }
         case "generate_whiteboard_canvas": {
           try {
             const { ExcalidrawService } = await import("../ui/excalidraw.service.js");
