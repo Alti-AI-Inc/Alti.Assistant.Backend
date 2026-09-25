@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectorstream_vld2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorStream) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfpipeline_a2qn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFPipeline) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendnode_4pqx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNode) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencybroker_uvyc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyBroker) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustercontroller_zeq6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterController) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablechain_olej_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableChain) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28212,6 +28252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectorstream_vld2_logic": {
+          try {
+            const { OpenVectorStreamService } = await import("../liberty/openvectorstream_vld2.service.js");
+            const res = await OpenVectorStreamService.execute(args.target || "system");
+            return { output: `### OpenVectorStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfpipeline_a2qn_logic": {
+          try {
+            const { OpeneBPFPipelineService } = await import("../liberty/openebpfpipeline_a2qn.service.js");
+            const res = await OpeneBPFPipelineService.execute(args.target || "system");
+            return { output: `### OpeneBPFPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendnode_4pqx_logic": {
+          try {
+            const { OpenMicroFrontendNodeService } = await import("../liberty/openmicro-frontendnode_4pqx.service.js");
+            const res = await OpenMicroFrontendNodeService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencybroker_uvyc_logic": {
+          try {
+            const { OpenHighFrequencyBrokerService } = await import("../liberty/openhigh-frequencybroker_uvyc.service.js");
+            const res = await OpenHighFrequencyBrokerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustercontroller_zeq6_logic": {
+          try {
+            const { OpenCrossClusterControllerService } = await import("../liberty/opencross-clustercontroller_zeq6.service.js");
+            const res = await OpenCrossClusterControllerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterController failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablechain_olej_logic": {
           try {
             const { OpenImmutableChainService } = await import("../liberty/openimmutablechain_olej.service.js");
