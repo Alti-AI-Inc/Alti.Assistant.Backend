@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelvault_9uby_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelVault) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessbroker_7d4k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessBroker) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialsync_r582_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialSync) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablechain_979z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableChain) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumvortex_f7az_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumVortex) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwaredaemon_939a_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareDaemon) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26692,6 +26732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelvault_9uby_logic": {
+          try {
+            const { OpenMicroKernelVaultService } = await import("../liberty/openmicro-kernelvault_9uby.service.js");
+            const res = await OpenMicroKernelVaultService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessbroker_7d4k_logic": {
+          try {
+            const { OpenServerlessBrokerService } = await import("../liberty/openserverlessbroker_7d4k.service.js");
+            const res = await OpenServerlessBrokerService.execute(args.target || "system");
+            return { output: `### OpenServerlessBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialsync_r582_logic": {
+          try {
+            const { OpenFinancialSyncService } = await import("../liberty/openfinancialsync_r582.service.js");
+            const res = await OpenFinancialSyncService.execute(args.target || "system");
+            return { output: `### OpenFinancialSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablechain_979z_logic": {
+          try {
+            const { OpenImmutableChainService } = await import("../liberty/openimmutablechain_979z.service.js");
+            const res = await OpenImmutableChainService.execute(args.target || "system");
+            return { output: `### OpenImmutableChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumvortex_f7az_logic": {
+          try {
+            const { OpenQuantumVortexService } = await import("../liberty/openquantumvortex_f7az.service.js");
+            const res = await OpenQuantumVortexService.execute(args.target || "system");
+            return { output: `### OpenQuantumVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwaredaemon_939a_logic": {
           try {
             const { OpenHardwareDaemonService } = await import("../liberty/openhardwaredaemon_939a.service.js");
