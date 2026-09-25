@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederateddaemon_5jf7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedDaemon) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedstream_xi1b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedStream) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenode_39j1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNode) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosengine_j5cj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosEngine) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesspipeline_km0x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessPipeline) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisegrid_rcbj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGrid) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29252,6 +29292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederateddaemon_5jf7_logic": {
+          try {
+            const { OpenFederatedDaemonService } = await import("../liberty/openfederateddaemon_5jf7.service.js");
+            const res = await OpenFederatedDaemonService.execute(args.target || "system");
+            return { output: `### OpenFederatedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedstream_xi1b_logic": {
+          try {
+            const { OpenDecentralizedStreamService } = await import("../liberty/opendecentralizedstream_xi1b.service.js");
+            const res = await OpenDecentralizedStreamService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenode_39j1_logic": {
+          try {
+            const { OpenCloudNativeNodeService } = await import("../liberty/opencloud-nativenode_39j1.service.js");
+            const res = await OpenCloudNativeNodeService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosengine_j5cj_logic": {
+          try {
+            const { OpenChaosEngineService } = await import("../liberty/openchaosengine_j5cj.service.js");
+            const res = await OpenChaosEngineService.execute(args.target || "system");
+            return { output: `### OpenChaosEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesspipeline_km0x_logic": {
+          try {
+            const { OpenServerlessPipelineService } = await import("../liberty/openserverlesspipeline_km0x.service.js");
+            const res = await OpenServerlessPipelineService.execute(args.target || "system");
+            return { output: `### OpenServerlessPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisegrid_rcbj_logic": {
           try {
             const { OpenEnterpriseGridService } = await import("../liberty/openenterprisegrid_rcbj.service.js");
