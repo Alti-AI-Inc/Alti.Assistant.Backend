@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentswarm_b9dk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentSwarm) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentgraph_m69o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentGraph) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractlayer_dfbj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractLayer) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfledger_hwe1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFLedger) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedproxy_9nuv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedProxy) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisesync_434v_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseSync) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22372,6 +22412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentswarm_b9dk_logic": {
+          try {
+            const { OpenPersistentSwarmService } = await import("../liberty/openpersistentswarm_b9dk.service.js");
+            const res = await OpenPersistentSwarmService.execute(args.target || "system");
+            return { output: `### OpenPersistentSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentgraph_m69o_logic": {
+          try {
+            const { OpenPersistentGraphService } = await import("../liberty/openpersistentgraph_m69o.service.js");
+            const res = await OpenPersistentGraphService.execute(args.target || "system");
+            return { output: `### OpenPersistentGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractlayer_dfbj_logic": {
+          try {
+            const { OpenAbstractLayerService } = await import("../liberty/openabstractlayer_dfbj.service.js");
+            const res = await OpenAbstractLayerService.execute(args.target || "system");
+            return { output: `### OpenAbstractLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfledger_hwe1_logic": {
+          try {
+            const { OpeneBPFLedgerService } = await import("../liberty/openebpfledger_hwe1.service.js");
+            const res = await OpeneBPFLedgerService.execute(args.target || "system");
+            return { output: `### OpeneBPFLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedproxy_9nuv_logic": {
+          try {
+            const { OpenAdvancedProxyService } = await import("../liberty/openadvancedproxy_9nuv.service.js");
+            const res = await OpenAdvancedProxyService.execute(args.target || "system");
+            return { output: `### OpenAdvancedProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisesync_434v_logic": {
           try {
             const { OpenEnterpriseSyncService } = await import("../liberty/openenterprisesync_434v.service.js");
