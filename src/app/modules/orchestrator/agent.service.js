@@ -5169,3 +5169,27 @@ export const runSelfCorrectionLoop = async (prompt) => {
   
   return { answer, cycles: attempts };
 };
+
+// Appended: Desktop Integration (Cursor Killer)
+export const buildWorkspaceIndex = async (workspaceRoot) => {
+  const { LspProxyService } = await import('../desktop/lsp.service.js');
+  return await LspProxyService.buildWorkspaceIndex(workspaceRoot);
+};
+
+// Appended: Computer Use (Manus Killer)
+export const executeDesktopAction = async (action, params) => {
+  const { ComputerUseService } = await import('../desktop/computer_use.service.js');
+  return await ComputerUseService.executeDesktopAction(action, params);
+};
+
+// Appended: CLI Auto-Fix (Claude Code Killer)
+export const runTerminalAutoFix = async (command) => {
+  const { TerminalAgentService } = await import('../devops/terminal.service.js');
+  return await TerminalAgentService.runAutoFixLoop(command);
+};
+
+// Appended: Cognitive Graph Memory (ChatGPT Memory Killer)
+export const storeCognitiveMemory = async (userId, message) => {
+  const { CognitiveGraphService } = await import('../ai/memgraph.service.js');
+  return await CognitiveGraphService.extractAndStoreEntities(userId, message);
+};

@@ -4,6 +4,15 @@ import { ExaSearchService } from '../ExaSearch/exaSearch.service.js';
 export const LangGraphService = {
   async runResearchSwarm({ query, perspectives = 3 }) {
     logger.info(`[Aphura LangGraph] 🕸️ Launching Deep Research Swarm for: "${query}"`);
+    // Proactive Clarification Loop
+    if (query.length < 15) {
+      logger.warn(`[Aphura LangGraph] ⚠️ Query underspecified. Interrupting graph for Proactive Clarification.`);
+      return {
+        success: false,
+        clarificationRequired: true,
+        questions: [`Did you mean specific architectures for ${query}?`, `What timeframe are you interested in?`]
+      };
+    }
     try {
       logger.info(`[Aphura LangGraph] Planner Agent generating ${perspectives} research angles...`);
       const angles = [
