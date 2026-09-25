@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablecluster_ks9d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableCluster) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogengine_b661_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogEngine) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumchain_yy4l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumChain) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscore_aoic_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCore) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelgrid_2jdx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelGrid) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablerouter_971d_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableRouter) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29612,6 +29652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablecluster_ks9d_logic": {
+          try {
+            const { OpenImmutableClusterService } = await import("../liberty/openimmutablecluster_ks9d.service.js");
+            const res = await OpenImmutableClusterService.execute(args.target || "system");
+            return { output: `### OpenImmutableCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogengine_b661_logic": {
+          try {
+            const { OpenLogEngineService } = await import("../liberty/openlogengine_b661.service.js");
+            const res = await OpenLogEngineService.execute(args.target || "system");
+            return { output: `### OpenLogEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumchain_yy4l_logic": {
+          try {
+            const { OpenQuantumChainService } = await import("../liberty/openquantumchain_yy4l.service.js");
+            const res = await OpenQuantumChainService.execute(args.target || "system");
+            return { output: `### OpenQuantumChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscore_aoic_logic": {
+          try {
+            const { OpenChaosCoreService } = await import("../liberty/openchaoscore_aoic.service.js");
+            const res = await OpenChaosCoreService.execute(args.target || "system");
+            return { output: `### OpenChaosCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelgrid_2jdx_logic": {
+          try {
+            const { OpenMicroKernelGridService } = await import("../liberty/openmicro-kernelgrid_2jdx.service.js");
+            const res = await OpenMicroKernelGridService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablerouter_971d_logic": {
           try {
             const { OpenImmutableRouterService } = await import("../liberty/openimmutablerouter_971d.service.js");
