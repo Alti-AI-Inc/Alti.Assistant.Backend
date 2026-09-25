@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kerneloracle_05we_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelOracle) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedswarm_x0dx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedSwarm) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpswarm_qpjg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPSwarm) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedengine_mv1l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedEngine) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticswarm_r2ho_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticSwarm) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivevortex_ps66_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveVortex) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26612,6 +26652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kerneloracle_05we_logic": {
+          try {
+            const { OpenMicroKernelOracleService } = await import("../liberty/openmicro-kerneloracle_05we.service.js");
+            const res = await OpenMicroKernelOracleService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedswarm_x0dx_logic": {
+          try {
+            const { OpenAutomatedSwarmService } = await import("../liberty/openautomatedswarm_x0dx.service.js");
+            const res = await OpenAutomatedSwarmService.execute(args.target || "system");
+            return { output: `### OpenAutomatedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpswarm_qpjg_logic": {
+          try {
+            const { OpenBGPSwarmService } = await import("../liberty/openbgpswarm_qpjg.service.js");
+            const res = await OpenBGPSwarmService.execute(args.target || "system");
+            return { output: `### OpenBGPSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedengine_mv1l_logic": {
+          try {
+            const { OpenDecentralizedEngineService } = await import("../liberty/opendecentralizedengine_mv1l.service.js");
+            const res = await OpenDecentralizedEngineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticswarm_r2ho_logic": {
+          try {
+            const { OpenSemanticSwarmService } = await import("../liberty/opensemanticswarm_r2ho.service.js");
+            const res = await OpenSemanticSwarmService.execute(args.target || "system");
+            return { output: `### OpenSemanticSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivevortex_ps66_logic": {
           try {
             const { OpenPredictiveVortexService } = await import("../liberty/openpredictivevortex_ps66.service.js");
