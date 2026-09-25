@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwarering_butn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareRing) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractcontroller_hca3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractController) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicrouter_elea_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicRouter) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizeddaemon_bauf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedDaemon) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialsync_25qn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialSync) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicring_qi0x_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicRing) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27572,6 +27612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwarering_butn_logic": {
+          try {
+            const { OpenHardwareRingService } = await import("../liberty/openhardwarering_butn.service.js");
+            const res = await OpenHardwareRingService.execute(args.target || "system");
+            return { output: `### OpenHardwareRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractcontroller_hca3_logic": {
+          try {
+            const { OpenAbstractControllerService } = await import("../liberty/openabstractcontroller_hca3.service.js");
+            const res = await OpenAbstractControllerService.execute(args.target || "system");
+            return { output: `### OpenAbstractController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicrouter_elea_logic": {
+          try {
+            const { OpenHomomorphicRouterService } = await import("../liberty/openhomomorphicrouter_elea.service.js");
+            const res = await OpenHomomorphicRouterService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizeddaemon_bauf_logic": {
+          try {
+            const { OpenDecentralizedDaemonService } = await import("../liberty/opendecentralizeddaemon_bauf.service.js");
+            const res = await OpenDecentralizedDaemonService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialsync_25qn_logic": {
+          try {
+            const { OpenFinancialSyncService } = await import("../liberty/openfinancialsync_25qn.service.js");
+            const res = await OpenFinancialSyncService.execute(args.target || "system");
+            return { output: `### OpenFinancialSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialSync failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicring_qi0x_logic": {
           try {
             const { OpenHomomorphicRingService } = await import("../liberty/openhomomorphicring_qi0x.service.js");
