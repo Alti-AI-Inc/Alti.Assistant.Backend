@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendnode_7x0e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNode) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticvault_luvd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticVault) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiccompiler_8abx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicCompiler) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiclayer_ubhb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicLayer) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendlayer_4lqp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendLayer) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicgrid_0e8s_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicGrid) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27052,6 +27092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendnode_7x0e_logic": {
+          try {
+            const { OpenMicroFrontendNodeService } = await import("../liberty/openmicro-frontendnode_7x0e.service.js");
+            const res = await OpenMicroFrontendNodeService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticvault_luvd_logic": {
+          try {
+            const { OpenSemanticVaultService } = await import("../liberty/opensemanticvault_luvd.service.js");
+            const res = await OpenSemanticVaultService.execute(args.target || "system");
+            return { output: `### OpenSemanticVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiccompiler_8abx_logic": {
+          try {
+            const { OpenNeuromorphicCompilerService } = await import("../liberty/openneuromorphiccompiler_8abx.service.js");
+            const res = await OpenNeuromorphicCompilerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiclayer_ubhb_logic": {
+          try {
+            const { OpenNeuromorphicLayerService } = await import("../liberty/openneuromorphiclayer_ubhb.service.js");
+            const res = await OpenNeuromorphicLayerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendlayer_4lqp_logic": {
+          try {
+            const { OpenMicroFrontendLayerService } = await import("../liberty/openmicro-frontendlayer_4lqp.service.js");
+            const res = await OpenMicroFrontendLayerService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicgrid_0e8s_logic": {
           try {
             const { OpenHomomorphicGridService } = await import("../liberty/openhomomorphicgrid_0e8s.service.js");
