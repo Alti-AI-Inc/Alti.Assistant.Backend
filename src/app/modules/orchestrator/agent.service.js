@@ -39,6 +39,38 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "render_visual_diagram",
+      description: "Use the Aphura Visual Intelligence Engine (Mermaid, 73k stars) to render beautiful SVG diagrams from text — flowcharts, sequence diagrams, ERDs, Gantt charts, class diagrams, state machines, git graphs, and mind maps. Renders inline in the chat.",
+      parameters: { type: "object", properties: { diagramType: { type: "string" }, definition: { type: "string" } }, required: ["diagramType", "definition"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "manage_cms_content",
+      description: "Use the Aphura Content Management Engine (Payload CMS, 25k stars) to create, manage, and publish content collections (docs, blogs, changelogs, FAQs) with auto-generated REST and GraphQL APIs, version history, and role-based access control.",
+      parameters: { type: "object", properties: { collectionName: { type: "string" }, fields: { type: "string" } }, required: ["collectionName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_local_first_database",
+      description: "Use the Aphura Local-First Database (libSQL/Turso, 12k stars) to embed a replicated SQLite database directly into the mobile app and desktop app for instant offline queries that sync to Liberty Center One when connectivity returns.",
+      parameters: { type: "object", properties: { dbName: { type: "string" } }, required: ["dbName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_branded_email",
+      description: "Use the Aphura Email Engine (React Email, 14k stars) to render and send beautiful, branded transactional emails (onboarding, invoices, reports, notifications) built with React components and tested across Gmail, Outlook, and Apple Mail.",
+      parameters: { type: "object", properties: { to: { type: "string" }, templateName: { type: "string" } }, required: ["to", "templateName"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "validate_data_schema",
       description: "Use the Aphura Schema Validation Engine (Zod) to validate any payload against a TypeScript-first schema — ensuring type safety across web, mobile, desktop, and API at both compile-time and runtime.",
       parameters: { type: "object", properties: { schemaName: { type: "string" }, payload: { type: "string" } }, required: ["schemaName", "payload"] }
@@ -8799,7 +8831,42 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "validate_data_schema": {
+        case "render_visual_diagram": {
+          try {
+            const { MermaidService } = await import("../ui/mermaid.service.js");
+            const res = await MermaidService.renderDiagram(args.diagramType, args.definition);
+            return { output: "### Diagram Rendered\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Diagram rendering failed: " + err.message };
+          }
+        }
+        case "manage_cms_content": {
+          try {
+            const { PayloadCMSService } = await import("../data/payload.service.js");
+            const res = await PayloadCMSService.createCollection(args.collectionName, args.fields || "title, body, author");
+            return { output: "### CMS Collection Created\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "CMS operation failed: " + err.message };
+          }
+        }
+        case "create_local_first_database": {
+          try {
+            const { LibSQLService } = await import("../data/libsql.service.js");
+            const res = await LibSQLService.createEmbeddedDB(args.dbName);
+            return { output: "### Local-First DB Created\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Database creation failed: " + err.message };
+          }
+        }
+        case "send_branded_email": {
+          try {
+            const { ReactEmailService } = await import("../marketing/reactemail.service.js");
+            const res = await ReactEmailService.sendTransactional(args.to, args.templateName, {});
+            return { output: "### Email Sent\n\nTo: " + res.to + "\nTemplate: " + res.template + "\nDelivered: " + res.delivered };
+          } catch (err) {
+            return { output: "Email send failed: " + err.message };
+          }
+        }        case "validate_data_schema": {
           try {
             const { ZodService } = await import("../api/zod.service.js");
             const res = await ZodService.validatePayload(args.schemaName, args.payload);
