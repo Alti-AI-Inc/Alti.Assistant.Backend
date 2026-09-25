@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpgrid_7i4u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPGrid) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecluster_cu6p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCluster) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumplane_aok4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumPlane) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablepipeline_4ta0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutablePipeline) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedcompiler_iwpm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedCompiler) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablelayer_h927_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableLayer) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26492,6 +26532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpgrid_7i4u_logic": {
+          try {
+            const { OpenBGPGridService } = await import("../liberty/openbgpgrid_7i4u.service.js");
+            const res = await OpenBGPGridService.execute(args.target || "system");
+            return { output: `### OpenBGPGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecluster_cu6p_logic": {
+          try {
+            const { OpenZeroKnowledgeClusterService } = await import("../liberty/openzero-knowledgecluster_cu6p.service.js");
+            const res = await OpenZeroKnowledgeClusterService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumplane_aok4_logic": {
+          try {
+            const { OpenQuantumPlaneService } = await import("../liberty/openquantumplane_aok4.service.js");
+            const res = await OpenQuantumPlaneService.execute(args.target || "system");
+            return { output: `### OpenQuantumPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablepipeline_4ta0_logic": {
+          try {
+            const { OpenImmutablePipelineService } = await import("../liberty/openimmutablepipeline_4ta0.service.js");
+            const res = await OpenImmutablePipelineService.execute(args.target || "system");
+            return { output: `### OpenImmutablePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutablePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedcompiler_iwpm_logic": {
+          try {
+            const { OpenAutomatedCompilerService } = await import("../liberty/openautomatedcompiler_iwpm.service.js");
+            const res = await OpenAutomatedCompilerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablelayer_h927_logic": {
           try {
             const { OpenImmutableLayerService } = await import("../liberty/openimmutablelayer_h927.service.js");
