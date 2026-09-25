@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialvortex_c6xc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialVortex) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicrouter_yxdp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicRouter) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessstream_v6q7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessStream) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencygraph_sxh8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyGraph) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuledger_erm3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPULedger) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancedrouter_1pgw_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedRouter) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21932,6 +21972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialvortex_c6xc_logic": {
+          try {
+            const { OpenFinancialVortexService } = await import("../liberty/openfinancialvortex_c6xc.service.js");
+            const res = await OpenFinancialVortexService.execute(args.target || "system");
+            return { output: `### OpenFinancialVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicrouter_yxdp_logic": {
+          try {
+            const { OpenHomomorphicRouterService } = await import("../liberty/openhomomorphicrouter_yxdp.service.js");
+            const res = await OpenHomomorphicRouterService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessstream_v6q7_logic": {
+          try {
+            const { OpenServerlessStreamService } = await import("../liberty/openserverlessstream_v6q7.service.js");
+            const res = await OpenServerlessStreamService.execute(args.target || "system");
+            return { output: `### OpenServerlessStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencygraph_sxh8_logic": {
+          try {
+            const { OpenHighFrequencyGraphService } = await import("../liberty/openhigh-frequencygraph_sxh8.service.js");
+            const res = await OpenHighFrequencyGraphService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuledger_erm3_logic": {
+          try {
+            const { OpenGPULedgerService } = await import("../liberty/opengpuledger_erm3.service.js");
+            const res = await OpenGPULedgerService.execute(args.target || "system");
+            return { output: `### OpenGPULedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPULedger failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancedrouter_1pgw_logic": {
           try {
             const { OpenAdvancedRouterService } = await import("../liberty/openadvancedrouter_1pgw.service.js");
