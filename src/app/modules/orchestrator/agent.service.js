@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendpipeline_vhrg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendPipeline) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeeppipeline_wytz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepPipeline) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorystream_5ru4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryStream) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorcompiler_2c7c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorCompiler) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriescompiler_sayc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCompiler) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlesscontroller_cnv9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessController) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25252,6 +25292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendpipeline_vhrg_logic": {
+          try {
+            const { OpenMicroFrontendPipelineService } = await import("../liberty/openmicro-frontendpipeline_vhrg.service.js");
+            const res = await OpenMicroFrontendPipelineService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeeppipeline_wytz_logic": {
+          try {
+            const { OpenDeepPipelineService } = await import("../liberty/opendeeppipeline_wytz.service.js");
+            const res = await OpenDeepPipelineService.execute(args.target || "system");
+            return { output: `### OpenDeepPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorystream_5ru4_logic": {
+          try {
+            const { OpenInMemoryStreamService } = await import("../liberty/openin-memorystream_5ru4.service.js");
+            const res = await OpenInMemoryStreamService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorcompiler_2c7c_logic": {
+          try {
+            const { OpenVectorCompilerService } = await import("../liberty/openvectorcompiler_2c7c.service.js");
+            const res = await OpenVectorCompilerService.execute(args.target || "system");
+            return { output: `### OpenVectorCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriescompiler_sayc_logic": {
+          try {
+            const { OpenTimeSeriesCompilerService } = await import("../liberty/opentime-seriescompiler_sayc.service.js");
+            const res = await OpenTimeSeriesCompilerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlesscontroller_cnv9_logic": {
           try {
             const { OpenServerlessControllerService } = await import("../liberty/openserverlesscontroller_cnv9.service.js");
