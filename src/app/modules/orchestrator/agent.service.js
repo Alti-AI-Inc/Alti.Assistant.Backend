@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openneuromorphicring_3id7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicRing) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventplane_w6yy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventPlane) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesvortex_z0f5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesVortex) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicbroker_07jp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicBroker) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgerouter_68jx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeRouter) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalsync_o80u_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalSync) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29452,6 +29492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openneuromorphicring_3id7_logic": {
+          try {
+            const { OpenNeuromorphicRingService } = await import("../liberty/openneuromorphicring_3id7.service.js");
+            const res = await OpenNeuromorphicRingService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventplane_w6yy_logic": {
+          try {
+            const { OpenEventPlaneService } = await import("../liberty/openeventplane_w6yy.service.js");
+            const res = await OpenEventPlaneService.execute(args.target || "system");
+            return { output: `### OpenEventPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesvortex_z0f5_logic": {
+          try {
+            const { OpenTimeSeriesVortexService } = await import("../liberty/opentime-seriesvortex_z0f5.service.js");
+            const res = await OpenTimeSeriesVortexService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicbroker_07jp_logic": {
+          try {
+            const { OpenHomomorphicBrokerService } = await import("../liberty/openhomomorphicbroker_07jp.service.js");
+            const res = await OpenHomomorphicBrokerService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgerouter_68jx_logic": {
+          try {
+            const { OpenEdgeRouterService } = await import("../liberty/openedgerouter_68jx.service.js");
+            const res = await OpenEdgeRouterService.execute(args.target || "system");
+            return { output: `### OpenEdgeRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalsync_o80u_logic": {
           try {
             const { OpenHyperDimensionalSyncService } = await import("../liberty/openhyper-dimensionalsync_o80u.service.js");
