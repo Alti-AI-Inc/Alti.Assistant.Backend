@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativeproxy_1un9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeProxy) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedpipeline_vde9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedPipeline) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendnexus_7mrf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNexus) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisenet_v08c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNet) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyledger_s02d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyLedger) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedstream_zkyc_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedStream) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27932,6 +27972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativeproxy_1un9_logic": {
+          try {
+            const { OpenCloudNativeProxyService } = await import("../liberty/opencloud-nativeproxy_1un9.service.js");
+            const res = await OpenCloudNativeProxyService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedpipeline_vde9_logic": {
+          try {
+            const { OpenFederatedPipelineService } = await import("../liberty/openfederatedpipeline_vde9.service.js");
+            const res = await OpenFederatedPipelineService.execute(args.target || "system");
+            return { output: `### OpenFederatedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendnexus_7mrf_logic": {
+          try {
+            const { OpenMicroFrontendNexusService } = await import("../liberty/openmicro-frontendnexus_7mrf.service.js");
+            const res = await OpenMicroFrontendNexusService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisenet_v08c_logic": {
+          try {
+            const { OpenEnterpriseNetService } = await import("../liberty/openenterprisenet_v08c.service.js");
+            const res = await OpenEnterpriseNetService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyledger_s02d_logic": {
+          try {
+            const { OpenMultiPartyLedgerService } = await import("../liberty/openmulti-partyledger_s02d.service.js");
+            const res = await OpenMultiPartyLedgerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyLedger failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedstream_zkyc_logic": {
           try {
             const { OpenFederatedStreamService } = await import("../liberty/openfederatedstream_zkyc.service.js");
