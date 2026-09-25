@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedswarm_19kh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedSwarm) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessfabric_km3m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessFabric) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedledger_zwo1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedLedger) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativematrix_2jo9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeMatrix) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partycluster_ia2j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyCluster) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openabstractswarm_aens_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAbstractSwarm) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26932,6 +26972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedswarm_19kh_logic": {
+          try {
+            const { OpenFederatedSwarmService } = await import("../liberty/openfederatedswarm_19kh.service.js");
+            const res = await OpenFederatedSwarmService.execute(args.target || "system");
+            return { output: `### OpenFederatedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessfabric_km3m_logic": {
+          try {
+            const { OpenHeadlessFabricService } = await import("../liberty/openheadlessfabric_km3m.service.js");
+            const res = await OpenHeadlessFabricService.execute(args.target || "system");
+            return { output: `### OpenHeadlessFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedledger_zwo1_logic": {
+          try {
+            const { OpenAutomatedLedgerService } = await import("../liberty/openautomatedledger_zwo1.service.js");
+            const res = await OpenAutomatedLedgerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativematrix_2jo9_logic": {
+          try {
+            const { OpenCloudNativeMatrixService } = await import("../liberty/opencloud-nativematrix_2jo9.service.js");
+            const res = await OpenCloudNativeMatrixService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partycluster_ia2j_logic": {
+          try {
+            const { OpenMultiPartyClusterService } = await import("../liberty/openmulti-partycluster_ia2j.service.js");
+            const res = await OpenMultiPartyClusterService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openabstractswarm_aens_logic": {
           try {
             const { OpenAbstractSwarmService } = await import("../liberty/openabstractswarm_aens.service.js");
