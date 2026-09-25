@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticcore_npv0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticCore) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativepipeline_siig_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativePipeline) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessengine_221i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessEngine) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisecontroller_wjg6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseController) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustvault_wfaf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustVault) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedbroker_x3ai_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedBroker) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25812,6 +25852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticcore_npv0_logic": {
+          try {
+            const { OpenStaticCoreService } = await import("../liberty/openstaticcore_npv0.service.js");
+            const res = await OpenStaticCoreService.execute(args.target || "system");
+            return { output: `### OpenStaticCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativepipeline_siig_logic": {
+          try {
+            const { OpenCloudNativePipelineService } = await import("../liberty/opencloud-nativepipeline_siig.service.js");
+            const res = await OpenCloudNativePipelineService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessengine_221i_logic": {
+          try {
+            const { OpenServerlessEngineService } = await import("../liberty/openserverlessengine_221i.service.js");
+            const res = await OpenServerlessEngineService.execute(args.target || "system");
+            return { output: `### OpenServerlessEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisecontroller_wjg6_logic": {
+          try {
+            const { OpenEnterpriseControllerService } = await import("../liberty/openenterprisecontroller_wjg6.service.js");
+            const res = await OpenEnterpriseControllerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseController failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustvault_wfaf_logic": {
+          try {
+            const { OpenZeroTrustVaultService } = await import("../liberty/openzero-trustvault_wfaf.service.js");
+            const res = await OpenZeroTrustVaultService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustVault failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedbroker_x3ai_logic": {
           try {
             const { OpenAutomatedBrokerService } = await import("../liberty/openautomatedbroker_x3ai.service.js");
