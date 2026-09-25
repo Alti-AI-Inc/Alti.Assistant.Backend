@@ -87,6 +87,7 @@ import {
   llmClearQueue,
   llmGetQueueMetrics,
   llmWhoami,
+  llmGetBillingUsage,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -2754,6 +2755,24 @@ export const InferenceGateway = {
       return res.status(500).json({
         error: {
           message: error.message || 'Error retrieving identity information.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Retrieves billing usage report (GET /billing/usage & /v1/billing/usage)
+   * Official Reference: https://docs.together.ai/reference/billing-usage
+   */
+  async handleGetBillingUsage(req, res) {
+    try {
+      const data = await llmGetBillingUsage(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error retrieving billing usage report.',
           type: 'api_error',
         },
       });

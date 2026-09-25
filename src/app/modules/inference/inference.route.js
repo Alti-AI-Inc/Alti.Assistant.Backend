@@ -935,6 +935,14 @@ whoamiRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Billing Usage (Official: https://docs.together.ai/reference/billing-usage)
+const billingUsageRoutes = ['/billing/usage', '/v1/billing/usage'];
+billingUsageRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetBillingUsage(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');
