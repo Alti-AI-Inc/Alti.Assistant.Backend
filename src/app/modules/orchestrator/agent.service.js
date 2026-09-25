@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumplane_79km_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumPlane) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryvault_16zb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryVault) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogswarm_vnyx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogSwarm) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesplane_igg5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesPlane) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicoracle_6o5u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicOracle) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengraphmesh_38d4_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGraphMesh) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27732,6 +27772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumplane_79km_logic": {
+          try {
+            const { OpenQuantumPlaneService } = await import("../liberty/openquantumplane_79km.service.js");
+            const res = await OpenQuantumPlaneService.execute(args.target || "system");
+            return { output: `### OpenQuantumPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryvault_16zb_logic": {
+          try {
+            const { OpenPlanetaryVaultService } = await import("../liberty/openplanetaryvault_16zb.service.js");
+            const res = await OpenPlanetaryVaultService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogswarm_vnyx_logic": {
+          try {
+            const { OpenLogSwarmService } = await import("../liberty/openlogswarm_vnyx.service.js");
+            const res = await OpenLogSwarmService.execute(args.target || "system");
+            return { output: `### OpenLogSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesplane_igg5_logic": {
+          try {
+            const { OpenTimeSeriesPlaneService } = await import("../liberty/opentime-seriesplane_igg5.service.js");
+            const res = await OpenTimeSeriesPlaneService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicoracle_6o5u_logic": {
+          try {
+            const { OpenNeuromorphicOracleService } = await import("../liberty/openneuromorphicoracle_6o5u.service.js");
+            const res = await OpenNeuromorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicOracle failed: ${err.message}` };
+          }
+        }
         case "execute_opengraphmesh_38d4_logic": {
           try {
             const { OpenGraphMeshService } = await import("../liberty/opengraphmesh_38d4.service.js");
