@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventring_4dhx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventRing) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelpipeline_coev_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelPipeline) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisegraph_kjpo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGraph) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedvault_16j3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedVault) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventbroker_ggkg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventBroker) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partynode_dlsn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyNode) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24212,6 +24252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventring_4dhx_logic": {
+          try {
+            const { OpenEventRingService } = await import("../liberty/openeventring_4dhx.service.js");
+            const res = await OpenEventRingService.execute(args.target || "system");
+            return { output: `### OpenEventRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelpipeline_coev_logic": {
+          try {
+            const { OpenMicroKernelPipelineService } = await import("../liberty/openmicro-kernelpipeline_coev.service.js");
+            const res = await OpenMicroKernelPipelineService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisegraph_kjpo_logic": {
+          try {
+            const { OpenEnterpriseGraphService } = await import("../liberty/openenterprisegraph_kjpo.service.js");
+            const res = await OpenEnterpriseGraphService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedvault_16j3_logic": {
+          try {
+            const { OpenDecentralizedVaultService } = await import("../liberty/opendecentralizedvault_16j3.service.js");
+            const res = await OpenDecentralizedVaultService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventbroker_ggkg_logic": {
+          try {
+            const { OpenEventBrokerService } = await import("../liberty/openeventbroker_ggkg.service.js");
+            const res = await OpenEventBrokerService.execute(args.target || "system");
+            return { output: `### OpenEventBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventBroker failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partynode_dlsn_logic": {
           try {
             const { OpenMultiPartyNodeService } = await import("../liberty/openmulti-partynode_dlsn.service.js");
