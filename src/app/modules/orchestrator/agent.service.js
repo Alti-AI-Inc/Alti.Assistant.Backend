@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicgrid_0e8s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicGrid) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticvault_mvzu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticVault) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicnexus_wxbg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicNexus) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentbroker_89ne_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentBroker) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterledger_76zm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLedger) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedring_v4fd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedRing) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27012,6 +27052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicgrid_0e8s_logic": {
+          try {
+            const { OpenHomomorphicGridService } = await import("../liberty/openhomomorphicgrid_0e8s.service.js");
+            const res = await OpenHomomorphicGridService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticvault_mvzu_logic": {
+          try {
+            const { OpenStaticVaultService } = await import("../liberty/openstaticvault_mvzu.service.js");
+            const res = await OpenStaticVaultService.execute(args.target || "system");
+            return { output: `### OpenStaticVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicnexus_wxbg_logic": {
+          try {
+            const { OpenNeuromorphicNexusService } = await import("../liberty/openneuromorphicnexus_wxbg.service.js");
+            const res = await OpenNeuromorphicNexusService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentbroker_89ne_logic": {
+          try {
+            const { OpenPersistentBrokerService } = await import("../liberty/openpersistentbroker_89ne.service.js");
+            const res = await OpenPersistentBrokerService.execute(args.target || "system");
+            return { output: `### OpenPersistentBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterledger_76zm_logic": {
+          try {
+            const { OpenCrossClusterLedgerService } = await import("../liberty/opencross-clusterledger_76zm.service.js");
+            const res = await OpenCrossClusterLedgerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterLedger failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedring_v4fd_logic": {
           try {
             const { OpenDistributedRingService } = await import("../liberty/opendistributedring_v4fd.service.js");
