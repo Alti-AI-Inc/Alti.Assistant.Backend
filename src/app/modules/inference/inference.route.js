@@ -28,6 +28,8 @@ router.post('/v1/completions', async (req, res) => {
   await InferenceGateway.handleTextCompletion(req.body, res);
 });
 
+import audioUploader from '../../middlewares/uploder/uploadAudio.js';
+
 // ── Image Generations (Official: https://docs.together.ai/reference/post-images-generations)
 router.post('/images/generations', async (req, res) => {
   await InferenceGateway.handleImageGeneration(req.body, res);
@@ -35,6 +37,51 @@ router.post('/images/generations', async (req, res) => {
 
 router.post('/v1/images/generations', async (req, res) => {
   await InferenceGateway.handleImageGeneration(req.body, res);
+});
+
+// ── Audio Speech (Official: https://docs.together.ai/reference/audio-speech) ─
+router.post('/audio/speech', async (req, res) => {
+  await InferenceGateway.handleSpeech(req, res);
+});
+
+router.post('/v1/audio/speech', async (req, res) => {
+  await InferenceGateway.handleSpeech(req, res);
+});
+
+// ── Realtime Speech WebSocket Info (Official: https://docs.together.ai/reference/audio-speech-websocket)
+router.get('/audio/speech/websocket', (req, res) => {
+  InferenceGateway.handleSpeechWebSocketInfo(req, res);
+});
+
+router.get('/v1/audio/speech/websocket', (req, res) => {
+  InferenceGateway.handleSpeechWebSocketInfo(req, res);
+});
+
+// ── Audio Transcriptions (Official: https://docs.together.ai/reference/audio-transcriptions)
+router.post('/audio/transcriptions', audioUploader.single('file'), async (req, res) => {
+  await InferenceGateway.handleTranscriptions(req, res);
+});
+
+router.post('/v1/audio/transcriptions', audioUploader.single('file'), async (req, res) => {
+  await InferenceGateway.handleTranscriptions(req, res);
+});
+
+// ── Audio Translations (Official: https://docs.together.ai/reference/audio-translations)
+router.post('/audio/translations', audioUploader.single('file'), async (req, res) => {
+  await InferenceGateway.handleTranslations(req, res);
+});
+
+router.post('/v1/audio/translations', audioUploader.single('file'), async (req, res) => {
+  await InferenceGateway.handleTranslations(req, res);
+});
+
+// ── Realtime Transcription WebSocket Info (Official: https://docs.together.ai/reference/audio-transcriptions-realtime)
+router.get('/realtime', (req, res) => {
+  InferenceGateway.handleRealtimeSTTInfo(req, res);
+});
+
+router.get('/v1/realtime', (req, res) => {
+  InferenceGateway.handleRealtimeSTTInfo(req, res);
 });
 
 // ── Models Discovery (OpenAI/Together SDK compatible format) ───────────────

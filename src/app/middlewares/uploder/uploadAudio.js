@@ -20,13 +20,13 @@ const storage = multer.diskStorage({
 const audioUploader = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    const allowed = /\.(mp3|m4a|wav|webm|flac|ogg|mpga|mp4|mpeg)$/i;
+    const allowed = /\.(mp3|m4a|wav|webm|flac|ogg|opus|aac|mpga|mp4|mpeg)$/i;
     if (!allowed.test(file.originalname)) {
-      return cb(new Error('Unsupported audio format. Allowed: mp3, m4a, wav, webm, flac, ogg'), false);
+      return cb(new Error('Unsupported audio format. Allowed: mp3, m4a, wav, webm, flac, ogg, opus, aac'), false);
     }
     cb(null, true);
   },
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB max (matches LLM Whisper file limit)
+  limits: { fileSize: 80 * 1024 * 1024 }, // 80MB max (Together.ai binary audio upload limit)
 });
 
 export default audioUploader;
