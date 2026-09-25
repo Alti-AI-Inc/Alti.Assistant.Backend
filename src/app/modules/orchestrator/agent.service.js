@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpledger_jq5o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPLedger) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarycontroller_1lm3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryController) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentgraph_jque_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentGraph) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarychain_0bra_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryChain) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openloggrid_rb52_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogGrid) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepbroker_7bzj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepBroker) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26012,6 +26052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpledger_jq5o_logic": {
+          try {
+            const { OpenBGPLedgerService } = await import("../liberty/openbgpledger_jq5o.service.js");
+            const res = await OpenBGPLedgerService.execute(args.target || "system");
+            return { output: `### OpenBGPLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarycontroller_1lm3_logic": {
+          try {
+            const { OpenPlanetaryControllerService } = await import("../liberty/openplanetarycontroller_1lm3.service.js");
+            const res = await OpenPlanetaryControllerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryController failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentgraph_jque_logic": {
+          try {
+            const { OpenPersistentGraphService } = await import("../liberty/openpersistentgraph_jque.service.js");
+            const res = await OpenPersistentGraphService.execute(args.target || "system");
+            return { output: `### OpenPersistentGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarychain_0bra_logic": {
+          try {
+            const { OpenPlanetaryChainService } = await import("../liberty/openplanetarychain_0bra.service.js");
+            const res = await OpenPlanetaryChainService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openloggrid_rb52_logic": {
+          try {
+            const { OpenLogGridService } = await import("../liberty/openloggrid_rb52.service.js");
+            const res = await OpenLogGridService.execute(args.target || "system");
+            return { output: `### OpenLogGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepbroker_7bzj_logic": {
           try {
             const { OpenDeepBrokerService } = await import("../liberty/opendeepbroker_7bzj.service.js");
