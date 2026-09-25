@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventdaemon_qjm6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventDaemon) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumcore_qav6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumCore) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticvault_v8u7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticVault) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphoracle_4d2n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphOracle) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractrouter_6ejv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractRouter) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondledger_iqku_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondLedger) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25612,6 +25652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventdaemon_qjm6_logic": {
+          try {
+            const { OpenEventDaemonService } = await import("../liberty/openeventdaemon_qjm6.service.js");
+            const res = await OpenEventDaemonService.execute(args.target || "system");
+            return { output: `### OpenEventDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumcore_qav6_logic": {
+          try {
+            const { OpenQuantumCoreService } = await import("../liberty/openquantumcore_qav6.service.js");
+            const res = await OpenQuantumCoreService.execute(args.target || "system");
+            return { output: `### OpenQuantumCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticvault_v8u7_logic": {
+          try {
+            const { OpenSemanticVaultService } = await import("../liberty/opensemanticvault_v8u7.service.js");
+            const res = await OpenSemanticVaultService.execute(args.target || "system");
+            return { output: `### OpenSemanticVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphoracle_4d2n_logic": {
+          try {
+            const { OpenGraphOracleService } = await import("../liberty/opengraphoracle_4d2n.service.js");
+            const res = await OpenGraphOracleService.execute(args.target || "system");
+            return { output: `### OpenGraphOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractrouter_6ejv_logic": {
+          try {
+            const { OpenAbstractRouterService } = await import("../liberty/openabstractrouter_6ejv.service.js");
+            const res = await OpenAbstractRouterService.execute(args.target || "system");
+            return { output: `### OpenAbstractRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractRouter failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondledger_iqku_logic": {
           try {
             const { OpenSubMillisecondLedgerService } = await import("../liberty/opensub-millisecondledger_iqku.service.js");
