@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessnode_4fn4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNode) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpugrid_on94_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUGrid) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnode_zvpw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNode) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessengine_an11_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessEngine) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfgraph_vs57_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFGraph) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectorstream_vld2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorStream) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28252,6 +28292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessnode_4fn4_logic": {
+          try {
+            const { OpenHeadlessNodeService } = await import("../liberty/openheadlessnode_4fn4.service.js");
+            const res = await OpenHeadlessNodeService.execute(args.target || "system");
+            return { output: `### OpenHeadlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpugrid_on94_logic": {
+          try {
+            const { OpenGPUGridService } = await import("../liberty/opengpugrid_on94.service.js");
+            const res = await OpenGPUGridService.execute(args.target || "system");
+            return { output: `### OpenGPUGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnode_zvpw_logic": {
+          try {
+            const { OpenGraphNodeService } = await import("../liberty/opengraphnode_zvpw.service.js");
+            const res = await OpenGraphNodeService.execute(args.target || "system");
+            return { output: `### OpenGraphNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessengine_an11_logic": {
+          try {
+            const { OpenHeadlessEngineService } = await import("../liberty/openheadlessengine_an11.service.js");
+            const res = await OpenHeadlessEngineService.execute(args.target || "system");
+            return { output: `### OpenHeadlessEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfgraph_vs57_logic": {
+          try {
+            const { OpeneBPFGraphService } = await import("../liberty/openebpfgraph_vs57.service.js");
+            const res = await OpeneBPFGraphService.execute(args.target || "system");
+            return { output: `### OpeneBPFGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openvectorstream_vld2_logic": {
           try {
             const { OpenVectorStreamService } = await import("../liberty/openvectorstream_vld2.service.js");
