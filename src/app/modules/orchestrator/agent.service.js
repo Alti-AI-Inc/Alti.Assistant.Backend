@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondfabric_20rp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondFabric) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelnet_k8it_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNet) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfmesh_jj85_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFMesh) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventsync_5vfa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventSync) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedbroker_eknh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedBroker) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpuring_i0ep_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPURing) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27212,6 +27252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondfabric_20rp_logic": {
+          try {
+            const { OpenSubMillisecondFabricService } = await import("../liberty/opensub-millisecondfabric_20rp.service.js");
+            const res = await OpenSubMillisecondFabricService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelnet_k8it_logic": {
+          try {
+            const { OpenMicroKernelNetService } = await import("../liberty/openmicro-kernelnet_k8it.service.js");
+            const res = await OpenMicroKernelNetService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfmesh_jj85_logic": {
+          try {
+            const { OpeneBPFMeshService } = await import("../liberty/openebpfmesh_jj85.service.js");
+            const res = await OpeneBPFMeshService.execute(args.target || "system");
+            return { output: `### OpeneBPFMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventsync_5vfa_logic": {
+          try {
+            const { OpenEventSyncService } = await import("../liberty/openeventsync_5vfa.service.js");
+            const res = await OpenEventSyncService.execute(args.target || "system");
+            return { output: `### OpenEventSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedbroker_eknh_logic": {
+          try {
+            const { OpenFederatedBrokerService } = await import("../liberty/openfederatedbroker_eknh.service.js");
+            const res = await OpenFederatedBrokerService.execute(args.target || "system");
+            return { output: `### OpenFederatedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedBroker failed: ${err.message}` };
+          }
+        }
         case "execute_opengpuring_i0ep_logic": {
           try {
             const { OpenGPURingService } = await import("../liberty/opengpuring_i0ep.service.js");
