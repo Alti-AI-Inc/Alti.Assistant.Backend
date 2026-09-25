@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openneuromorphicnet_tvpg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicNet) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorplane_ntlo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorPlane) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpudaemon_jypk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUDaemon) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicoracle_0u0t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicOracle) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedcore_nkex_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedCore) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpledger_jq5o_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPLedger) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26052,6 +26092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openneuromorphicnet_tvpg_logic": {
+          try {
+            const { OpenNeuromorphicNetService } = await import("../liberty/openneuromorphicnet_tvpg.service.js");
+            const res = await OpenNeuromorphicNetService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorplane_ntlo_logic": {
+          try {
+            const { OpenVectorPlaneService } = await import("../liberty/openvectorplane_ntlo.service.js");
+            const res = await OpenVectorPlaneService.execute(args.target || "system");
+            return { output: `### OpenVectorPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpudaemon_jypk_logic": {
+          try {
+            const { OpenGPUDaemonService } = await import("../liberty/opengpudaemon_jypk.service.js");
+            const res = await OpenGPUDaemonService.execute(args.target || "system");
+            return { output: `### OpenGPUDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicoracle_0u0t_logic": {
+          try {
+            const { OpenHomomorphicOracleService } = await import("../liberty/openhomomorphicoracle_0u0t.service.js");
+            const res = await OpenHomomorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedcore_nkex_logic": {
+          try {
+            const { OpenAutomatedCoreService } = await import("../liberty/openautomatedcore_nkex.service.js");
+            const res = await OpenAutomatedCoreService.execute(args.target || "system");
+            return { output: `### OpenAutomatedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedCore failed: ${err.message}` };
+          }
+        }
         case "execute_openbgpledger_jq5o_logic": {
           try {
             const { OpenBGPLedgerService } = await import("../liberty/openbgpledger_jq5o.service.js");
