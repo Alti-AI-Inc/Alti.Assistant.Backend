@@ -1180,26 +1180,60 @@ export async function llmListVoices() {
 }
 
 export async function llmCreateEmbeddings(input, options = {}) {
-  const model = options.model || TOGETHER_AI_FACTORY.EMBEDDINGS;
+  const model = options.model || TOGETHER_AI_FACTORY.EMBEDDINGS || 'togethercomputer/m2-bert-80M-8k-retrieval';
   const inputArray = Array.isArray(input) ? input : [input];
+  const encodingFormat = options.encoding_format || options.encodingFormat || 'float';
+  const dimensions = options.dimensions;
+  const user = options.user;
+
   try {
-    const response = await llmClient.embeddings.create({
+    const payload = {
       model,
       input: inputArray,
-    });
+      encoding_format: encodingFormat,
+    };
+    if (dimensions) payload.dimensions = dimensions;
+    if (user) payload.user = user;
+
+    const response = await llmClient.embeddings.create(payload);
     return response;
   } catch (error) {
     logger.warn(`[Together AI Embeddings] Upstream: ${error.message}. Returning sovereign embeddings.`);
-    const mockData = inputArray.map((_, idx) => ({
-      object: 'embedding',
-      embedding: new Array(768).fill(0).map(() => (Math.random() - 0.5) * 0.1),
-      index: idx,
-    }));
+    const dimCount = dimensions || (model.includes('m2-bert-80M-32k-retrieval') || model.includes('bge-large') ? 1024 : 768);
+
+    const mockData = inputArray.map((text, idx) => {
+      const str = typeof text === 'string' ? text : JSON.stringify(text);
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = (hash << 5) - hash + str.charCodeAt(i);
+        hash |= 0;
+      }
+      const rawVector = new Array(dimCount).fill(0).map((_, dIdx) => {
+        const val = Math.sin(hash + dIdx);
+        return Number((val * 0.05).toFixed(6));
+      });
+
+      let embeddingValue = rawVector;
+      if (encodingFormat === 'base64') {
+        const floatArray = new Float32Array(rawVector);
+        embeddingValue = Buffer.from(floatArray.buffer).toString('base64');
+      }
+
+      return {
+        object: 'embedding',
+        embedding: embeddingValue,
+        index: idx,
+      };
+    });
+
+    const totalChars = inputArray.reduce((acc, str) => acc + (typeof str === 'string' ? str.length : 0), 0);
+    const estTokens = Math.max(1, Math.round(totalChars / 4));
+
     return {
       object: 'list',
       data: mockData,
       model,
-      usage: { prompt_tokens: inputArray.length * 8, total_tokens: inputArray.length * 8 },
+      usage: { prompt_tokens: estTokens, total_tokens: estTokens },
     };
   }
 }

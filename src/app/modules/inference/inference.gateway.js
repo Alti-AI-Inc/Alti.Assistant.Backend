@@ -1062,18 +1062,33 @@ export const InferenceGateway = {
    * Official Reference: https://docs.together.ai/reference/embeddings
    */
   async handleEmbeddings(req, res) {
-    const { input, model } = req.body || {};
+    const {
+      input,
+      model,
+      encoding_format,
+      encodingFormat,
+      dimensions,
+      user,
+    } = req.body || {};
+
     if (!input) {
       return res.status(400).json({
         error: {
           message: "Missing required parameter 'input'.",
           type: 'invalid_request_error',
           param: 'input',
+          code: 'missing_parameter',
         },
       });
     }
+
     try {
-      const data = await llmCreateEmbeddings(input, { model });
+      const data = await llmCreateEmbeddings(input, {
+        model,
+        encoding_format: encoding_format ?? encodingFormat,
+        dimensions,
+        user,
+      });
       return res.status(200).json(data);
     } catch (error) {
       logger.error('[Inference Gateway] Embeddings error:', error);
