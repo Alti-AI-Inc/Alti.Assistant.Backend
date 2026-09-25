@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticnet_o69v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticNet) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgedaemon_l77q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeDaemon) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendataledger_mous_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataLedger) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpugrid_x3zj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUGrid) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablecluster_mzdd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableCluster) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhigh-frequencyplane_mgje_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyPlane) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22532,6 +22572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticnet_o69v_logic": {
+          try {
+            const { OpenSemanticNetService } = await import("../liberty/opensemanticnet_o69v.service.js");
+            const res = await OpenSemanticNetService.execute(args.target || "system");
+            return { output: `### OpenSemanticNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgedaemon_l77q_logic": {
+          try {
+            const { OpenZeroKnowledgeDaemonService } = await import("../liberty/openzero-knowledgedaemon_l77q.service.js");
+            const res = await OpenZeroKnowledgeDaemonService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendataledger_mous_logic": {
+          try {
+            const { OpenDataLedgerService } = await import("../liberty/opendataledger_mous.service.js");
+            const res = await OpenDataLedgerService.execute(args.target || "system");
+            return { output: `### OpenDataLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpugrid_x3zj_logic": {
+          try {
+            const { OpenGPUGridService } = await import("../liberty/opengpugrid_x3zj.service.js");
+            const res = await OpenGPUGridService.execute(args.target || "system");
+            return { output: `### OpenGPUGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablecluster_mzdd_logic": {
+          try {
+            const { OpenImmutableClusterService } = await import("../liberty/openimmutablecluster_mzdd.service.js");
+            const res = await OpenImmutableClusterService.execute(args.target || "system");
+            return { output: `### OpenImmutableCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openhigh-frequencyplane_mgje_logic": {
           try {
             const { OpenHighFrequencyPlaneService } = await import("../liberty/openhigh-frequencyplane_mgje.service.js");
