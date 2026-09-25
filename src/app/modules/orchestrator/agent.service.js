@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticnexus_gart_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticNexus) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelring_rm47_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelRing) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partygraph_m26a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyGraph) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedsync_iegh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedSync) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalmesh_g7oj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalMesh) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriescore_lomd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCore) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23052,6 +23092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticnexus_gart_logic": {
+          try {
+            const { OpenSemanticNexusService } = await import("../liberty/opensemanticnexus_gart.service.js");
+            const res = await OpenSemanticNexusService.execute(args.target || "system");
+            return { output: `### OpenSemanticNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelring_rm47_logic": {
+          try {
+            const { OpenMicroKernelRingService } = await import("../liberty/openmicro-kernelring_rm47.service.js");
+            const res = await OpenMicroKernelRingService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partygraph_m26a_logic": {
+          try {
+            const { OpenMultiPartyGraphService } = await import("../liberty/openmulti-partygraph_m26a.service.js");
+            const res = await OpenMultiPartyGraphService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedsync_iegh_logic": {
+          try {
+            const { OpenAdvancedSyncService } = await import("../liberty/openadvancedsync_iegh.service.js");
+            const res = await OpenAdvancedSyncService.execute(args.target || "system");
+            return { output: `### OpenAdvancedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalmesh_g7oj_logic": {
+          try {
+            const { OpenHyperDimensionalMeshService } = await import("../liberty/openhyper-dimensionalmesh_g7oj.service.js");
+            const res = await OpenHyperDimensionalMeshService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalMesh failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriescore_lomd_logic": {
           try {
             const { OpenTimeSeriesCoreService } = await import("../liberty/opentime-seriescore_lomd.service.js");
