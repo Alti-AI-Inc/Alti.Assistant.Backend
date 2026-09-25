@@ -1508,6 +1508,91 @@ chatCompletionsRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Function Calling Suite (Overview, Single-Call, Parallel, Agentic, Best-Practices, Validate, Execute)
+const fcOverviewRoutes = [
+  '/together/inference/function-calling/overview',
+  '/v1/together/inference/function-calling/overview',
+  '/inference/function-calling/overview',
+  '/v1/inference/function-calling/overview',
+];
+fcOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetFunctionCallingOverview(req, res);
+  });
+});
+
+const fcSingleCallRoutes = [
+  '/together/inference/function-calling/single-call',
+  '/v1/together/inference/function-calling/single-call',
+  '/inference/function-calling/single-call',
+  '/v1/inference/function-calling/single-call',
+];
+fcSingleCallRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetSingleCallDocs(req, res);
+  });
+});
+
+const fcParallelRoutes = [
+  '/together/inference/function-calling/parallel',
+  '/v1/together/inference/function-calling/parallel',
+  '/inference/function-calling/parallel',
+  '/v1/inference/function-calling/parallel',
+];
+fcParallelRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetParallelCallDocs(req, res);
+  });
+});
+
+const fcAgenticRoutes = [
+  '/together/inference/function-calling/agentic',
+  '/v1/together/inference/function-calling/agentic',
+  '/inference/function-calling/agentic',
+  '/v1/inference/function-calling/agentic',
+];
+fcAgenticRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetAgenticPatternsDocs(req, res);
+  });
+});
+
+const fcBestPracticesRoutes = [
+  '/together/inference/function-calling/best-practices',
+  '/v1/together/inference/function-calling/best-practices',
+  '/inference/function-calling/best-practices',
+  '/v1/inference/function-calling/best-practices',
+];
+fcBestPracticesRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetBestPracticesDocs(req, res);
+  });
+});
+
+const fcValidateRoutes = [
+  '/together/inference/function-calling/validate',
+  '/v1/together/inference/function-calling/validate',
+  '/inference/function-calling/validate',
+  '/v1/inference/function-calling/validate',
+];
+fcValidateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateToolDefinition(req, res);
+  });
+});
+
+const fcExecuteRoutes = [
+  '/together/inference/function-calling/execute',
+  '/v1/together/inference/function-calling/execute',
+  '/inference/function-calling/execute',
+  '/v1/inference/function-calling/execute',
+];
+fcExecuteRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteFunctionCallingLoop(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

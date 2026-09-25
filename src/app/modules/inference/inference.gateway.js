@@ -145,6 +145,15 @@ import {
   getLogprobsDocs,
   executeChatCompletion,
 } from '../../services/together.chat.js';
+import {
+  getFunctionCallingOverview,
+  getSingleCallDocs,
+  getParallelCallDocs,
+  getAgenticPatternsDocs,
+  getBestPracticesDocs,
+  validateToolDefinition,
+  executeFunctionCallLoop,
+} from '../../services/together.function_calling.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -3485,6 +3494,99 @@ export const InferenceGateway = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error executing chat completion.' });
+    }
+  },
+
+  /**
+   * Retrieves Together AI Function Calling Overview and Pattern Architecture
+   * (GET /together/inference/function-calling/overview, GET /v1/together/inference/function-calling/overview, GET /inference/function-calling/overview)
+   */
+  async handleGetFunctionCallingOverview(req, res) {
+    try {
+      const data = getFunctionCallingOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving function calling overview.' });
+    }
+  },
+
+  /**
+   * Retrieves Single Function Calling reference, streaming delta.tool_calls, and tool_choice modes
+   * (GET /together/inference/function-calling/single-call, GET /v1/together/inference/function-calling/single-call, GET /inference/function-calling/single-call)
+   */
+  async handleGetSingleCallDocs(req, res) {
+    try {
+      const data = getSingleCallDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving single call docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Parallel Function Calling reference (homogeneous and heterogeneous calls)
+   * (GET /together/inference/function-calling/parallel, GET /v1/together/inference/function-calling/parallel, GET /inference/function-calling/parallel)
+   */
+  async handleGetParallelCallDocs(req, res) {
+    try {
+      const data = getParallelCallDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving parallel call docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Agentic Function Calling patterns (multi-step in-turn and multi-turn loops)
+   * (GET /together/inference/function-calling/agentic, GET /v1/together/inference/function-calling/agentic, GET /inference/function-calling/agentic)
+   */
+  async handleGetAgenticPatternsDocs(req, res) {
+    try {
+      const data = getAgenticPatternsDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving agentic patterns docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Function Calling Best Practices & Reliability Guide
+   * (GET /together/inference/function-calling/best-practices, GET /v1/together/inference/function-calling/best-practices, GET /inference/function-calling/best-practices)
+   */
+  async handleGetBestPracticesDocs(req, res) {
+    try {
+      const data = getBestPracticesDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving best practices docs.' });
+    }
+  },
+
+  /**
+   * Validates a function / tool schema against Together AI best practices and JSON schema constraints
+   * (POST /together/inference/function-calling/validate, POST /v1/together/inference/function-calling/validate, POST /inference/function-calling/validate)
+   */
+  async handleValidateToolDefinition(req, res) {
+    try {
+      const toolDef = req.body || {};
+      const result = validateToolDefinition(toolDef);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating tool definition.' });
+    }
+  },
+
+  /**
+   * Executes an autonomous multi-step or multi-turn function calling loop
+   * (POST /together/inference/function-calling/execute, POST /v1/together/inference/function-calling/execute, POST /inference/function-calling/execute)
+   */
+  async handleExecuteFunctionCallingLoop(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await executeFunctionCallLoop(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing function calling loop.' });
     }
   },
 };

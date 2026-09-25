@@ -164,6 +164,19 @@ import {
   calculateTokenConfidence,
   executeChatCompletion,
 } from './together.chat.js';
+import {
+  FUNCTION_CALLING_MODELS,
+  FUNCTION_CALLING_PATTERNS,
+  TOOL_CHOICE_OPTIONS,
+  BEST_PRACTICES_CATALOG,
+  getFunctionCallingOverview,
+  getSingleCallDocs,
+  getParallelCallDocs,
+  getAgenticPatternsDocs,
+  getBestPracticesDocs,
+  validateToolDefinition,
+  executeFunctionCallLoop,
+} from './together.function_calling.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -401,6 +414,7 @@ Standard Commands:
   mcp          Docs MCP Server info and tool proxy (search, get doc, skill specs)
   inference    Explore inference overview, OpenAI compatibility, and partner SDKs
   chat         Chat completions, parameters, structured outputs, reasoning, caching, logprobs
+  fc, tools    Function calling, single/parallel calls, agentic loops, validation, best practices
 
 Beta Commands (tg beta ...):
   models       DMI 2.0 custom models, weight uploads, and configs
@@ -414,7 +428,7 @@ Global Flags:
   --json           Format output as JSON
   --api-key <key>  Pass API key explicitly
 `.trim();
-    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'beta'] };
+    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'beta'] };
   }
 
   if (command === 'login' || command === 'init' || command === 'auth') {
@@ -1875,6 +1889,174 @@ ${logprobsDocs.code_snippet}
   throw new Error(`Unknown chat command: ${action}. Use 'overview', 'parameters', 'structured', 'reasoning', 'caching', 'logprobs', or 'completion'.`);
 }
 
+// ── Domain 19: Function Calling (Single, Parallel, Agentic, Best Practices, Validation, Loop) ──
+async function handleFunctionCalling(parsed) {
+  const action = parsed.subcommand || 'overview';
+
+  if (action === 'overview' || action === 'patterns') {
+    const overview = getFunctionCallingOverview();
+    const patternRows = overview.patterns.map(p => [p.name, p.description.slice(0, 40) + '...', p.use_cases[0]]);
+    const modelRows = overview.supported_models.map(m => [m.id, m.status, m.context]);
+    const text = `
+Together AI Function Calling Overview:
+${overview.title} (${overview.docs_url})
+Recommended Model: ${overview.recommended_model}
+
+Patterns:
+${formatTable(['PATTERN', 'DESCRIPTION', 'PRIMARY USE CASE'], patternRows)}
+
+Supported Models:
+${formatTable(['MODEL ID', 'STATUS', 'CONTEXT'], modelRows)}
+
+Request/Response Flow:
+${overview.flow.map(f => `Step ${f.step} [${f.actor}]: ${f.action}`).join('\n')}
+`.trim();
+    return { ...overview, text };
+  }
+
+  if (action === 'single' || action === 'single-call') {
+    const singleDocs = getSingleCallDocs();
+    const choiceRows = Object.entries(singleDocs.tool_choice_options).map(([k, v]) => [
+      k,
+      typeof v.value === 'string' ? v.value : JSON.stringify(v.value),
+      v.description.slice(0, 45) + '...',
+    ]);
+    const text = `
+Single Function Calling Reference:
+${singleDocs.title} (${singleDocs.docs_url})
+
+Modes: ${singleDocs.modes.join(', ')}
+
+Tool Choice Options:
+${formatTable(['OPTION', 'VALUE', 'DESCRIPTION'], choiceRows)}
+
+Critical Notes:
+${singleDocs.critical_notes.map(n => `• ${n}`).join('\n')}
+
+Example Function Schema:
+${JSON.stringify(singleDocs.example_schema, null, 2)}
+`.trim();
+    return { ...singleDocs, text };
+  }
+
+  if (action === 'parallel') {
+    const parallelDocs = getParallelCallDocs();
+    const variantRows = parallelDocs.variants.map(v => [v.name, v.description, v.example]);
+    const text = `
+Parallel Function Calling Reference:
+${parallelDocs.title} (${parallelDocs.docs_url})
+
+Variants:
+${formatTable(['VARIANT', 'DESCRIPTION', 'EXAMPLE'], variantRows)}
+
+Rule: ${parallelDocs.client_execution_rule}
+
+Sample Response:
+${JSON.stringify(parallelDocs.response_structure.sample, null, 2)}
+`.trim();
+    return { ...parallelDocs, text };
+  }
+
+  if (action === 'agentic' || action === 'loops') {
+    const agenticDocs = getAgenticPatternsDocs();
+    const protoRows = agenticDocs.message_protocol.map(p => [p.role, p.purpose]);
+    const text = `
+Agentic Function Calling Patterns:
+${agenticDocs.title} (${agenticDocs.docs_url})
+
+Multi-Step Loop:
+${agenticDocs.patterns.multi_step.steps.map(s => `  ${s}`).join('\n')}
+
+Multi-Turn Loop:
+${agenticDocs.patterns.multi_turn.steps.map(s => `  ${s}`).join('\n')}
+
+Message Protocol:
+${formatTable(['ROLE', 'PURPOSE IN LOOP'], protoRows)}
+`.trim();
+    return { ...agenticDocs, text };
+  }
+
+  if (action === 'best-practices' || action === 'practices' || action === 'hardening') {
+    const bpDocs = getBestPracticesDocs();
+    const rows = bpDocs.practices.map(p => [p.category, p.rule.slice(0, 55) + '...']);
+    const text = `
+Function Calling Best Practices & Reliability Guide:
+${bpDocs.title} (${bpDocs.docs_url})
+Recommended Production Model: ${bpDocs.recommended_model}
+Soft Tool Limit: < ${bpDocs.soft_tool_limit} active tools
+
+Hardening Rules:
+${formatTable(['CATEGORY', 'RULE SPECIFICATION'], rows)}
+
+Good Description Spec:
+"${bpDocs.good_vs_poor_example.good_description}"
+
+Poor Description (Avoid):
+"${bpDocs.good_vs_poor_example.poor_description}"
+`.trim();
+    return { ...bpDocs, text };
+  }
+
+  if (action === 'validate' || action === 'lint') {
+    let rawSchema = parsed.flags.schema || parsed.positionals[2];
+    let toolObj = null;
+    if (rawSchema) {
+      try {
+        toolObj = JSON.parse(rawSchema);
+      } catch (err) {
+        throw new Error(`Invalid JSON passed for tool validation: ${err.message}`);
+      }
+    } else {
+      // Default tool sample
+      toolObj = {
+        type: 'function',
+        function: {
+          name: 'get_current_weather',
+          description: 'Get the current weather in a given location with temperature and conditions.',
+          parameters: {
+            type: 'object',
+            properties: {
+              location: { type: 'string', description: 'City and state' },
+            },
+            required: ['location'],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      };
+    }
+    const valResult = validateToolDefinition(toolObj);
+    const text = `
+Tool Definition Validation:
+Target Name: ${valResult.name}
+Status: ${valResult.valid ? 'VALID ✅' : 'INVALID ❌'}
+${valResult.errors?.length ? `Errors:\n${valResult.errors.map(e => `  • ${e}`).join('\n')}` : 'Errors: None'}
+${valResult.warnings?.length ? `Warnings:\n${valResult.warnings.map(w => `  • ${w}`).join('\n')}` : 'Warnings: None'}
+`.trim();
+    return { ...valResult, text };
+  }
+
+  if (action === 'run' || action === 'execute' || action === 'loop') {
+    const payload = {
+      model: parsed.flags.model || 'zai-org/GLM-5.3',
+      prompt: parsed.flags.prompt || parsed.positionals.slice(2).join(' ') || 'What is the temperature in New York?',
+      tool_choice: parsed.flags.tool_choice || parsed.flags['tool-choice'] || 'auto',
+      max_iterations: parsed.flags.max_iterations ? parseInt(parsed.flags.max_iterations, 10) : 5,
+      dry_run: Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run || true),
+      ...parsed.flags,
+    };
+    const loopResult = await executeFunctionCallLoop(payload);
+    const text = `
+Function Calling Agentic Loop (${loopResult.duration_ms}ms, model: ${loopResult.model}, iterations: ${loopResult.iterations}):
+Tool Calls Executed: ${loopResult.tool_calls_executed?.length || 0}
+Final Response: ${loopResult.final_response}
+`.trim();
+    return { ...loopResult, text };
+  }
+
+  throw new Error(`Unknown function-calling command: ${action}. Use 'overview', 'single', 'parallel', 'agentic', 'best-practices', 'validate', or 'run'.`);
+}
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -1986,6 +2168,12 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
         case 'chat':
           resultData = await handleChat(parsed);
           domain = 'chat';
+          break;
+        case 'fc':
+        case 'function-calling':
+        case 'tools':
+          resultData = await handleFunctionCalling(parsed);
+          domain = 'function-calling';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);
