@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengraphring_0pkl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphRing) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogoracle_nx8r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogOracle) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecontroller_gddr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareController) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivevault_fgv1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveVault) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepring_br99_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepRing) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumnet_e244_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumNet) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26252,6 +26292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengraphring_0pkl_logic": {
+          try {
+            const { OpenGraphRingService } = await import("../liberty/opengraphring_0pkl.service.js");
+            const res = await OpenGraphRingService.execute(args.target || "system");
+            return { output: `### OpenGraphRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogoracle_nx8r_logic": {
+          try {
+            const { OpenLogOracleService } = await import("../liberty/openlogoracle_nx8r.service.js");
+            const res = await OpenLogOracleService.execute(args.target || "system");
+            return { output: `### OpenLogOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecontroller_gddr_logic": {
+          try {
+            const { OpenHardwareControllerService } = await import("../liberty/openhardwarecontroller_gddr.service.js");
+            const res = await OpenHardwareControllerService.execute(args.target || "system");
+            return { output: `### OpenHardwareController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareController failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivevault_fgv1_logic": {
+          try {
+            const { OpenPredictiveVaultService } = await import("../liberty/openpredictivevault_fgv1.service.js");
+            const res = await OpenPredictiveVaultService.execute(args.target || "system");
+            return { output: `### OpenPredictiveVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepring_br99_logic": {
+          try {
+            const { OpenDeepRingService } = await import("../liberty/opendeepring_br99.service.js");
+            const res = await OpenDeepRingService.execute(args.target || "system");
+            return { output: `### OpenDeepRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepRing failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumnet_e244_logic": {
           try {
             const { OpenQuantumNetService } = await import("../liberty/openquantumnet_e244.service.js");
