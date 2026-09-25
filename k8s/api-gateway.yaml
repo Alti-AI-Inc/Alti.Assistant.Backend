@@ -16,6 +16,13 @@ spec:
   - host: api.aphura.ai
     http:
       paths:
+      - path: /v1/graphql
+        pathType: Prefix
+        backend:
+          service:
+            name: aphura-backend-service
+            port:
+              number: 3001
       - path: /v1/mcp
         pathType: Prefix
         backend:

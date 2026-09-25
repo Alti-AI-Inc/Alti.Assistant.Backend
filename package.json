@@ -23,6 +23,7 @@
   "author": "Shohidul-Jaman-Anik",
   "license": "ISC",
   "dependencies": {
+    "@apollo/server": "^5.5.1",
     "@grpc/grpc-js": "^1.14.5",
     "@grpc/proto-loader": "^0.8.1",
     "@langchain/community": "^1.1.29",
@@ -62,6 +63,7 @@
     "express-validator": "^7.3.2",
     "fast-xml-parser": "^5.11.1",
     "form-data": "^4.0.6",
+    "graphql": "^16.14.2",
     "handlebars": "^4.7.9",
     "helmet": "^7.1.0",
     "hpp": "^0.2.3",
