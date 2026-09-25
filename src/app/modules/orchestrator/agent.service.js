@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarycontroller_67hf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryController) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialnet_wodm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialNet) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedswarm_i6gd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedSwarm) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumbroker_tmqm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumBroker) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisevortex_ci63_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseVortex) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengraphring_0pkl_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGraphRing) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26292,6 +26332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarycontroller_67hf_logic": {
+          try {
+            const { OpenPlanetaryControllerService } = await import("../liberty/openplanetarycontroller_67hf.service.js");
+            const res = await OpenPlanetaryControllerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryController failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialnet_wodm_logic": {
+          try {
+            const { OpenFinancialNetService } = await import("../liberty/openfinancialnet_wodm.service.js");
+            const res = await OpenFinancialNetService.execute(args.target || "system");
+            return { output: `### OpenFinancialNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedswarm_i6gd_logic": {
+          try {
+            const { OpenDistributedSwarmService } = await import("../liberty/opendistributedswarm_i6gd.service.js");
+            const res = await OpenDistributedSwarmService.execute(args.target || "system");
+            return { output: `### OpenDistributedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumbroker_tmqm_logic": {
+          try {
+            const { OpenQuantumBrokerService } = await import("../liberty/openquantumbroker_tmqm.service.js");
+            const res = await OpenQuantumBrokerService.execute(args.target || "system");
+            return { output: `### OpenQuantumBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisevortex_ci63_logic": {
+          try {
+            const { OpenEnterpriseVortexService } = await import("../liberty/openenterprisevortex_ci63.service.js");
+            const res = await OpenEnterpriseVortexService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseVortex failed: ${err.message}` };
+          }
+        }
         case "execute_opengraphring_0pkl_logic": {
           try {
             const { OpenGraphRingService } = await import("../liberty/opengraphring_0pkl.service.js");
