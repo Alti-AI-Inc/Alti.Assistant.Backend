@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivelayer_94y4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveLayer) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencynexus_3ks4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyNexus) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarycompiler_6xhs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCompiler) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedplane_xgpm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedPlane) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondoracle_hfle_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondOracle) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpplane_7zjo_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPPlane) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23252,6 +23292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivelayer_94y4_logic": {
+          try {
+            const { OpenPredictiveLayerService } = await import("../liberty/openpredictivelayer_94y4.service.js");
+            const res = await OpenPredictiveLayerService.execute(args.target || "system");
+            return { output: `### OpenPredictiveLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencynexus_3ks4_logic": {
+          try {
+            const { OpenHighFrequencyNexusService } = await import("../liberty/openhigh-frequencynexus_3ks4.service.js");
+            const res = await OpenHighFrequencyNexusService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarycompiler_6xhs_logic": {
+          try {
+            const { OpenPlanetaryCompilerService } = await import("../liberty/openplanetarycompiler_6xhs.service.js");
+            const res = await OpenPlanetaryCompilerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedplane_xgpm_logic": {
+          try {
+            const { OpenDecentralizedPlaneService } = await import("../liberty/opendecentralizedplane_xgpm.service.js");
+            const res = await OpenDecentralizedPlaneService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondoracle_hfle_logic": {
+          try {
+            const { OpenSubMillisecondOracleService } = await import("../liberty/opensub-millisecondoracle_hfle.service.js");
+            const res = await OpenSubMillisecondOracleService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openbgpplane_7zjo_logic": {
           try {
             const { OpenBGPPlaneService } = await import("../liberty/openbgpplane_7zjo.service.js");
