@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlesssync_a76k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessSync) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondoracle_ht7w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondOracle) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgerouter_1jq3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeRouter) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecluster_607j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCluster) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticproxy_18c7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticProxy) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticnexus_gart_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticNexus) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23092,6 +23132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlesssync_a76k_logic": {
+          try {
+            const { OpenServerlessSyncService } = await import("../liberty/openserverlesssync_a76k.service.js");
+            const res = await OpenServerlessSyncService.execute(args.target || "system");
+            return { output: `### OpenServerlessSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondoracle_ht7w_logic": {
+          try {
+            const { OpenSubMillisecondOracleService } = await import("../liberty/opensub-millisecondoracle_ht7w.service.js");
+            const res = await OpenSubMillisecondOracleService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgerouter_1jq3_logic": {
+          try {
+            const { OpenEdgeRouterService } = await import("../liberty/openedgerouter_1jq3.service.js");
+            const res = await OpenEdgeRouterService.execute(args.target || "system");
+            return { output: `### OpenEdgeRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecluster_607j_logic": {
+          try {
+            const { OpenZeroKnowledgeClusterService } = await import("../liberty/openzero-knowledgecluster_607j.service.js");
+            const res = await OpenZeroKnowledgeClusterService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticproxy_18c7_logic": {
+          try {
+            const { OpenSemanticProxyService } = await import("../liberty/opensemanticproxy_18c7.service.js");
+            const res = await OpenSemanticProxyService.execute(args.target || "system");
+            return { output: `### OpenSemanticProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticProxy failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticnexus_gart_logic": {
           try {
             const { OpenSemanticNexusService } = await import("../liberty/opensemanticnexus_gart.service.js");
