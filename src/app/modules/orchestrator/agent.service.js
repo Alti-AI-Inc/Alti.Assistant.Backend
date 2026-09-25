@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablebroker_78q9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableBroker) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessoracle_32yz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessOracle) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalsync_243d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalSync) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatednode_brxc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedNode) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partynexus_xfpj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyNexus) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectorfabric_nwpj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorFabric) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23932,6 +23972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablebroker_78q9_logic": {
+          try {
+            const { OpenImmutableBrokerService } = await import("../liberty/openimmutablebroker_78q9.service.js");
+            const res = await OpenImmutableBrokerService.execute(args.target || "system");
+            return { output: `### OpenImmutableBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessoracle_32yz_logic": {
+          try {
+            const { OpenHeadlessOracleService } = await import("../liberty/openheadlessoracle_32yz.service.js");
+            const res = await OpenHeadlessOracleService.execute(args.target || "system");
+            return { output: `### OpenHeadlessOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalsync_243d_logic": {
+          try {
+            const { OpenHyperDimensionalSyncService } = await import("../liberty/openhyper-dimensionalsync_243d.service.js");
+            const res = await OpenHyperDimensionalSyncService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatednode_brxc_logic": {
+          try {
+            const { OpenFederatedNodeService } = await import("../liberty/openfederatednode_brxc.service.js");
+            const res = await OpenFederatedNodeService.execute(args.target || "system");
+            return { output: `### OpenFederatedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partynexus_xfpj_logic": {
+          try {
+            const { OpenMultiPartyNexusService } = await import("../liberty/openmulti-partynexus_xfpj.service.js");
+            const res = await OpenMultiPartyNexusService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openvectorfabric_nwpj_logic": {
           try {
             const { OpenVectorFabricService } = await import("../liberty/openvectorfabric_nwpj.service.js");
