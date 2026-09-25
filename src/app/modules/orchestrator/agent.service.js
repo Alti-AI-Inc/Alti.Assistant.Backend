@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustrouter_7dl7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustRouter) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyoracle_1321_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyOracle) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessring_tzge_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessRing) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaregraph_pgub_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareGraph) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableplane_0hvb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutablePlane) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondpipeline_8pkm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondPipeline) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25132,6 +25172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustrouter_7dl7_logic": {
+          try {
+            const { OpenZeroTrustRouterService } = await import("../liberty/openzero-trustrouter_7dl7.service.js");
+            const res = await OpenZeroTrustRouterService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyoracle_1321_logic": {
+          try {
+            const { OpenMultiPartyOracleService } = await import("../liberty/openmulti-partyoracle_1321.service.js");
+            const res = await OpenMultiPartyOracleService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessring_tzge_logic": {
+          try {
+            const { OpenHeadlessRingService } = await import("../liberty/openheadlessring_tzge.service.js");
+            const res = await OpenHeadlessRingService.execute(args.target || "system");
+            return { output: `### OpenHeadlessRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaregraph_pgub_logic": {
+          try {
+            const { OpenHardwareGraphService } = await import("../liberty/openhardwaregraph_pgub.service.js");
+            const res = await OpenHardwareGraphService.execute(args.target || "system");
+            return { output: `### OpenHardwareGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableplane_0hvb_logic": {
+          try {
+            const { OpenImmutablePlaneService } = await import("../liberty/openimmutableplane_0hvb.service.js");
+            const res = await OpenImmutablePlaneService.execute(args.target || "system");
+            return { output: `### OpenImmutablePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutablePlane failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondpipeline_8pkm_logic": {
           try {
             const { OpenSubMillisecondPipelineService } = await import("../liberty/opensub-millisecondpipeline_8pkm.service.js");
