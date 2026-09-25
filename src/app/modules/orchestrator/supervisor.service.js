@@ -1,4 +1,5 @@
 import { logger } from '../../../shared/logger.js';
+import { OmniDataTools } from "../ai/tools/omnidata.tools.js";
 
 export const SupervisorService = {
   async routePrompt(prompt) {
