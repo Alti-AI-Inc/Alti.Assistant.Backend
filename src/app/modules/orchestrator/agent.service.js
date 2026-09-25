@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openeventcluster_010g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventCluster) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictiveledger_ixr6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveLedger) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedlayer_u5x0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLayer) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryvortex_yh0d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryVortex) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterproxy_l85g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterProxy) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondfabric_20rp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondFabric) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27252,6 +27292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openeventcluster_010g_logic": {
+          try {
+            const { OpenEventClusterService } = await import("../liberty/openeventcluster_010g.service.js");
+            const res = await OpenEventClusterService.execute(args.target || "system");
+            return { output: `### OpenEventCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictiveledger_ixr6_logic": {
+          try {
+            const { OpenPredictiveLedgerService } = await import("../liberty/openpredictiveledger_ixr6.service.js");
+            const res = await OpenPredictiveLedgerService.execute(args.target || "system");
+            return { output: `### OpenPredictiveLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedlayer_u5x0_logic": {
+          try {
+            const { OpenDecentralizedLayerService } = await import("../liberty/opendecentralizedlayer_u5x0.service.js");
+            const res = await OpenDecentralizedLayerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryvortex_yh0d_logic": {
+          try {
+            const { OpenInMemoryVortexService } = await import("../liberty/openin-memoryvortex_yh0d.service.js");
+            const res = await OpenInMemoryVortexService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterproxy_l85g_logic": {
+          try {
+            const { OpenCrossClusterProxyService } = await import("../liberty/opencross-clusterproxy_l85g.service.js");
+            const res = await OpenCrossClusterProxyService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterProxy failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondfabric_20rp_logic": {
           try {
             const { OpenSubMillisecondFabricService } = await import("../liberty/opensub-millisecondfabric_20rp.service.js");
