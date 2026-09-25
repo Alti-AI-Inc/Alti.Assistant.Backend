@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesvault_fqf2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesVault) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatacluster_nb27_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataCluster) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscontroller_xujq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessController) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticproxy_k2wx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticProxy) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractcore_w2od_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractCore) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederateddaemon_5jf7_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedDaemon) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29292,6 +29332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesvault_fqf2_logic": {
+          try {
+            const { OpenTimeSeriesVaultService } = await import("../liberty/opentime-seriesvault_fqf2.service.js");
+            const res = await OpenTimeSeriesVaultService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatacluster_nb27_logic": {
+          try {
+            const { OpenDataClusterService } = await import("../liberty/opendatacluster_nb27.service.js");
+            const res = await OpenDataClusterService.execute(args.target || "system");
+            return { output: `### OpenDataCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscontroller_xujq_logic": {
+          try {
+            const { OpenHeadlessControllerService } = await import("../liberty/openheadlesscontroller_xujq.service.js");
+            const res = await OpenHeadlessControllerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessController failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticproxy_k2wx_logic": {
+          try {
+            const { OpenSemanticProxyService } = await import("../liberty/opensemanticproxy_k2wx.service.js");
+            const res = await OpenSemanticProxyService.execute(args.target || "system");
+            return { output: `### OpenSemanticProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractcore_w2od_logic": {
+          try {
+            const { OpenAbstractCoreService } = await import("../liberty/openabstractcore_w2od.service.js");
+            const res = await OpenAbstractCoreService.execute(args.target || "system");
+            return { output: `### OpenAbstractCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractCore failed: ${err.message}` };
+          }
+        }
         case "execute_openfederateddaemon_5jf7_logic": {
           try {
             const { OpenFederatedDaemonService } = await import("../liberty/openfederateddaemon_5jf7.service.js");
