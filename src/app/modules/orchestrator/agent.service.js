@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisenet_hbvk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNet) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedvortex_3gfj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedVortex) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedplane_11el_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedPlane) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycontroller_6xtw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyController) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuengine_d115_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUEngine) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustrouter_tf3j_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustRouter) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27852,6 +27892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisenet_hbvk_logic": {
+          try {
+            const { OpenEnterpriseNetService } = await import("../liberty/openenterprisenet_hbvk.service.js");
+            const res = await OpenEnterpriseNetService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedvortex_3gfj_logic": {
+          try {
+            const { OpenAdvancedVortexService } = await import("../liberty/openadvancedvortex_3gfj.service.js");
+            const res = await OpenAdvancedVortexService.execute(args.target || "system");
+            return { output: `### OpenAdvancedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedplane_11el_logic": {
+          try {
+            const { OpenFederatedPlaneService } = await import("../liberty/openfederatedplane_11el.service.js");
+            const res = await OpenFederatedPlaneService.execute(args.target || "system");
+            return { output: `### OpenFederatedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycontroller_6xtw_logic": {
+          try {
+            const { OpenHighFrequencyControllerService } = await import("../liberty/openhigh-frequencycontroller_6xtw.service.js");
+            const res = await OpenHighFrequencyControllerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyController failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuengine_d115_logic": {
+          try {
+            const { OpenGPUEngineService } = await import("../liberty/opengpuengine_d115.service.js");
+            const res = await OpenGPUEngineService.execute(args.target || "system");
+            return { output: `### OpenGPUEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustrouter_tf3j_logic": {
           try {
             const { OpenZeroTrustRouterService } = await import("../liberty/openzero-trustrouter_tf3j.service.js");
