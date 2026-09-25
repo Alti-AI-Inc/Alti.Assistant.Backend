@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivesync_19fm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveSync) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendchain_ifh6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendChain) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorymesh_3xnf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryMesh) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesrouter_uhs3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesRouter) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalplane_8eve_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalPlane) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablebroker_78q9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableBroker) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23972,6 +24012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivesync_19fm_logic": {
+          try {
+            const { OpenPredictiveSyncService } = await import("../liberty/openpredictivesync_19fm.service.js");
+            const res = await OpenPredictiveSyncService.execute(args.target || "system");
+            return { output: `### OpenPredictiveSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendchain_ifh6_logic": {
+          try {
+            const { OpenMicroFrontendChainService } = await import("../liberty/openmicro-frontendchain_ifh6.service.js");
+            const res = await OpenMicroFrontendChainService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorymesh_3xnf_logic": {
+          try {
+            const { OpenInMemoryMeshService } = await import("../liberty/openin-memorymesh_3xnf.service.js");
+            const res = await OpenInMemoryMeshService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesrouter_uhs3_logic": {
+          try {
+            const { OpenTimeSeriesRouterService } = await import("../liberty/opentime-seriesrouter_uhs3.service.js");
+            const res = await OpenTimeSeriesRouterService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalplane_8eve_logic": {
+          try {
+            const { OpenHyperDimensionalPlaneService } = await import("../liberty/openhyper-dimensionalplane_8eve.service.js");
+            const res = await OpenHyperDimensionalPlaneService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablebroker_78q9_logic": {
           try {
             const { OpenImmutableBrokerService } = await import("../liberty/openimmutablebroker_78q9.service.js");
