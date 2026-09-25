@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarygrid_w6mx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryGrid) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphiccontroller_485h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicController) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivegrid_1a1b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveGrid) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativeoracle_wmn6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeOracle) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedsync_gmgt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedSync) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventdaemon_qjm6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventDaemon) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25652,6 +25692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarygrid_w6mx_logic": {
+          try {
+            const { OpenPlanetaryGridService } = await import("../liberty/openplanetarygrid_w6mx.service.js");
+            const res = await OpenPlanetaryGridService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphiccontroller_485h_logic": {
+          try {
+            const { OpenHomomorphicControllerService } = await import("../liberty/openhomomorphiccontroller_485h.service.js");
+            const res = await OpenHomomorphicControllerService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicController failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivegrid_1a1b_logic": {
+          try {
+            const { OpenPredictiveGridService } = await import("../liberty/openpredictivegrid_1a1b.service.js");
+            const res = await OpenPredictiveGridService.execute(args.target || "system");
+            return { output: `### OpenPredictiveGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativeoracle_wmn6_logic": {
+          try {
+            const { OpenCloudNativeOracleService } = await import("../liberty/opencloud-nativeoracle_wmn6.service.js");
+            const res = await OpenCloudNativeOracleService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedsync_gmgt_logic": {
+          try {
+            const { OpenAdvancedSyncService } = await import("../liberty/openadvancedsync_gmgt.service.js");
+            const res = await OpenAdvancedSyncService.execute(args.target || "system");
+            return { output: `### OpenAdvancedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedSync failed: ${err.message}` };
+          }
+        }
         case "execute_openeventdaemon_qjm6_logic": {
           try {
             const { OpenEventDaemonService } = await import("../liberty/openeventdaemon_qjm6.service.js");
