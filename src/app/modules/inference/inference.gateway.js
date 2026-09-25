@@ -170,6 +170,14 @@ import {
   createVideoJob,
   retrieveVideoJob,
 } from '../../services/together.videos.js';
+import {
+  getVisionOverview,
+  getVisionInputsDocs,
+  getStructuredExtractionDocs,
+  getVisionFunctionCallingDocs,
+  calculateVisionTokens,
+  executeVisionCompletion,
+} from '../../services/together.vision.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -3765,6 +3773,87 @@ export const InferenceGateway = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error retrieving video job status.' });
+    }
+  },
+
+  /**
+   * Retrieves Vision Overview and 560px Tile Pricing Docs
+   * (GET /together/inference/vision/overview, GET /v1/together/inference/vision/overview, GET /inference/vision/overview)
+   */
+  async handleGetVisionOverview(req, res) {
+    try {
+      const data = getVisionOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving vision overview.' });
+    }
+  },
+
+  /**
+   * Retrieves Vision Inputs Docs (URLs, Base64, Multi-Image, Dedicated Video URL)
+   * (GET /together/inference/vision/inputs, GET /v1/together/inference/vision/inputs, GET /inference/vision/inputs)
+   */
+  async handleGetVisionInputsDocs(req, res) {
+    try {
+      const data = getVisionInputsDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving vision inputs docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Structured Extraction with Vision Docs
+   * (GET /together/inference/vision/structured-extraction, GET /v1/together/inference/vision/structured-extraction, GET /inference/vision/structured-extraction)
+   */
+  async handleGetStructuredExtractionDocs(req, res) {
+    try {
+      const data = getStructuredExtractionDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving structured extraction docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Vision-Language Function Calling Docs
+   * (GET /together/inference/vision/function-calling, GET /v1/together/inference/vision/function-calling, GET /inference/vision/function-calling)
+   */
+  async handleGetVisionFunctionCallingDocs(req, res) {
+    try {
+      const data = getVisionFunctionCallingDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving vision function calling docs.' });
+    }
+  },
+
+  /**
+   * Calculates Image Token Usage according to 560px Tile Grid
+   * (POST /together/inference/vision/tokens, GET /together/inference/vision/tokens)
+   */
+  async handleCalculateVisionTokens(req, res) {
+    try {
+      const width = req.body?.width || req.query?.width || 560;
+      const height = req.body?.height || req.query?.height || 560;
+      const result = calculateVisionTokens(width, height);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error calculating vision tokens.' });
+    }
+  },
+
+  /**
+   * Executes Vision-Language Inference Completion
+   * (POST /together/inference/vision/completions, POST /v1/together/inference/vision/completions, POST /inference/vision/completions)
+   */
+  async handleExecuteVisionCompletion(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await executeVisionCompletion(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing vision completion.' });
     }
   },
 };

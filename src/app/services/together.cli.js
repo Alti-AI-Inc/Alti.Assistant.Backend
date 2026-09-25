@@ -202,6 +202,15 @@ import {
   createVideoJob,
   retrieveVideoJob,
 } from './together.videos.js';
+import {
+  VISION_MODELS_CATALOG,
+  getVisionOverview,
+  getVisionInputsDocs,
+  getStructuredExtractionDocs,
+  getVisionFunctionCallingDocs,
+  calculateVisionTokens,
+  executeVisionCompletion,
+} from './together.vision.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -442,6 +451,7 @@ Standard Commands:
   fc, tools    Function calling, single/parallel calls, agentic loops, validation, best practices
   images, img  Text-to-image, reference images, parameters, validation, and generation
   videos, vid  Video generation, reference images, keyframes, audio sync, and job polling
+  vision, vis  Vision-language models, 560px tile tokens, URLs/base64, structured extraction, and function calling
 
 Beta Commands (tg beta ...):
   models       DMI 2.0 custom models, weight uploads, and configs
@@ -455,7 +465,7 @@ Global Flags:
   --json           Format output as JSON
   --api-key <key>  Pass API key explicitly
 `.trim();
-    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'images', 'image', 'img', 'videos', 'video', 'vid', 'beta'] };
+    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'images', 'image', 'img', 'videos', 'video', 'vid', 'vision', 'vis', 'beta'] };
   }
 
   if (command === 'login' || command === 'init' || command === 'auth') {
@@ -2365,6 +2375,131 @@ ${statusResult.outputs?.cost ? `Cost: $${statusResult.outputs.cost}` : ''}
   throw new Error(`Unknown video command: ${action}. Use 'overview', 'keyframes', 'audio', 'parameters', 'validate', 'create', or 'retrieve'.`);
 }
 
+// ── Vision-Language Inference Suite Handler ──────────────────────────────────
+async function handleVision(parsed) {
+  const action = parsed.subcommand || 'overview';
+
+  if (action === 'overview' || action === 'docs' || action === 'help') {
+    const overview = getVisionOverview();
+    const text = `
+Together AI Vision-Language Models Overview:
+${overview.title}
+Docs: ${overview.docs_url}
+
+Recommended Model: ${overview.recommended_model}
+Fallback Model: ${overview.fallback_model}
+
+Supported Vision Models:
+${overview.models.map(m => `  • ${m.name} (${m.id}) - ${m.type} [Context: ${m.context_window} tokens]`).join('\n')}
+
+Token Pricing Formula (560px Tile Grid):
+  • ${overview.pricing_formula.description}
+  • Min tokens: ${overview.pricing_formula.min_tokens} (1 tile) | Max tokens: ${overview.pricing_formula.max_tokens} (4 tiles, 2x2 grid)
+  • Possible costs: 1,601 (1x1), 3,202 (1x2 / 2x1), 6,404 (2x2)
+
+Actions:
+  tg vision overview           View vision documentation and models
+  tg vision inputs             Explore URL, Base64, multi-image, and video_url formats
+  tg vision structured         Structured data extraction with json_schema & Pydantic
+  tg vision fc                 Vision-language function calling with tools array
+  tg vision tokens --width 1024 --height 768   Calculate 560px tile tokens
+  tg vision run --prompt "..." --image-url "..." Run multimodal vision inference
+`.trim();
+    return { ...overview, text };
+  }
+
+  if (action === 'inputs' || action === 'input' || action === 'formats') {
+    const inputsDocs = getVisionInputsDocs();
+    const text = `
+Vision Input Formats & Methods:
+${inputsDocs.title}
+Docs: ${inputsDocs.docs_url}
+
+Supported Input Types:
+${inputsDocs.input_types.map(t => `  • [${t.type}]: ${t.description} (Key: ${t.key})`).join('\n')}
+
+Dedicated Video Understanding:
+  • Model: Qwen/Qwen3-VL-8B-Instruct accepts {"type": "video_url", "video_url": {"url": "..."}}
+`.trim();
+    return { ...inputsDocs, text };
+  }
+
+  if (action === 'structured' || action === 'extraction' || action === 'schema') {
+    const structuredDocs = getStructuredExtractionDocs();
+    const text = `
+Structured Extraction with Vision:
+${structuredDocs.title}
+Docs: ${structuredDocs.docs_url}
+
+Recommended Model: ${structuredDocs.recommended_model}
+Critical Setting: reasoning: { enabled: false } for reasoning-default models like Kimi-K3
+
+Primary Use Cases:
+${structuredDocs.use_cases.map(u => `  • ${u}`).join('\n')}
+`.trim();
+    return { ...structuredDocs, text };
+  }
+
+  if (action === 'fc' || action === 'tools' || action === 'function-calling') {
+    const fcDocs = getVisionFunctionCallingDocs();
+    const text = `
+Vision-Language Function Calling:
+${fcDocs.title}
+Docs: ${fcDocs.docs_url}
+
+Supported Models:
+${fcDocs.supported_models.map(m => `  • ${m}`).join('\n')}
+
+Workflow:
+${fcDocs.workflow.map(w => `  ${w.step}. ${w.action}`).join('\n')}
+`.trim();
+    return { ...fcDocs, text };
+  }
+
+  if (action === 'tokens' || action === 'calc' || action === 'tile') {
+    const width = parsed.flags.width ? parseInt(parsed.flags.width, 10) : 1024;
+    const height = parsed.flags.height ? parseInt(parsed.flags.height, 10) : 768;
+    const tokenResult = calculateVisionTokens(width, height);
+    const text = `
+Together AI Vision Token Calculation:
+Dimensions: ${tokenResult.width}x${tokenResult.height}px
+Tiles (560px grid): ${tokenResult.tiles_x} x ${tokenResult.tiles_y} = ${tokenResult.total_tiles} tile(s)
+Tokens: ${tokenResult.total_tokens} tokens (${tokenResult.tokens_per_tile} tokens per tile)
+Capped at: ${tokenResult.max_tokens} tokens (2x2 grid max)
+Rule: ${tokenResult.pricing_note}
+`.trim();
+    return { ...tokenResult, text };
+  }
+
+  if (action === 'run' || action === 'chat' || action === 'ask' || action === 'analyze') {
+    const prompt = parsed.flags.prompt || parsed.positionals.slice(2).join(' ') || 'What is in this image?';
+    const imageUrl = parsed.flags.image_url || parsed.flags['image-url'] || parsed.flags.url || 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-cross-roads.jpg/2560px-Gfp-wisconsin-madison-the-cross-roads.jpg';
+    const model = parsed.flags.model || 'moonshotai/Kimi-K3';
+    const dryRun = Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run || true);
+
+    const completionResult = await executeVisionCompletion({
+      model,
+      prompt,
+      image_url: imageUrl,
+      dry_run: dryRun,
+      ...parsed.flags,
+    });
+
+    const text = `
+Vision Inference Completion (${model}):
+Prompt: "${prompt}"
+Image: ${imageUrl}
+Dry Run: ${dryRun}
+Result:
+${completionResult.choices[0]?.message?.content || JSON.stringify(completionResult.choices[0]?.message?.tool_calls, null, 2)}
+Tokens Used: ${completionResult.usage?.total_tokens || 1690}
+`.trim();
+    return { ...completionResult, text };
+  }
+
+  throw new Error(`Unknown vision command: ${action}. Use 'overview', 'inputs', 'structured', 'fc', 'tokens', or 'run'.`);
+}
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -2494,6 +2629,11 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
         case 'vid':
           resultData = await handleVideos(parsed);
           domain = 'videos';
+          break;
+        case 'vision':
+        case 'vis':
+          resultData = await handleVision(parsed);
+          domain = 'vision';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);

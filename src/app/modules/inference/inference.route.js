@@ -1745,6 +1745,100 @@ videoJobsRetrieveRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Vision Inference Suite Endpoints ────────────────────────────
+// 1. Overview & 560px Tile Pricing
+const visionOverviewRoutes = [
+  '/together/inference/vision/overview',
+  '/v1/together/inference/vision/overview',
+  '/inference/vision/overview',
+  '/v1/inference/vision/overview',
+  '/together/vision/overview',
+  '/v1/vision/overview',
+];
+visionOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetVisionOverview(req, res);
+  });
+});
+
+// 2. Vision Inputs (URLs, Base64, Multi-Image, Dedicated Video URL)
+const visionInputsRoutes = [
+  '/together/inference/vision/inputs',
+  '/v1/together/inference/vision/inputs',
+  '/inference/vision/inputs',
+  '/v1/inference/vision/inputs',
+  '/together/vision/inputs',
+  '/v1/vision/inputs',
+];
+visionInputsRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetVisionInputsDocs(req, res);
+  });
+});
+
+// 3. Structured Extraction with Vision
+const visionStructuredRoutes = [
+  '/together/inference/vision/structured-extraction',
+  '/v1/together/inference/vision/structured-extraction',
+  '/inference/vision/structured-extraction',
+  '/v1/inference/vision/structured-extraction',
+  '/together/vision/structured-extraction',
+  '/v1/vision/structured-extraction',
+];
+visionStructuredRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetStructuredExtractionDocs(req, res);
+  });
+});
+
+// 4. Vision-Language Function Calling
+const visionFunctionCallingRoutes = [
+  '/together/inference/vision/function-calling',
+  '/v1/together/inference/vision/function-calling',
+  '/inference/vision/function-calling',
+  '/v1/inference/vision/function-calling',
+  '/together/vision/function-calling',
+  '/v1/vision/function-calling',
+];
+visionFunctionCallingRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetVisionFunctionCallingDocs(req, res);
+  });
+});
+
+// 5. Image Token Calculation (560px Tile Grid)
+const visionTokenRoutes = [
+  '/together/inference/vision/tokens',
+  '/v1/together/inference/vision/tokens',
+  '/inference/vision/tokens',
+  '/v1/inference/vision/tokens',
+  '/together/vision/tokens',
+  '/v1/vision/tokens',
+];
+visionTokenRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleCalculateVisionTokens(req, res);
+  });
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleCalculateVisionTokens(req, res);
+  });
+});
+
+// 6. Vision Inference Completions
+const visionCompletionRoutes = [
+  '/together/inference/vision/completions',
+  '/v1/together/inference/vision/completions',
+  '/inference/vision/completions',
+  '/v1/inference/vision/completions',
+  '/together/vision/completions',
+  '/v1/vision/completions',
+];
+visionCompletionRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteVisionCompletion(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');
