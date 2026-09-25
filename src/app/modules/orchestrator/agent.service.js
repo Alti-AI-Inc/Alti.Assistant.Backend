@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablechain_olej_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableChain) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedgraph_d681_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedGraph) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedvault_i9zk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedVault) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryfabric_r6yv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryFabric) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativechain_39ow_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeChain) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendnode_chsd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNode) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28172,6 +28212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablechain_olej_logic": {
+          try {
+            const { OpenImmutableChainService } = await import("../liberty/openimmutablechain_olej.service.js");
+            const res = await OpenImmutableChainService.execute(args.target || "system");
+            return { output: `### OpenImmutableChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedgraph_d681_logic": {
+          try {
+            const { OpenAutomatedGraphService } = await import("../liberty/openautomatedgraph_d681.service.js");
+            const res = await OpenAutomatedGraphService.execute(args.target || "system");
+            return { output: `### OpenAutomatedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedvault_i9zk_logic": {
+          try {
+            const { OpenAdvancedVaultService } = await import("../liberty/openadvancedvault_i9zk.service.js");
+            const res = await OpenAdvancedVaultService.execute(args.target || "system");
+            return { output: `### OpenAdvancedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryfabric_r6yv_logic": {
+          try {
+            const { OpenInMemoryFabricService } = await import("../liberty/openin-memoryfabric_r6yv.service.js");
+            const res = await OpenInMemoryFabricService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativechain_39ow_logic": {
+          try {
+            const { OpenCloudNativeChainService } = await import("../liberty/opencloud-nativechain_39ow.service.js");
+            const res = await OpenCloudNativeChainService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeChain failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendnode_chsd_logic": {
           try {
             const { OpenMicroFrontendNodeService } = await import("../liberty/openmicro-frontendnode_chsd.service.js");
