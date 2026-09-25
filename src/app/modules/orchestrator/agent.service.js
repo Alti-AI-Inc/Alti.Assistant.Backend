@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "execute_rpa_playwright", description: "Use the Aphura Browser Automation Engine (Microsoft Playwright, 69k stars, Apache 2.0) to execute headless browser RPA workflows, extract table data from external portals, and capture full-page assets. Replaces Microsoft Power Automate.", parameters: { type: "object", properties: { targetUrl: { type: "string" }, taskAction: { type: "string" } }, required: ["targetUrl"] } } },
+  { type: "function", function: { name: "provision_db_sharding", description: "Use the Aphura Database Mesh Engine (Apache ShardingSphere, 19k stars, Apache 2.0) to cluster relational databases with horizontal sharding, read-write splitting, and transparent column encryption. Replaces Oracle RAC.", parameters: { type: "object", properties: { logicDatabase: { type: "string" } }, required: ["logicDatabase"] } } },
+  { type: "function", function: { name: "query_timeseries_questdb", description: "Use the Aphura Time-Series Engine (QuestDB, 14k stars, Apache 2.0) to run vectorized sub-millisecond aggregations on high-frequency financial tick and telemetry data. Replaces kdb+ and Azure Time Series Insights.", parameters: { type: "object", properties: { symbol: { type: "string" }, timeFrame: { type: "string" } }, required: ["symbol"] } } },
+  { type: "function", function: { name: "get_online_features", description: "Use the Aphura Feature Store (Feast, Apache 2.0) to serve low-latency machine learning feature vectors in <1ms without train/serve skew. Replaces AWS SageMaker Feature Store.", parameters: { type: "object", properties: { entityId: { type: "string" }, featureNames: { type: "string" } }, required: ["entityId"] } } },
+  { type: "function", function: { name: "create_remote_workspace", description: "Use the Aphura Remote Workspace Gateway (Apache Guacamole, Apache 2.0) to launch isolated HTML5 remote desktop sessions (RDP/SSH) directly in the browser with session recording. Replaces Microsoft Remote Desktop and Citrix.", parameters: { type: "object", properties: { userId: { type: "string" }, protocol: { type: "string" } }, required: ["userId"] } } },
   { type: "function", function: { name: "trace_data_lineage", description: "Use the Aphura Data Governance Engine (Apache Atlas, Apache 2.0) to trace end-to-end data lineage and inspect compliance classifications (GDPR, HIPAA, PII). Replaces Microsoft Purview and IBM InfoSphere Governance.", parameters: { type: "object", properties: { entityName: { type: "string" } }, required: ["entityName"] } } },
   { type: "function", function: { name: "render_tiptap_canvas", description: "Use the Aphura Collaborative Canvas Engine (TipTap, 28k stars, MIT) to render real-time collaborative rich-text documents with multi-cursor sync and slash commands across web, mobile, and desktop. Replaces Microsoft Word Online.", parameters: { type: "object", properties: { documentJson: { type: "string" } }, required: ["documentJson"] } } },
   { type: "function", function: { name: "sync_mobile_watermelon", description: "Use the Aphura Reactive Mobile Store (WatermelonDB, 10k stars, MIT) for high-performance offline-first local database sync across iOS, Android, and Desktop apps. Replaces Microsoft Azure Mobile Offline Sync.", parameters: { type: "object", properties: { userId: { type: "string" }, clientChanges: { type: "string" } }, required: ["userId"] } } },
@@ -8895,6 +8900,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_rpa_playwright": {
+          try {
+            const { PlaywrightService } = await import("../automation/playwright.service.js");
+            const res = await PlaywrightService.executeRPAWorkflow(args.targetUrl, args.taskAction);
+            return { output: "### Playwright RPA Execution\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "RPA execution failed: " + err.message };
+          }
+        }
+        case "provision_db_sharding": {
+          try {
+            const { ShardingSphereService } = await import("../data/shardingsphere.service.js");
+            const res = await ShardingSphereService.provisionShardedCluster(args.logicDatabase, {});
+            return { output: "### Database Mesh Sharded\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Sharding configuration failed: " + err.message };
+          }
+        }
+        case "query_timeseries_questdb": {
+          try {
+            const { QuestDBService } = await import("../data/questdb.service.js");
+            const res = await QuestDBService.executeTimeSeriesQuery(args.symbol, args.timeFrame, "15m");
+            return { output: "### QuestDB Time-Series Result\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Time-series query failed: " + err.message };
+          }
+        }
+        case "get_online_features": {
+          try {
+            const { FeastService } = await import("../data/feast.service.js");
+            const res = await FeastService.getOnlineFeatures(args.entityId, args.featureNames);
+            return { output: "### Feast Feature Vector\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Feature retrieval failed: " + err.message };
+          }
+        }
+        case "create_remote_workspace": {
+          try {
+            const { GuacamoleService } = await import("../enterprise/guacamole.service.js");
+            const res = await GuacamoleService.createWorkspaceSession(args.userId, args.protocol);
+            return { output: "### Remote Workspace Session\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Workspace session failed: " + err.message };
+          }
+        }
         case "trace_data_lineage": {
           try {
             const { AtlasService } = await import("../enterprise/atlas.service.js");
