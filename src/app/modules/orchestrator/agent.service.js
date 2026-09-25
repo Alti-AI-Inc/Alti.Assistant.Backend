@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativenode_rbsm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNode) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnexus_pfse_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNexus) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpustream_p0b7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUStream) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicproxy_xqf2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicProxy) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeplane_6nre_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgePlane) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablefabric_idbr_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableFabric) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24692,6 +24732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativenode_rbsm_logic": {
+          try {
+            const { OpenCloudNativeNodeService } = await import("../liberty/opencloud-nativenode_rbsm.service.js");
+            const res = await OpenCloudNativeNodeService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnexus_pfse_logic": {
+          try {
+            const { OpenGraphNexusService } = await import("../liberty/opengraphnexus_pfse.service.js");
+            const res = await OpenGraphNexusService.execute(args.target || "system");
+            return { output: `### OpenGraphNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpustream_p0b7_logic": {
+          try {
+            const { OpenGPUStreamService } = await import("../liberty/opengpustream_p0b7.service.js");
+            const res = await OpenGPUStreamService.execute(args.target || "system");
+            return { output: `### OpenGPUStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicproxy_xqf2_logic": {
+          try {
+            const { OpenHomomorphicProxyService } = await import("../liberty/openhomomorphicproxy_xqf2.service.js");
+            const res = await OpenHomomorphicProxyService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeplane_6nre_logic": {
+          try {
+            const { OpenEdgePlaneService } = await import("../liberty/openedgeplane_6nre.service.js");
+            const res = await OpenEdgePlaneService.execute(args.target || "system");
+            return { output: `### OpenEdgePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgePlane failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablefabric_idbr_logic": {
           try {
             const { OpenImmutableFabricService } = await import("../liberty/openimmutablefabric_idbr.service.js");
