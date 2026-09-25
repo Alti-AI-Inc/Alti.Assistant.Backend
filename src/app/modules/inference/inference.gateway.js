@@ -222,6 +222,16 @@ import {
   validateBatchJsonlLine,
   validateBatchInputDataset,
 } from '../../services/together.batches.js';
+import {
+  getCodeExecutionOverview,
+  getCodeInterpreterDocs,
+  getCodeSandboxDocs,
+  estimateSandboxCost,
+  validateTciParams,
+  validateSandboxParams,
+  executeCodeInterpreter,
+  listCodeInterpreterSessions,
+} from '../../services/together.code.js';
 
 
 
@@ -4344,6 +4354,87 @@ export const InferenceGateway = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error validating batch dataset.' });
+    }
+  },
+
+  /**
+   * Retrieves Together AI Code Execution Suite Overview (TCI vs Code Sandbox)
+   * (GET /together/code/overview, GET /v1/together/code/overview, GET /together/code-execution/overview, GET /v1/together/code-execution/overview)
+   */
+  async handleGetCodeOverview(req, res) {
+    try {
+      const data = getCodeExecutionOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving code execution overview.' });
+    }
+  },
+
+  /**
+   * Retrieves Together Code Interpreter (TCI) Documentation & Reference
+   * (GET /together/code-interpreter, GET /v1/together/code-interpreter, GET /together/tci/docs, GET /v1/together/tci/docs)
+   */
+  async handleGetCodeInterpreterDocs(req, res) {
+    try {
+      const data = getCodeInterpreterDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving code interpreter docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Together Code Sandbox Documentation & Reference
+   * (GET /together/code-sandbox, GET /v1/together/code-sandbox, GET /together/sandbox/docs, GET /v1/together/sandbox/docs)
+   */
+  async handleGetCodeSandboxDocs(req, res) {
+    try {
+      const data = getCodeSandboxDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving code sandbox docs.' });
+    }
+  },
+
+  /**
+   * Estimates Code Sandbox VM runtime credit costs and monthly bill
+   * (POST /together/code-sandbox/estimate, POST /v1/together/code-sandbox/estimate, GET /together/code-sandbox/estimate)
+   */
+  async handleEstimateSandboxCost(req, res) {
+    try {
+      const params = req.method === 'POST' ? (req.body || {}) : (req.query || {});
+      const data = estimateSandboxCost(params);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error estimating code sandbox cost.' });
+    }
+  },
+
+  /**
+   * Validates Together Code Interpreter request parameters
+   * (POST /together/code-interpreter/validate, POST /v1/together/code-interpreter/validate)
+   */
+  async handleValidateTciRequest(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = validateTciParams(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating TCI request.' });
+    }
+  },
+
+  /**
+   * Validates Together Code Sandbox creation parameters
+   * (POST /together/code-sandbox/validate, POST /v1/together/code-sandbox/validate)
+   */
+  async handleValidateSandboxRequest(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = validateSandboxParams(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating sandbox request.' });
     }
   },
 };

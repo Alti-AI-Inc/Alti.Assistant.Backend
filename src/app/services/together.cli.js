@@ -275,6 +275,21 @@ import {
   validateBatchJsonlLine,
   validateBatchInputDataset,
 } from './together.batches.js';
+import {
+  TCI_SPEC,
+  SANDBOX_BOOTUP_TYPES,
+  SANDBOX_VM_TIERS,
+  SANDBOX_PLANS,
+  SANDBOX_CREDIT_RATE_USD,
+  getCodeExecutionOverview,
+  getCodeInterpreterDocs,
+  getCodeSandboxDocs,
+  estimateSandboxCost,
+  validateTciParams,
+  validateSandboxParams,
+  executeCodeInterpreter,
+  listCodeInterpreterSessions,
+} from './together.code.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -3430,6 +3445,163 @@ Sample Vector: [${(result.data?.[0]?.embedding || []).slice(0, 5).join(', ')}...
   throw new Error(`Unknown embeddings command: ${action}. Use 'overview', 'validate', or 'run'.`);
 }
 
+// ── Domain: Code Execution (Code Interpreter & Code Sandbox) ────────────────
+async function handleCode(parsed) {
+  const action = parsed.subcommand || 'overview';
+
+  if (action === 'overview' || action === 'docs') {
+    const ov = getCodeExecutionOverview();
+    const text = `
+Together AI Code Execution Suite Overview:
+URLs:
+  - Code Interpreter: ${ov.docs_urls.code_interpreter}
+  - Code Sandbox:     ${ov.docs_urls.code_sandbox}
+
+Products:
+  - Together Code Interpreter (TCI):
+      Pricing: ${ov.products.code_interpreter.pricing}
+      Runtime: ${ov.products.code_interpreter.runtime}
+      Ideal For: ${ov.products.code_interpreter.ideal_for}
+  - Together Code Sandbox (CodeSandbox SDK):
+      Pricing: ${ov.products.code_sandbox.pricing}
+      Runtime: ${ov.products.code_sandbox.runtime}
+      Ideal For: ${ov.products.code_sandbox.ideal_for}
+`.trim();
+    return { ...ov, text };
+  }
+
+  if (action === 'interpreter' || action === 'tci') {
+    const tci = getCodeInterpreterDocs();
+    const text = `
+Together Code Interpreter (TCI) Reference:
+URL: ${tci.docs_url}
+Pricing: ${tci.pricing}
+Lifespan: ${tci.lifespan}
+Agent Skill: ${tci.agent_skill}
+MCP Server: ${tci.mcp_server}
+
+Pre-installed Dependencies (30 packages):
+  ${tci.preinstalled_packages.join(', ')}
+
+Endpoints:
+  Execute:  ${tci.endpoints.execute}
+  Sessions: ${tci.endpoints.sessions}
+
+Example CLI:
+  together code execute --code "print(2 + 2)"
+`.trim();
+    return { ...tci, text };
+  }
+
+  if (action === 'sandbox' || action === 'sandboxes') {
+    const cs = getCodeSandboxDocs();
+    const text = `
+Together Code Sandbox Reference (CodeSandbox SDK):
+URL: ${cs.docs_url}
+SDK: ${cs.sdk_package}
+Startup: ${cs.startup_time}
+Credit Cost: $${cs.credit_cost_usd}/credit
+
+VM Tiers:
+${Object.entries(cs.vm_tiers).map(([k, v]) => `  - ${k}: ${v.cpu_cores} cores, ${v.ram_gb} GB RAM | ${v.credits_per_hour} credits/hr ($${v.cost_per_hour.toFixed(4)}/hr) - ${v.best_for}`).join('\n')}
+
+Bootup Types:
+${Object.entries(cs.bootup_types).map(([k, v]) => `  - ${k}: ${v}`).join('\n')}
+`.trim();
+    return { ...cs, text };
+  }
+
+  if (action === 'execute' || action === 'run') {
+    const code = parsed.flags.code || parsed.positionals.slice(2).join(' ');
+    if (!code) throw new Error("Missing required argument: --code '<python_code>'");
+
+    const language = parsed.flags.language || 'python';
+    const sessionId = parsed.flags['session-id'] || parsed.flags.session_id || parsed.flags.session;
+
+    const result = await executeCodeInterpreter({
+      code,
+      language,
+      session_id: sessionId,
+    });
+
+    const text = `
+Code Interpreter Execution:
+  Status: ${result.data?.status || result.status || 'completed'}
+  Session ID: ${result.data?.session_id || 'N/A'}
+  Outputs:
+${(result.data?.outputs || []).map(o => `    [${o.type}]: ${typeof o.data === 'string' ? o.data.trim() : JSON.stringify(o.data)}`).join('\n')}
+`.trim();
+    return { ...result, text };
+  }
+
+  if (action === 'sessions' || action === 'list') {
+    const sessionsResult = await listCodeInterpreterSessions();
+    const sessions = sessionsResult.data?.sessions || [];
+    const rows = sessions.map(s => [
+      s.id,
+      String(s.execute_count || 1),
+      s.started_at ? s.started_at.slice(0, 19).replace('T', ' ') : 'N/A',
+      s.expires_at ? s.expires_at.slice(0, 19).replace('T', ' ') : 'N/A',
+    ]);
+    const text = `Active Code Interpreter Sessions (${sessions.length}):\n` + formatTable(['SESSION ID', 'EXEC COUNT', 'STARTED', 'EXPIRES'], rows);
+    return { ...sessionsResult, text };
+  }
+
+  if (action === 'estimate' || action === 'cost') {
+    const vmTier = parsed.flags.tier || parsed.flags.vmTier || 'Nano';
+    const hoursPerDay = parsed.flags.hours ? parseFloat(parsed.flags.hours) : 3;
+    const days = parsed.flags.days ? parseInt(parsed.flags.days, 10) : 30;
+    const concurrentVms = parsed.flags.vms ? parseInt(parsed.flags.vms, 10) : (parsed.flags.concurrent ? parseInt(parsed.flags.concurrent, 10) : 80);
+    const plan = parsed.flags.plan || 'Scale';
+
+    const est = estimateSandboxCost({
+      vmTier,
+      hoursPerDay,
+      days,
+      concurrentVms,
+      plan,
+    });
+
+    const text = `
+Code Sandbox Cost Estimate:
+  Plan: ${est.plan} ($${est.plan_base_price_usd}/mo base)
+  Tier: ${est.vm_tier} (${est.tier_specs.cpu_cores} cores, ${est.tier_specs.ram_gb} GB RAM, ${est.tier_specs.credits_per_hour} credits/hr)
+  Concurrency: ${est.concurrent_vms} VMs running ${est.hours_per_day} hrs/day for ${est.days} days
+  Total Runtime: ${est.total_runtime_hours.toLocaleString()} VM hours
+  Total Credits: ${est.total_vm_credits.toLocaleString()} credits
+  Free Credits:  ${est.plan_included_credits.toLocaleString()} credits included
+  Billable:      ${est.billable_credits.toLocaleString()} credits ($${est.credits_cost_usd})
+  Total Monthly Bill: $${est.total_estimated_monthly_bill_usd}
+Formula: ${est.formula}
+`.trim();
+    return { ...est, text };
+  }
+
+  if (action === 'validate') {
+    const code = parsed.flags.code;
+    const language = parsed.flags.language || 'python';
+    const sessionId = parsed.flags['session-id'] || parsed.flags.session_id;
+
+    const result = validateTciParams({
+      code: code || 'print(1)',
+      language,
+      session_id: sessionId,
+    });
+
+    const text = `
+Code Interpreter Validation:
+  Status: ${result.valid ? 'VALID ✅' : 'INVALID ❌'}
+  Language: ${result.language}
+  Has Session: ${result.has_session}
+${result.errors.length > 0 ? `  Errors: [${result.errors.join('; ')}]\n` : ''}${result.warnings.length > 0 ? `  Warnings: [${result.warnings.join('; ')}]\n` : ''}
+`.trim();
+    return { ...result, text };
+  }
+
+  throw new Error(`Unknown code command: ${action}. Use 'overview', 'interpreter', 'sandbox', 'execute', 'sessions', 'estimate', or 'validate'.`);
+}
+
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -3585,6 +3757,15 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
         case 'embed':
           resultData = await handleEmbeddings(parsed);
           domain = 'embeddings';
+          break;
+        case 'code':
+        case 'tci':
+        case 'sandbox':
+        case 'sandboxes':
+        case 'code-interpreter':
+        case 'interpreter':
+          resultData = await handleCode(parsed);
+          domain = 'code';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);

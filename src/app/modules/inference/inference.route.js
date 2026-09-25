@@ -2332,6 +2332,89 @@ batchValidateDatasetRoutes.forEach((path) => {
   });
 });
 
+// ── Together AI Code Execution Suite (TCI & Code Sandbox) ───────────────────
+
+// 1. Code Execution Overview
+const codeOverviewRoutes = [
+  '/together/code/overview',
+  '/v1/together/code/overview',
+  '/together/code-execution/overview',
+  '/v1/together/code-execution/overview',
+];
+codeOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetCodeOverview(req, res);
+  });
+});
+
+// 2. Together Code Interpreter Docs
+const codeInterpreterRoutes = [
+  '/together/code-interpreter',
+  '/v1/together/code-interpreter',
+  '/together/tci/docs',
+  '/v1/together/tci/docs',
+];
+codeInterpreterRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetCodeInterpreterDocs(req, res);
+  });
+});
+
+// 3. Together Code Sandbox Docs
+const codeSandboxRoutes = [
+  '/together/code-sandbox',
+  '/v1/together/code-sandbox',
+  '/together/sandbox/docs',
+  '/v1/together/sandbox/docs',
+];
+codeSandboxRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetCodeSandboxDocs(req, res);
+  });
+});
+
+// 4. Code Sandbox Cost Estimation
+const codeSandboxEstimateRoutes = [
+  '/together/code-sandbox/estimate',
+  '/v1/together/code-sandbox/estimate',
+  '/together/sandbox/estimate',
+  '/v1/together/sandbox/estimate',
+];
+codeSandboxEstimateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleEstimateSandboxCost(req, res);
+  });
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleEstimateSandboxCost(req, res);
+  });
+});
+
+// 5. Validate Code Interpreter Request
+const codeInterpreterValidateRoutes = [
+  '/together/code-interpreter/validate',
+  '/v1/together/code-interpreter/validate',
+  '/together/tci/validate',
+  '/v1/together/tci/validate',
+];
+codeInterpreterValidateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateTciRequest(req, res);
+  });
+});
+
+// 6. Validate Code Sandbox Parameters
+const codeSandboxValidateRoutes = [
+  '/together/code-sandbox/validate',
+  '/v1/together/code-sandbox/validate',
+  '/together/sandbox/validate',
+  '/v1/together/sandbox/validate',
+];
+codeSandboxValidateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateSandboxRequest(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');
