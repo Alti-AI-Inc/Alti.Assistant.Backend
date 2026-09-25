@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictiveplane_g0x3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictivePlane) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedpipeline_2t7m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedPipeline) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosgraph_4s2y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosGraph) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablemesh_vdoh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableMesh) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisepipeline_urt0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterprisePipeline) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalnode_shmt_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalNode) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22132,6 +22172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictiveplane_g0x3_logic": {
+          try {
+            const { OpenPredictivePlaneService } = await import("../liberty/openpredictiveplane_g0x3.service.js");
+            const res = await OpenPredictivePlaneService.execute(args.target || "system");
+            return { output: `### OpenPredictivePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictivePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedpipeline_2t7m_logic": {
+          try {
+            const { OpenAutomatedPipelineService } = await import("../liberty/openautomatedpipeline_2t7m.service.js");
+            const res = await OpenAutomatedPipelineService.execute(args.target || "system");
+            return { output: `### OpenAutomatedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosgraph_4s2y_logic": {
+          try {
+            const { OpenChaosGraphService } = await import("../liberty/openchaosgraph_4s2y.service.js");
+            const res = await OpenChaosGraphService.execute(args.target || "system");
+            return { output: `### OpenChaosGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablemesh_vdoh_logic": {
+          try {
+            const { OpenImmutableMeshService } = await import("../liberty/openimmutablemesh_vdoh.service.js");
+            const res = await OpenImmutableMeshService.execute(args.target || "system");
+            return { output: `### OpenImmutableMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisepipeline_urt0_logic": {
+          try {
+            const { OpenEnterprisePipelineService } = await import("../liberty/openenterprisepipeline_urt0.service.js");
+            const res = await OpenEnterprisePipelineService.execute(args.target || "system");
+            return { output: `### OpenEnterprisePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterprisePipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalnode_shmt_logic": {
           try {
             const { OpenHyperDimensionalNodeService } = await import("../liberty/openhyper-dimensionalnode_shmt.service.js");
