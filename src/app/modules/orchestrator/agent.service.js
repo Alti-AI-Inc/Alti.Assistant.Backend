@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "lint_code_eslint", description: "Use the Aphura Static Code Analysis Engine (ESLint, 25k stars, MIT) to analyze and auto-fix JavaScript/TypeScript ASTs for security vulnerabilities and type bugs before deployment.", parameters: { type: "object", properties: { codeString: { type: "string" }, ruleset: { type: "string" } }, required: ["codeString"] } } },
+  { type: "function", function: { name: "generate_3d_deckgl", description: "Use the Aphura GPU-Accelerated Visualization Engine (Deck.gl by Uber, 12k stars, MIT) to compile interactive 3D WebGL geospatial maps, hex-bins, and flight arc flows rendering millions of coordinates at 60 FPS.", parameters: { type: "object", properties: { datasetName: { type: "string" }, layerType: { type: "string" } }, required: ["datasetName"] } } },
+  { type: "function", function: { name: "render_network_cytoscape", description: "Use the Aphura Network Analysis Engine (Cytoscape.js, 9.5k stars, MIT) to render interactive graph theory topologies, fraud detection rings, and dependency graphs directly in the prompt box.", parameters: { type: "object", properties: { layoutAlgorithm: { type: "string" } }, required: [] } } },
+  { type: "function", function: { name: "deploy_storm_topology", description: "Use the Aphura Distributed Stream Computation Engine (Apache Storm, 6.8k stars, Apache 2.0) to deploy high-throughput real-time stream topologies processing unbounded event streams with sub-second latency.", parameters: { type: "object", properties: { topologyName: { type: "string" }, workers: { type: "number" } }, required: ["topologyName"] } } },
+  { type: "function", function: { name: "route_cloudevent_mesh", description: "Use the Aphura Event-Driven Middleware Engine (Apache EventMesh, 3.8k stars, Apache 2.0) to dynamically route CloudEvents across heterogeneous microservices and messaging brokers with zero protocol lag.", parameters: { type: "object", properties: { eventSubject: { type: "string" } }, required: ["eventSubject"] } } },
   { type: "function", function: { name: "process_banking_transaction", description: "Use the Aphura Core Banking Engine (Apache Fineract, Apache 2.0) to execute double-entry ledger transactions, loan amortizations, and deposit account management. Replaces Oracle FLEXCUBE and Temenos.", parameters: { type: "object", properties: { accountNumber: { type: "string" }, transactionType: { type: "string" }, amount: { type: "string" } }, required: ["accountNumber"] } } },
   { type: "function", function: { name: "establish_webrtc_bridge", description: "Use the Aphura Real-Time Media Engine (Pion WebRTC, 14k stars, MIT) to establish low-latency, end-to-end encrypted video, voice, and data bridges across Web, Mobile, and Desktop without third-party fees. Replaces Twilio Video.", parameters: { type: "object", properties: { sessionId: { type: "string" }, mediaTracks: { type: "string" } }, required: ["sessionId"] } } },
   { type: "function", function: { name: "query_schemafree_drill", description: "Use the Aphura Schema-Free SQL Engine (Apache Drill, Apache 2.0) to execute ANSI SQL queries directly over unstructured JSON, Parquet, and MongoDB data without pre-defining schemas. Replaces AWS Athena.", parameters: { type: "object", properties: { query: { type: "string" }, storagePath: { type: "string" } }, required: ["query"] } } },
@@ -8946,6 +8951,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "lint_code_eslint": {
+          try {
+            const { ESLintService } = await import("../ide/eslint.service.js");
+            const res = await ESLintService.lintAndFixAST(args.codeString, args.ruleset);
+            return { output: "### ESLint Static Analysis\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "ESLint analysis failed: " + err.message };
+          }
+        }
+        case "generate_3d_deckgl": {
+          try {
+            const { DeckGLService } = await import("../ui/deckgl.service.js");
+            const res = await DeckGLService.generateGeospatialVisualization(args.datasetName, args.layerType);
+            return { output: "### Deck.gl 3D Visualization\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Deck.gl generation failed: " + err.message };
+          }
+        }
+        case "render_network_cytoscape": {
+          try {
+            const { CytoscapeService } = await import("../ui/cytoscape.service.js");
+            const res = await CytoscapeService.renderNetworkGraph({}, args.layoutAlgorithm);
+            return { output: "### Cytoscape Network Graph\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Cytoscape rendering failed: " + err.message };
+          }
+        }
+        case "deploy_storm_topology": {
+          try {
+            const { StormService } = await import("../data/storm.service.js");
+            const res = await StormService.deployTopology(args.topologyName, args.workers);
+            return { output: "### Apache Storm Topology\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Storm deployment failed: " + err.message };
+          }
+        }
+        case "route_cloudevent_mesh": {
+          try {
+            const { EventMeshService } = await import("../enterprise/eventmesh.service.js");
+            const res = await EventMeshService.routeCloudEvent(args.eventSubject, {});
+            return { output: "### EventMesh CloudEvent Routed\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "EventMesh routing failed: " + err.message };
+          }
+        }
         case "process_banking_transaction": {
           try {
             const { FineractService } = await import("../business/fineract.service.js");
