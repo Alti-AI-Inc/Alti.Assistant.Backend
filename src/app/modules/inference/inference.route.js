@@ -1423,6 +1423,91 @@ executeSharedInferenceRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Chat Inference Suite (Overview, Parameters, Structured Outputs, Reasoning, Prompt Caching, Logprobs)
+const chatOverviewRoutes = [
+  '/together/inference/chat/overview',
+  '/v1/together/inference/chat/overview',
+  '/inference/chat/overview',
+  '/v1/inference/chat/overview',
+];
+chatOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetChatOverview(req, res);
+  });
+});
+
+const chatParametersRoutes = [
+  '/together/inference/chat/parameters',
+  '/v1/together/inference/chat/parameters',
+  '/inference/chat/parameters',
+  '/v1/inference/chat/parameters',
+];
+chatParametersRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetChatParameters(req, res);
+  });
+});
+
+const structuredOutputsRoutes = [
+  '/together/inference/chat/structured-outputs',
+  '/v1/together/inference/chat/structured-outputs',
+  '/inference/chat/structured-outputs',
+  '/v1/inference/chat/structured-outputs',
+];
+structuredOutputsRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetStructuredOutputs(req, res);
+  });
+});
+
+const chatReasoningRoutes = [
+  '/together/inference/chat/reasoning',
+  '/v1/together/inference/chat/reasoning',
+  '/inference/chat/reasoning',
+  '/v1/inference/chat/reasoning',
+];
+chatReasoningRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetReasoningDocs(req, res);
+  });
+});
+
+const promptCachingRoutes = [
+  '/together/inference/chat/prompt-caching',
+  '/v1/together/inference/chat/prompt-caching',
+  '/inference/chat/prompt-caching',
+  '/v1/inference/chat/prompt-caching',
+];
+promptCachingRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetPromptCachingDocs(req, res);
+  });
+});
+
+const logprobsRoutes = [
+  '/together/inference/chat/logprobs',
+  '/v1/together/inference/chat/logprobs',
+  '/inference/chat/logprobs',
+  '/v1/inference/chat/logprobs',
+];
+logprobsRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetLogprobsDocs(req, res);
+  });
+});
+
+const chatCompletionsRoutes = [
+  '/together/inference/chat/completions',
+  '/v1/together/inference/chat/completions',
+  '/inference/chat/completions',
+  '/v1/inference/chat/completions',
+];
+chatCompletionsRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteChatCompletion(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

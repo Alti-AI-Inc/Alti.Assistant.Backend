@@ -136,6 +136,15 @@ import {
   getPartnerSdkDoc,
   executeSharedInference,
 } from '../../services/together.inference.js';
+import {
+  getChatOverview,
+  getChatParametersDocs,
+  getStructuredOutputsDocs,
+  getReasoningDocs,
+  getPromptCachingDocs,
+  getLogprobsDocs,
+  executeChatCompletion,
+} from '../../services/together.chat.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -3384,6 +3393,98 @@ export const InferenceGateway = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error executing shared inference.' });
+    }
+  },
+
+  /**
+   * Retrieves Together AI Chat Overview and Multi-Turn Conversation Reference
+   * (GET /together/inference/chat/overview, GET /v1/together/inference/chat/overview, GET /inference/chat/overview)
+   */
+  async handleGetChatOverview(req, res) {
+    try {
+      const data = getChatOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving chat overview.' });
+    }
+  },
+
+  /**
+   * Retrieves Chat Parameters full schema, defaults, ranges, and troubleshooting
+   * (GET /together/inference/chat/parameters, GET /v1/together/inference/chat/parameters, GET /inference/chat/parameters)
+   */
+  async handleGetChatParameters(req, res) {
+    try {
+      const data = getChatParametersDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving chat parameters.' });
+    }
+  },
+
+  /**
+   * Retrieves Structured Outputs & JSON Mode reference (json_schema and regex modes)
+   * (GET /together/inference/chat/structured-outputs, GET /v1/together/inference/chat/structured-outputs, GET /inference/chat/structured-outputs)
+   */
+  async handleGetStructuredOutputs(req, res) {
+    try {
+      const data = getStructuredOutputsDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving structured outputs docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Reasoning Models and Thinking Modes documentation (interleaved, preserved, turn-level)
+   * (GET /together/inference/chat/reasoning, GET /v1/together/inference/chat/reasoning, GET /inference/chat/reasoning)
+   */
+  async handleGetReasoningDocs(req, res) {
+    try {
+      const data = getReasoningDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving reasoning docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Prompt Caching documentation, prompt_cache_key routing, and KV state reuse
+   * (GET /together/inference/chat/prompt-caching, GET /v1/together/inference/chat/prompt-caching, GET /inference/chat/prompt-caching)
+   */
+  async handleGetPromptCachingDocs(req, res) {
+    try {
+      const data = getPromptCachingDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving prompt caching docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Log Probabilities (logprobs) reference and confidence routing formulas
+   * (GET /together/inference/chat/logprobs, GET /v1/together/inference/chat/logprobs, GET /inference/chat/logprobs)
+   */
+  async handleGetLogprobsDocs(req, res) {
+    try {
+      const data = getLogprobsDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving logprobs docs.' });
+    }
+  },
+
+  /**
+   * Executes chat completion with full parameter parsing, reasoning extraction, and logprobs
+   * (POST /together/inference/chat/completions, POST /v1/together/inference/chat/completions, POST /inference/chat/completions)
+   */
+  async handleExecuteChatCompletion(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await executeChatCompletion(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing chat completion.' });
     }
   },
 };

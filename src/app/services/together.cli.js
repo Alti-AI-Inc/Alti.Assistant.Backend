@@ -149,6 +149,21 @@ import {
   getPartnerSdkDoc,
   executeSharedInference,
 } from './together.inference.js';
+import {
+  CHAT_ROLES,
+  CHAT_PARAMETERS_SCHEMA,
+  STRUCTURED_OUTPUT_MODES,
+  REASONING_MODELS_CATALOG,
+  getChatOverview,
+  getChatParametersDocs,
+  getStructuredOutputsDocs,
+  getReasoningDocs,
+  extractReasoningTokens,
+  getPromptCachingDocs,
+  getLogprobsDocs,
+  calculateTokenConfidence,
+  executeChatCompletion,
+} from './together.chat.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -385,6 +400,7 @@ Standard Commands:
   skills       Inspect and execute 12 coding agent skills (chat, images, audio, etc.)
   mcp          Docs MCP Server info and tool proxy (search, get doc, skill specs)
   inference    Explore inference overview, OpenAI compatibility, and partner SDKs
+  chat         Chat completions, parameters, structured outputs, reasoning, caching, logprobs
 
 Beta Commands (tg beta ...):
   models       DMI 2.0 custom models, weight uploads, and configs
@@ -398,7 +414,7 @@ Global Flags:
   --json           Format output as JSON
   --api-key <key>  Pass API key explicitly
 `.trim();
-    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'beta'] };
+    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'beta'] };
   }
 
   if (command === 'login' || command === 'init' || command === 'auth') {
@@ -1727,6 +1743,138 @@ ${s.python_snippet || 'N/A'}
   throw new Error(`Unknown inference command: ${action}. Use 'overview', 'openai', 'sdks', 'sdk <sdk_id>', or 'run'.`);
 }
 
+// ── Domain 18: Chat Completions, Parameters, Structured Outputs, Reasoning, Caching, Logprobs ──
+async function handleChat(parsed) {
+  const action = parsed.subcommand || 'overview';
+
+  if (action === 'overview' || action === 'roles') {
+    const overview = getChatOverview();
+    const roleRows = overview.roles.map(r => [r.role, r.description]);
+    const text = `
+Together AI Chat Completions:
+${overview.title} (${overview.docs_url})
+
+Roles:
+${formatTable(['ROLE', 'DESCRIPTION'], roleRows)}
+
+Python Example:
+${overview.code_snippets.python}
+
+TypeScript Example:
+${overview.code_snippets.typescript}
+`.trim();
+    return { ...overview, text };
+  }
+
+  if (action === 'parameters' || action === 'params') {
+    const paramsDocs = getChatParametersDocs();
+    const rows = Object.entries(paramsDocs.schema).map(([name, conf]) => [
+      name,
+      conf.type,
+      String(conf.default ?? 'unset'),
+      conf.description.slice(0, 45) + '...',
+    ]);
+    const text = `
+Chat Completion Parameters Reference:
+${formatTable(['PARAMETER', 'TYPE', 'DEFAULT', 'DESCRIPTION'], rows)}
+
+Quick Troubleshooting:
+${paramsDocs.quick_troubleshooting.map(q => `• ${q.problem} -> ${q.solution}`).join('\n')}
+`.trim();
+    return { ...paramsDocs, text };
+  }
+
+  if (action === 'structured' || action === 'structured-outputs' || action === 'json') {
+    const structDocs = getStructuredOutputsDocs();
+    const rows = Object.values(structDocs.modes).map(m => [m.type, m.description]);
+    const text = `
+Structured Outputs & JSON Mode:
+${formatTable(['MODE', 'DESCRIPTION'], rows)}
+
+Best Practices:
+${structDocs.best_practices.map(b => `• ${b}`).join('\n')}
+
+Regex Mode Python Snippet:
+${structDocs.code_snippets.python}
+`.trim();
+    return { ...structDocs, text };
+  }
+
+  if (action === 'reasoning' || action === 'think') {
+    const reasoningDocs = getReasoningDocs();
+    const rows = reasoningDocs.models.map(m => [m.model, m.type, m.context_length, m.reasoning_field]);
+    const text = `
+Reasoning Models & Thinking Modes:
+${formatTable(['MODEL', 'TYPE', 'CONTEXT', 'REASONING FIELD'], rows)}
+
+Thinking Modes:
+• Interleaved: ${reasoningDocs.thinking_modes.interleaved.description}
+• Preserved: ${reasoningDocs.thinking_modes.preserved.description}
+• Turn-level: ${reasoningDocs.thinking_modes.turn_level.description}
+
+Prompting Tips:
+${reasoningDocs.prompting_tips.map(p => `• ${p}`).join('\n')}
+`.trim();
+    return { ...reasoningDocs, text };
+  }
+
+  if (action === 'caching' || action === 'prompt-caching') {
+    const cachingDocs = getPromptCachingDocs();
+    const text = `
+Automatic Prompt Caching:
+${cachingDocs.title} (${cachingDocs.docs_url})
+Mechanism: ${cachingDocs.mechanism}
+
+Rules to Maximize Cache Hits:
+${cachingDocs.rules_for_max_hits.map(r => `• ${r}`).join('\n')}
+
+Usage Extraction Formula:
+${cachingDocs.usage_reporting.formula}
+`.trim();
+    return { ...cachingDocs, text };
+  }
+
+  if (action === 'logprobs') {
+    const logprobsDocs = getLogprobsDocs();
+    const text = `
+Log Probabilities Reference:
+${logprobsDocs.title} (${logprobsDocs.docs_url})
+Parameter: ${logprobsDocs.parameter}
+Formula: ${logprobsDocs.formula}
+
+Use Cases:
+${logprobsDocs.use_cases.map(u => `• ${u}`).join('\n')}
+
+Python Escalation Snippet:
+${logprobsDocs.code_snippet}
+`.trim();
+    return { ...logprobsDocs, text };
+  }
+
+  if (action === 'completion' || action === 'run' || action === 'create') {
+    const payload = {
+      model: parsed.flags.model || 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+      prompt: parsed.flags.prompt || parsed.positionals.slice(2).join(' ') || 'Hello sovereign chat.',
+      temperature: parsed.flags.temperature ? parseFloat(parsed.flags.temperature) : undefined,
+      max_tokens: parsed.flags.max_tokens ? parseInt(parsed.flags.max_tokens, 10) : undefined,
+      seed: parsed.flags.seed ? parseInt(parsed.flags.seed, 10) : undefined,
+      reasoning_effort: parsed.flags.reasoning_effort || parsed.flags['reasoning-effort'],
+      prompt_cache_key: parsed.flags.prompt_cache_key || parsed.flags['prompt-cache-key'],
+      logprobs: parsed.flags.logprobs ? parseInt(parsed.flags.logprobs, 10) : undefined,
+      dry_run: Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run),
+      ...parsed.flags,
+    };
+    const res = await executeChatCompletion(payload);
+    const content = res.choices?.[0]?.message?.content || res.data?.choices?.[0]?.message?.content || 'Done';
+    return {
+      ...res,
+      text: `Chat Completion (${res.duration_ms}ms, model: ${res.model}):\n${content}`,
+    };
+  }
+
+  throw new Error(`Unknown chat command: ${action}. Use 'overview', 'parameters', 'structured', 'reasoning', 'caching', 'logprobs', or 'completion'.`);
+}
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -1834,6 +1982,10 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
         case 'inference':
           resultData = await handleInference(parsed);
           domain = 'inference';
+          break;
+        case 'chat':
+          resultData = await handleChat(parsed);
+          domain = 'chat';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);
