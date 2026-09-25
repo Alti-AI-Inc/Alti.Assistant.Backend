@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablerouter_oky8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableRouter) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendcontroller_ezxi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendController) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryengine_bw8q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryEngine) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendgraph_u756_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendGraph) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesstream_2512_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesStream) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicoracle_m20o_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicOracle) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22292,6 +22332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablerouter_oky8_logic": {
+          try {
+            const { OpenImmutableRouterService } = await import("../liberty/openimmutablerouter_oky8.service.js");
+            const res = await OpenImmutableRouterService.execute(args.target || "system");
+            return { output: `### OpenImmutableRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendcontroller_ezxi_logic": {
+          try {
+            const { OpenMicroFrontendControllerService } = await import("../liberty/openmicro-frontendcontroller_ezxi.service.js");
+            const res = await OpenMicroFrontendControllerService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendController failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryengine_bw8q_logic": {
+          try {
+            const { OpenInMemoryEngineService } = await import("../liberty/openin-memoryengine_bw8q.service.js");
+            const res = await OpenInMemoryEngineService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendgraph_u756_logic": {
+          try {
+            const { OpenMicroFrontendGraphService } = await import("../liberty/openmicro-frontendgraph_u756.service.js");
+            const res = await OpenMicroFrontendGraphService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesstream_2512_logic": {
+          try {
+            const { OpenTimeSeriesStreamService } = await import("../liberty/opentime-seriesstream_2512.service.js");
+            const res = await OpenTimeSeriesStreamService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesStream failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicoracle_m20o_logic": {
           try {
             const { OpenHomomorphicOracleService } = await import("../liberty/openhomomorphicoracle_m20o.service.js");
