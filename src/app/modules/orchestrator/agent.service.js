@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpuring_loi8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPURing) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticvault_6jeq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticVault) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativevortex_cmd1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVortex) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosproxy_m50r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosProxy) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeswarm_4joa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSwarm) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepgrid_wypm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepGrid) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25412,6 +25452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpuring_loi8_logic": {
+          try {
+            const { OpenGPURingService } = await import("../liberty/opengpuring_loi8.service.js");
+            const res = await OpenGPURingService.execute(args.target || "system");
+            return { output: `### OpenGPURing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPURing failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticvault_6jeq_logic": {
+          try {
+            const { OpenStaticVaultService } = await import("../liberty/openstaticvault_6jeq.service.js");
+            const res = await OpenStaticVaultService.execute(args.target || "system");
+            return { output: `### OpenStaticVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativevortex_cmd1_logic": {
+          try {
+            const { OpenCloudNativeVortexService } = await import("../liberty/opencloud-nativevortex_cmd1.service.js");
+            const res = await OpenCloudNativeVortexService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosproxy_m50r_logic": {
+          try {
+            const { OpenChaosProxyService } = await import("../liberty/openchaosproxy_m50r.service.js");
+            const res = await OpenChaosProxyService.execute(args.target || "system");
+            return { output: `### OpenChaosProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeswarm_4joa_logic": {
+          try {
+            const { OpenEdgeSwarmService } = await import("../liberty/openedgeswarm_4joa.service.js");
+            const res = await OpenEdgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenEdgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepgrid_wypm_logic": {
           try {
             const { OpenDeepGridService } = await import("../liberty/opendeepgrid_wypm.service.js");
