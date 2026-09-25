@@ -1,5 +1,6 @@
 import { logger } from '../../../shared/logger.js';
 import { DataIngestionService } from '../data/ingestion.service.js';
+import { WebSocketService } from './websocket.service.js';
 
 export const MessageQueueService = {
   async publish(topic, payload) {
@@ -16,6 +17,7 @@ export const MessageQueueService = {
       // Mock receiving an ingestion task
       // const payload = { url: "https://bloomberg.com/proprietary-feed" };
       // await DataIngestionService.scrapeAndEmbed(payload.url);
+      // WebSocketService.broadcastNotification("ingestion_complete", { url: payload.url });
     }, 300000); // Check every 5 mins
   }
 };
