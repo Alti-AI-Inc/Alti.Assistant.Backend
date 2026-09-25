@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpgrid_bfbi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPGrid) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryledger_pf0i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryLedger) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesvault_e7mh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesVault) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterledger_pumq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLedger) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorpipeline_voo3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorPipeline) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openneuromorphicnet_at7d_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicNet) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24932,6 +24972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpgrid_bfbi_logic": {
+          try {
+            const { OpenBGPGridService } = await import("../liberty/openbgpgrid_bfbi.service.js");
+            const res = await OpenBGPGridService.execute(args.target || "system");
+            return { output: `### OpenBGPGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryledger_pf0i_logic": {
+          try {
+            const { OpenPlanetaryLedgerService } = await import("../liberty/openplanetaryledger_pf0i.service.js");
+            const res = await OpenPlanetaryLedgerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesvault_e7mh_logic": {
+          try {
+            const { OpenTimeSeriesVaultService } = await import("../liberty/opentime-seriesvault_e7mh.service.js");
+            const res = await OpenTimeSeriesVaultService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterledger_pumq_logic": {
+          try {
+            const { OpenCrossClusterLedgerService } = await import("../liberty/opencross-clusterledger_pumq.service.js");
+            const res = await OpenCrossClusterLedgerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorpipeline_voo3_logic": {
+          try {
+            const { OpenVectorPipelineService } = await import("../liberty/openvectorpipeline_voo3.service.js");
+            const res = await OpenVectorPipelineService.execute(args.target || "system");
+            return { output: `### OpenVectorPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openneuromorphicnet_at7d_logic": {
           try {
             const { OpenNeuromorphicNetService } = await import("../liberty/openneuromorphicnet_at7d.service.js");
