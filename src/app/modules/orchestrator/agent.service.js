@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelring_2klf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelRing) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisenexus_q3m6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNexus) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuvault_saat_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUVault) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseoracle_pv5i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseOracle) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgenode_k361_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeNode) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpgrid_7i4u_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPGrid) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26532,6 +26572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelring_2klf_logic": {
+          try {
+            const { OpenMicroKernelRingService } = await import("../liberty/openmicro-kernelring_2klf.service.js");
+            const res = await OpenMicroKernelRingService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisenexus_q3m6_logic": {
+          try {
+            const { OpenEnterpriseNexusService } = await import("../liberty/openenterprisenexus_q3m6.service.js");
+            const res = await OpenEnterpriseNexusService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuvault_saat_logic": {
+          try {
+            const { OpenGPUVaultService } = await import("../liberty/opengpuvault_saat.service.js");
+            const res = await OpenGPUVaultService.execute(args.target || "system");
+            return { output: `### OpenGPUVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseoracle_pv5i_logic": {
+          try {
+            const { OpenEnterpriseOracleService } = await import("../liberty/openenterpriseoracle_pv5i.service.js");
+            const res = await OpenEnterpriseOracleService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgenode_k361_logic": {
+          try {
+            const { OpenEdgeNodeService } = await import("../liberty/openedgenode_k361.service.js");
+            const res = await OpenEdgeNodeService.execute(args.target || "system");
+            return { output: `### OpenEdgeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeNode failed: ${err.message}` };
+          }
+        }
         case "execute_openbgpgrid_7i4u_logic": {
           try {
             const { OpenBGPGridService } = await import("../liberty/openbgpgrid_7i4u.service.js");
