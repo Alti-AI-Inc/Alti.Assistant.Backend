@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengraphengine_cbq9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphEngine) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustbroker_xbm6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustBroker) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedmesh_1lum_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedMesh) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatanet_q00i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataNet) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuchain_0egk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUChain) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedgraph_7hox_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24372,6 +24412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengraphengine_cbq9_logic": {
+          try {
+            const { OpenGraphEngineService } = await import("../liberty/opengraphengine_cbq9.service.js");
+            const res = await OpenGraphEngineService.execute(args.target || "system");
+            return { output: `### OpenGraphEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustbroker_xbm6_logic": {
+          try {
+            const { OpenZeroTrustBrokerService } = await import("../liberty/openzero-trustbroker_xbm6.service.js");
+            const res = await OpenZeroTrustBrokerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedmesh_1lum_logic": {
+          try {
+            const { OpenDecentralizedMeshService } = await import("../liberty/opendecentralizedmesh_1lum.service.js");
+            const res = await OpenDecentralizedMeshService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatanet_q00i_logic": {
+          try {
+            const { OpenDataNetService } = await import("../liberty/opendatanet_q00i.service.js");
+            const res = await OpenDataNetService.execute(args.target || "system");
+            return { output: `### OpenDataNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuchain_0egk_logic": {
+          try {
+            const { OpenGPUChainService } = await import("../liberty/opengpuchain_0egk.service.js");
+            const res = await OpenGPUChainService.execute(args.target || "system");
+            return { output: `### OpenGPUChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUChain failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedgraph_7hox_logic": {
           try {
             const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_7hox.service.js");
