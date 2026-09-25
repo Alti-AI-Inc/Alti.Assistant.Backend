@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisesync_a6ey_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseSync) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisefabric_e5sg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseFabric) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicmatrix_twzq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicMatrix) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partynet_s0t1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyNet) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticvault_mxh3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticVault) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativeproxy_rcac_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeProxy) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28972,6 +29012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisesync_a6ey_logic": {
+          try {
+            const { OpenEnterpriseSyncService } = await import("../liberty/openenterprisesync_a6ey.service.js");
+            const res = await OpenEnterpriseSyncService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisefabric_e5sg_logic": {
+          try {
+            const { OpenEnterpriseFabricService } = await import("../liberty/openenterprisefabric_e5sg.service.js");
+            const res = await OpenEnterpriseFabricService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicmatrix_twzq_logic": {
+          try {
+            const { OpenNeuromorphicMatrixService } = await import("../liberty/openneuromorphicmatrix_twzq.service.js");
+            const res = await OpenNeuromorphicMatrixService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partynet_s0t1_logic": {
+          try {
+            const { OpenMultiPartyNetService } = await import("../liberty/openmulti-partynet_s0t1.service.js");
+            const res = await OpenMultiPartyNetService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticvault_mxh3_logic": {
+          try {
+            const { OpenStaticVaultService } = await import("../liberty/openstaticvault_mxh3.service.js");
+            const res = await OpenStaticVaultService.execute(args.target || "system");
+            return { output: `### OpenStaticVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticVault failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativeproxy_rcac_logic": {
           try {
             const { OpenCloudNativeProxyService } = await import("../liberty/opencloud-nativeproxy_rcac.service.js");
