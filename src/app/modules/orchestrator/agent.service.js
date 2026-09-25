@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendnode_chsd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNode) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryvault_daog_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryVault) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelfabric_o2q3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelFabric) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionallayer_1v5k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalLayer) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-serieslayer_fp3s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesLayer) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfvortex_xapj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFVortex) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28132,6 +28172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendnode_chsd_logic": {
+          try {
+            const { OpenMicroFrontendNodeService } = await import("../liberty/openmicro-frontendnode_chsd.service.js");
+            const res = await OpenMicroFrontendNodeService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryvault_daog_logic": {
+          try {
+            const { OpenInMemoryVaultService } = await import("../liberty/openin-memoryvault_daog.service.js");
+            const res = await OpenInMemoryVaultService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelfabric_o2q3_logic": {
+          try {
+            const { OpenMicroKernelFabricService } = await import("../liberty/openmicro-kernelfabric_o2q3.service.js");
+            const res = await OpenMicroKernelFabricService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionallayer_1v5k_logic": {
+          try {
+            const { OpenHyperDimensionalLayerService } = await import("../liberty/openhyper-dimensionallayer_1v5k.service.js");
+            const res = await OpenHyperDimensionalLayerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-serieslayer_fp3s_logic": {
+          try {
+            const { OpenTimeSeriesLayerService } = await import("../liberty/opentime-serieslayer_fp3s.service.js");
+            const res = await OpenTimeSeriesLayerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfvortex_xapj_logic": {
           try {
             const { OpeneBPFVortexService } = await import("../liberty/openebpfvortex_xapj.service.js");
