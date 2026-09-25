@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgeswarm_a59q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeSwarm) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractfabric_1mo8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractFabric) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalfabric_pyeb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalFabric) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatarouter_a9io_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataRouter) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpunode_45dl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUNode) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosdaemon_xy9x_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosDaemon) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28412,6 +28452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgeswarm_a59q_logic": {
+          try {
+            const { OpenZeroKnowledgeSwarmService } = await import("../liberty/openzero-knowledgeswarm_a59q.service.js");
+            const res = await OpenZeroKnowledgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractfabric_1mo8_logic": {
+          try {
+            const { OpenAbstractFabricService } = await import("../liberty/openabstractfabric_1mo8.service.js");
+            const res = await OpenAbstractFabricService.execute(args.target || "system");
+            return { output: `### OpenAbstractFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalfabric_pyeb_logic": {
+          try {
+            const { OpenHyperDimensionalFabricService } = await import("../liberty/openhyper-dimensionalfabric_pyeb.service.js");
+            const res = await OpenHyperDimensionalFabricService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatarouter_a9io_logic": {
+          try {
+            const { OpenDataRouterService } = await import("../liberty/opendatarouter_a9io.service.js");
+            const res = await OpenDataRouterService.execute(args.target || "system");
+            return { output: `### OpenDataRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpunode_45dl_logic": {
+          try {
+            const { OpenGPUNodeService } = await import("../liberty/opengpunode_45dl.service.js");
+            const res = await OpenGPUNodeService.execute(args.target || "system");
+            return { output: `### OpenGPUNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUNode failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosdaemon_xy9x_logic": {
           try {
             const { OpenChaosDaemonService } = await import("../liberty/openchaosdaemon_xy9x.service.js");
