@@ -1235,67 +1235,139 @@ export const InferenceGateway = {
    * Upload dataset or fine-tuning file (POST /files & POST /v1/files)
    * Official Reference: https://docs.together.ai/reference/files
    */
+  /**
+   * Upload dataset or fine-tuning file (POST /files, POST /v1/files, POST /files/upload, POST /v1/files/upload)
+   * Official Reference: https://docs.together.ai/reference/upload-file & https://docs.together.ai/reference/files
+   */
   async handleUploadFile(req, res) {
     try {
-      const file = req.file || req.body?.file || req.body?.filePath;
-      const purpose = req.body?.purpose || 'fine-tune';
+      const file = req.file || req.body?.file || req.body?.filePath || req.body?.file_path;
+      const purpose = req.body?.purpose || req.query?.purpose || 'fine-tune';
+      const fileName = req.body?.file_name || req.body?.filename || req.file?.originalname;
+      const fileType = req.body?.file_type || req.body?.fileType;
+
       if (!file) {
-        return res.status(400).json({ error: { message: 'No file provided for upload.' } });
+        return res.status(400).json({
+          error: {
+            message: 'No file provided for upload. Provide file in multipart form-data or path in request body.',
+            type: 'invalid_request_error',
+            param: 'file',
+          },
+        });
       }
-      const data = await llmUploadFile(file, { purpose, filename: req.file?.originalname });
+      const data = await llmUploadFile(file, { purpose, filename: fileName, file_name: fileName, file_type: fileType });
       return res.status(200).json(data);
     } catch (error) {
       logger.error('[Inference Gateway] File upload failed:', error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        error: {
+          message: error.message || 'File upload failed.',
+          type: 'api_error',
+        },
+      });
     }
   },
 
   /**
    * Lists uploaded files (GET /files & GET /v1/files)
+   * Official Reference: https://docs.together.ai/reference/get-files
    */
   async handleListFiles(req, res) {
     try {
       const data = await llmListFiles(req.query);
       return res.status(200).json(data);
     } catch (error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error listing files.',
+          type: 'api_error',
+        },
+      });
     }
   },
 
   /**
    * Retrieves file metadata (GET /files/:id & GET /v1/files/:id)
+   * Official Reference: https://docs.together.ai/reference/get-files-id
    */
   async handleGetFile(req, res) {
+    const fileId = req.params?.id;
+    if (!fileId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
     try {
-      const data = await llmGetFile(req.params.id);
+      const data = await llmGetFile(fileId);
       return res.status(200).json(data);
     } catch (error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Failed to retrieve file metadata.',
+          type: 'api_error',
+        },
+      });
     }
   },
 
   /**
    * Deletes uploaded file (DELETE /files/:id & DELETE /v1/files/:id)
+   * Official Reference: https://docs.together.ai/reference/delete-files-id
    */
   async handleDeleteFile(req, res) {
+    const fileId = req.params?.id;
+    if (!fileId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
     try {
-      const data = await llmDeleteFile(req.params.id);
+      const data = await llmDeleteFile(fileId);
       return res.status(200).json(data);
     } catch (error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Failed to delete file.',
+          type: 'api_error',
+        },
+      });
     }
   },
 
   /**
    * Retrieves file content (GET /files/:id/content & GET /v1/files/:id/content)
+   * Official Reference: https://docs.together.ai/reference/get-files-id-content
    */
   async handleGetFileContent(req, res) {
+    const fileId = req.params?.id;
+    if (!fileId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
     try {
-      const data = await llmGetFileContent(req.params.id);
+      const data = await llmGetFileContent(fileId);
       res.setHeader('Content-Type', 'text/plain');
       return res.send(typeof data === 'string' ? data : JSON.stringify(data));
     } catch (error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Failed to retrieve file content.',
+          type: 'api_error',
+        },
+      });
     }
   },
 

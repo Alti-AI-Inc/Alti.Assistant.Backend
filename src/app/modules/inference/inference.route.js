@@ -167,13 +167,12 @@ router.post('/v1/rerank', async (req, res) => {
   await InferenceGateway.handleRerank(req, res);
 });
 
-// ── Files (Official: https://docs.together.ai/reference/files) ──────────────
-router.post('/files', datasetUploader.single('file'), async (req, res) => {
-  await InferenceGateway.handleUploadFile(req, res);
-});
-
-router.post('/v1/files', datasetUploader.single('file'), async (req, res) => {
-  await InferenceGateway.handleUploadFile(req, res);
+// ── Files (Official: https://docs.together.ai/reference/files & https://docs.together.ai/reference/upload-file)
+const uploadFileRoutes = ['/files', '/v1/files', '/files/upload', '/v1/files/upload'];
+uploadFileRoutes.forEach((path) => {
+  router.post(path, datasetUploader.single('file'), async (req, res) => {
+    await InferenceGateway.handleUploadFile(req, res);
+  });
 });
 
 router.get('/files', async (req, res) => {
