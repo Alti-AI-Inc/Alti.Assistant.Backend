@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterstream_2tpp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterStream) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendvault_242q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendVault) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedrouter_5wsm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedRouter) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepengine_3ca3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepEngine) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalcontroller_4rv2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalController) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openloglayer_od6k_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenLogLayer) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25932,6 +25972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterstream_2tpp_logic": {
+          try {
+            const { OpenCrossClusterStreamService } = await import("../liberty/opencross-clusterstream_2tpp.service.js");
+            const res = await OpenCrossClusterStreamService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendvault_242q_logic": {
+          try {
+            const { OpenMicroFrontendVaultService } = await import("../liberty/openmicro-frontendvault_242q.service.js");
+            const res = await OpenMicroFrontendVaultService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedrouter_5wsm_logic": {
+          try {
+            const { OpenAdvancedRouterService } = await import("../liberty/openadvancedrouter_5wsm.service.js");
+            const res = await OpenAdvancedRouterService.execute(args.target || "system");
+            return { output: `### OpenAdvancedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepengine_3ca3_logic": {
+          try {
+            const { OpenDeepEngineService } = await import("../liberty/opendeepengine_3ca3.service.js");
+            const res = await OpenDeepEngineService.execute(args.target || "system");
+            return { output: `### OpenDeepEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalcontroller_4rv2_logic": {
+          try {
+            const { OpenHyperDimensionalControllerService } = await import("../liberty/openhyper-dimensionalcontroller_4rv2.service.js");
+            const res = await OpenHyperDimensionalControllerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalController failed: ${err.message}` };
+          }
+        }
         case "execute_openloglayer_od6k_logic": {
           try {
             const { OpenLogLayerService } = await import("../liberty/openloglayer_od6k.service.js");
