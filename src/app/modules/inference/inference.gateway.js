@@ -45,6 +45,8 @@ import {
   llmCreateEval,
   llmListEvals,
   llmGetEval,
+  llmGetEvalStatus,
+  llmListEvalModels,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -1627,8 +1629,8 @@ export const InferenceGateway = {
   },
 
   /**
-   * Creates evaluation (POST /evaluations & POST /v1/evaluations)
-   * Official Reference: https://docs.together.ai/reference/evals
+   * Creates evaluation job (POST /evaluation, POST /evaluations & aliases)
+   * Official Reference: https://docs.together.ai/reference/create-evaluation
    */
   async handleCreateEval(req, res) {
     try {
@@ -1640,7 +1642,8 @@ export const InferenceGateway = {
   },
 
   /**
-   * Lists evaluations (GET /evaluations & GET /v1/evaluations)
+   * Lists all evaluation jobs (GET /evaluation, GET /evaluations & aliases)
+   * Official Reference: https://docs.together.ai/reference/list-evaluations
    */
   async handleListEvals(req, res) {
     try {
@@ -1652,11 +1655,58 @@ export const InferenceGateway = {
   },
 
   /**
-   * Retrieves evaluation details (GET /evaluations/:id & GET /v1/evaluations/:id)
+   * Lists evaluation models (GET /evaluation/model-list, GET /evaluations/models & aliases)
+   * Official Reference: https://docs.together.ai/reference/list-evaluation-models
+   */
+  async handleListEvalModels(req, res) {
+    try {
+      const data = await llmListEvalModels(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves evaluation job details (GET /evaluation/:id, GET /evaluations/:id & aliases)
+   * Official Reference: https://docs.together.ai/reference/get-evaluation
    */
   async handleGetEval(req, res) {
+    const evalId = req.params?.id;
+    if (!evalId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
     try {
-      const data = await llmGetEval(req.params.id);
+      const data = await llmGetEval(evalId);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves evaluation job status and results (GET /evaluation/:id/status, GET /evaluations/:id/status & aliases)
+   * Official Reference: https://docs.together.ai/reference/get-evaluation-status
+   */
+  async handleGetEvalStatus(req, res) {
+    const evalId = req.params?.id;
+    if (!evalId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
+    try {
+      const data = await llmGetEvalStatus(evalId);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });

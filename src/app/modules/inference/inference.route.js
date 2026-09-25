@@ -436,52 +436,68 @@ router.delete('/v1/endpoints/:id', async (req, res) => {
 });
 
 // ── Evaluations (Official: https://docs.together.ai/reference/evals) ────────
-router.post('/evaluations', async (req, res) => {
-  await InferenceGateway.handleCreateEval(req, res);
+// 1. Create evaluation job (POST /evaluation, POST /evaluations, POST /evals & /v1/ aliases)
+const createEvalRoutes = ['/evaluation', '/v1/evaluation', '/evaluations', '/v1/evaluations', '/evals', '/v1/evals'];
+createEvalRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleCreateEval(req, res);
+  });
 });
 
-router.post('/v1/evaluations', async (req, res) => {
-  await InferenceGateway.handleCreateEval(req, res);
+// 2. List evaluation models (GET /evaluation/model-list, GET /evaluations/models & aliases)
+// Must be registered before /:id routes so 'models' and 'model-list' are not matched as IDs
+const evalModelsRoutes = [
+  '/evaluation/model-list',
+  '/v1/evaluation/model-list',
+  '/evaluation/models',
+  '/v1/evaluation/models',
+  '/evaluations/models',
+  '/v1/evaluations/models',
+  '/evals/models',
+  '/v1/evals/models',
+];
+evalModelsRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleListEvalModels(req, res);
+  });
 });
 
-router.post('/evals', async (req, res) => {
-  await InferenceGateway.handleCreateEval(req, res);
+// 3. List all evaluation jobs (GET /evaluation, GET /evaluations, GET /evals & /v1/ aliases)
+const listEvalRoutes = ['/evaluation', '/v1/evaluation', '/evaluations', '/v1/evaluations', '/evals', '/v1/evals'];
+listEvalRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleListEvals(req, res);
+  });
 });
 
-router.post('/v1/evals', async (req, res) => {
-  await InferenceGateway.handleCreateEval(req, res);
+// 4. Get evaluation job status (GET /evaluation/:id/status, GET /evaluations/:id/status & aliases)
+const evalStatusRoutes = [
+  '/evaluation/:id/status',
+  '/v1/evaluation/:id/status',
+  '/evaluations/:id/status',
+  '/v1/evaluations/:id/status',
+  '/evals/:id/status',
+  '/v1/evals/:id/status',
+];
+evalStatusRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetEvalStatus(req, res);
+  });
 });
 
-router.get('/evaluations', async (req, res) => {
-  await InferenceGateway.handleListEvals(req, res);
-});
-
-router.get('/v1/evaluations', async (req, res) => {
-  await InferenceGateway.handleListEvals(req, res);
-});
-
-router.get('/evals', async (req, res) => {
-  await InferenceGateway.handleListEvals(req, res);
-});
-
-router.get('/v1/evals', async (req, res) => {
-  await InferenceGateway.handleListEvals(req, res);
-});
-
-router.get('/evaluations/:id', async (req, res) => {
-  await InferenceGateway.handleGetEval(req, res);
-});
-
-router.get('/v1/evaluations/:id', async (req, res) => {
-  await InferenceGateway.handleGetEval(req, res);
-});
-
-router.get('/evals/:id', async (req, res) => {
-  await InferenceGateway.handleGetEval(req, res);
-});
-
-router.get('/v1/evals/:id', async (req, res) => {
-  await InferenceGateway.handleGetEval(req, res);
+// 5. Get evaluation job details (GET /evaluation/:id, GET /evaluations/:id & aliases)
+const getEvalRoutes = [
+  '/evaluation/:id',
+  '/v1/evaluation/:id',
+  '/evaluations/:id',
+  '/v1/evaluations/:id',
+  '/evals/:id',
+  '/v1/evals/:id',
+];
+getEvalRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetEval(req, res);
+  });
 });
 
 
