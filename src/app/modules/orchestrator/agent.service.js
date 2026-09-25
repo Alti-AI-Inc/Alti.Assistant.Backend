@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openlogrouter_955f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogRouter) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisestream_jx0b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseStream) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedswarm_jhj5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedSwarm) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumplane_aww0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumPlane) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedoracle_zk4y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedOracle) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partygraph_tmum_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyGraph) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24772,6 +24812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openlogrouter_955f_logic": {
+          try {
+            const { OpenLogRouterService } = await import("../liberty/openlogrouter_955f.service.js");
+            const res = await OpenLogRouterService.execute(args.target || "system");
+            return { output: `### OpenLogRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisestream_jx0b_logic": {
+          try {
+            const { OpenEnterpriseStreamService } = await import("../liberty/openenterprisestream_jx0b.service.js");
+            const res = await OpenEnterpriseStreamService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedswarm_jhj5_logic": {
+          try {
+            const { OpenAutomatedSwarmService } = await import("../liberty/openautomatedswarm_jhj5.service.js");
+            const res = await OpenAutomatedSwarmService.execute(args.target || "system");
+            return { output: `### OpenAutomatedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumplane_aww0_logic": {
+          try {
+            const { OpenQuantumPlaneService } = await import("../liberty/openquantumplane_aww0.service.js");
+            const res = await OpenQuantumPlaneService.execute(args.target || "system");
+            return { output: `### OpenQuantumPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedoracle_zk4y_logic": {
+          try {
+            const { OpenAutomatedOracleService } = await import("../liberty/openautomatedoracle_zk4y.service.js");
+            const res = await OpenAutomatedOracleService.execute(args.target || "system");
+            return { output: `### OpenAutomatedOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partygraph_tmum_logic": {
           try {
             const { OpenMultiPartyGraphService } = await import("../liberty/openmulti-partygraph_tmum.service.js");
