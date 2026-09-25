@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgematrix_o4jy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeMatrix) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisedaemon_sohy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseDaemon) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontenddaemon_x182_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendDaemon) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicnode_pwlp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNode) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partymesh_5fo2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyMesh) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticcore_npv0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticCore) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25852,6 +25892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgematrix_o4jy_logic": {
+          try {
+            const { OpenEdgeMatrixService } = await import("../liberty/openedgematrix_o4jy.service.js");
+            const res = await OpenEdgeMatrixService.execute(args.target || "system");
+            return { output: `### OpenEdgeMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisedaemon_sohy_logic": {
+          try {
+            const { OpenEnterpriseDaemonService } = await import("../liberty/openenterprisedaemon_sohy.service.js");
+            const res = await OpenEnterpriseDaemonService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontenddaemon_x182_logic": {
+          try {
+            const { OpenMicroFrontendDaemonService } = await import("../liberty/openmicro-frontenddaemon_x182.service.js");
+            const res = await OpenMicroFrontendDaemonService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicnode_pwlp_logic": {
+          try {
+            const { OpenHomomorphicNodeService } = await import("../liberty/openhomomorphicnode_pwlp.service.js");
+            const res = await OpenHomomorphicNodeService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partymesh_5fo2_logic": {
+          try {
+            const { OpenMultiPartyMeshService } = await import("../liberty/openmulti-partymesh_5fo2.service.js");
+            const res = await OpenMultiPartyMeshService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticcore_npv0_logic": {
           try {
             const { OpenStaticCoreService } = await import("../liberty/openstaticcore_npv0.service.js");
