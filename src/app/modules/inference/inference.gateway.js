@@ -1086,17 +1086,36 @@ export const InferenceGateway = {
    * Official Reference: https://docs.together.ai/reference/rerank
    */
   async handleRerank(req, res) {
-    const { query, documents, model, top_n, return_documents } = req.body || {};
+    const {
+      query,
+      documents,
+      model,
+      top_n,
+      topN,
+      return_documents,
+      returnDocuments,
+      rank_fields,
+      rankFields,
+    } = req.body || {};
+
     if (!query || !documents) {
       return res.status(400).json({
         error: {
           message: "Parameters 'query' and 'documents' are required.",
           type: 'invalid_request_error',
+          param: !query ? 'query' : 'documents',
+          code: 'missing_parameter',
         },
       });
     }
+
     try {
-      const data = await llmRerank(query, documents, { model, topN: top_n, returnDocuments: return_documents });
+      const data = await llmRerank(query, documents, {
+        model,
+        top_n: top_n ?? topN,
+        return_documents: return_documents ?? returnDocuments,
+        rank_fields: rank_fields ?? rankFields,
+      });
       return res.status(200).json(data);
     } catch (error) {
       logger.error('[Inference Gateway] Rerank error:', error);

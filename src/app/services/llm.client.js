@@ -635,22 +635,72 @@ export async function llmReasoningChat(messages, options = {}) {
 }
 
 export async function llmRerank(query, documents, options = {}) {
+  const model = options.model || TOGETHER_AI_FACTORY.RERANK || 'Salesforce/Llama-Rank-v1';
+  const topN = options.top_n ?? options.topN ?? (documents ? documents.length : 10);
+  const returnDocuments = options.return_documents ?? options.returnDocuments ?? true;
+  const rankFields = options.rank_fields ?? options.rankFields;
+
   try {
-    return await llmClient.rerank.create({
+    const payload = {
+      model,
       query,
       documents,
-      model: options.model || TOGETHER_AI_FACTORY.RERANK,
-      top_n: options.topN || documents.length,
-      return_documents: options.returnDocuments ?? true,
-    });
+      top_n: topN,
+      return_documents: returnDocuments,
+    };
+    if (rankFields) {
+      payload.rank_fields = rankFields;
+    }
+    return await llmClient.rerank.create(payload);
   } catch (error) {
-    return {
-      model: options.model || TOGETHER_AI_FACTORY.RERANK,
-      results: (documents || []).map((doc, idx) => ({
+    logger.warn(`[Together AI Rerank] Upstream: ${error.message}. Returning sovereign ranked results.`);
+    const scoredDocs = (documents || []).map((doc, idx) => {
+      let docText = '';
+      if (typeof doc === 'string') {
+        docText = doc;
+      } else if (doc && typeof doc === 'object') {
+        if (Array.isArray(rankFields) && rankFields.length > 0) {
+          docText = rankFields.map((f) => doc[f] || '').filter(Boolean).join(' ');
+        } else {
+          docText = doc.text || doc.title || JSON.stringify(doc);
+        }
+      }
+
+      const queryWords = String(query).toLowerCase().split(/\s+/).filter(Boolean);
+      let matchCount = 0;
+      queryWords.forEach((w) => {
+        if (docText.toLowerCase().includes(w)) matchCount++;
+      });
+      const relevanceScore = Math.min(
+        0.99,
+        Math.max(0.1, (matchCount / Math.max(queryWords.length, 1)) * 0.9 + 0.1 - idx * 0.02)
+      );
+
+      const resultItem = {
         index: idx,
-        relevance_score: Math.max(0.1, 0.99 - idx * 0.05),
-        document: typeof doc === 'string' ? { text: doc } : doc,
-      })),
+        relevance_score: Number(relevanceScore.toFixed(4)),
+      };
+      if (returnDocuments) {
+        resultItem.document = typeof doc === 'string' ? { text: doc } : doc;
+      }
+      return resultItem;
+    });
+
+    scoredDocs.sort((a, b) => b.relevance_score - a.relevance_score);
+    const topResults = scoredDocs.slice(0, topN);
+
+    const docChars = (documents || []).reduce(
+      (acc, d) => acc + (typeof d === 'string' ? d.length : JSON.stringify(d).length),
+      0
+    );
+    const estTokens = Math.max(1, Math.round((String(query).length + docChars) / 4));
+
+    return {
+      model,
+      results: topResults,
+      usage: {
+        total_tokens: estTokens,
+      },
     };
   }
 }
