@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhigh-frequencystream_irut_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyStream) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpunode_o0tp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUNode) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicstream_zaa7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicStream) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedmatrix_l6zm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedMatrix) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepring_a5t4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepRing) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicpipeline_cvwb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicPipeline) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28572,6 +28612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhigh-frequencystream_irut_logic": {
+          try {
+            const { OpenHighFrequencyStreamService } = await import("../liberty/openhigh-frequencystream_irut.service.js");
+            const res = await OpenHighFrequencyStreamService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpunode_o0tp_logic": {
+          try {
+            const { OpenGPUNodeService } = await import("../liberty/opengpunode_o0tp.service.js");
+            const res = await OpenGPUNodeService.execute(args.target || "system");
+            return { output: `### OpenGPUNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicstream_zaa7_logic": {
+          try {
+            const { OpenHomomorphicStreamService } = await import("../liberty/openhomomorphicstream_zaa7.service.js");
+            const res = await OpenHomomorphicStreamService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedmatrix_l6zm_logic": {
+          try {
+            const { OpenAutomatedMatrixService } = await import("../liberty/openautomatedmatrix_l6zm.service.js");
+            const res = await OpenAutomatedMatrixService.execute(args.target || "system");
+            return { output: `### OpenAutomatedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepring_a5t4_logic": {
+          try {
+            const { OpenDeepRingService } = await import("../liberty/opendeepring_a5t4.service.js");
+            const res = await OpenDeepRingService.execute(args.target || "system");
+            return { output: `### OpenDeepRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepRing failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicpipeline_cvwb_logic": {
           try {
             const { OpenHomomorphicPipelineService } = await import("../liberty/openhomomorphicpipeline_cvwb.service.js");
