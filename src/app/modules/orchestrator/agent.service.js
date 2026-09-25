@@ -5232,6 +5232,10 @@ export const runDebateSwarm = async (prompt) => {
   return await DebateSwarmAgent.executeDebate(prompt);
 };
 
+export const executeWasmBinary = async (wasmBuffer) => {
+  const { WasmEngineAgent } = await import("../ai/agents/wasm_engine.agent.js");
+  return await WasmEngineAgent.executeSandboxedWasm(wasmBuffer);
+};
 export const runCodeInterpreter = async (datasetUrl, instructions) => {
   const { CodeInterpreterAgent } = await import('../ai/agents/code_interpreter.agent.js');
   return await CodeInterpreterAgent.executePythonDataAnalysis(datasetUrl, instructions);
