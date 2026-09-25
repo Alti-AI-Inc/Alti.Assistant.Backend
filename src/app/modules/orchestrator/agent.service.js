@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarymatrix_0rqa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryMatrix) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpforacle_p8c3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFOracle) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partybroker_x1a6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyBroker) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticring_z4nl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticRing) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicvault_5mse_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicVault) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendvortex_xh88_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendVortex) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23332,6 +23372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarymatrix_0rqa_logic": {
+          try {
+            const { OpenPlanetaryMatrixService } = await import("../liberty/openplanetarymatrix_0rqa.service.js");
+            const res = await OpenPlanetaryMatrixService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpforacle_p8c3_logic": {
+          try {
+            const { OpeneBPFOracleService } = await import("../liberty/openebpforacle_p8c3.service.js");
+            const res = await OpeneBPFOracleService.execute(args.target || "system");
+            return { output: `### OpeneBPFOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partybroker_x1a6_logic": {
+          try {
+            const { OpenMultiPartyBrokerService } = await import("../liberty/openmulti-partybroker_x1a6.service.js");
+            const res = await OpenMultiPartyBrokerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticring_z4nl_logic": {
+          try {
+            const { OpenSemanticRingService } = await import("../liberty/opensemanticring_z4nl.service.js");
+            const res = await OpenSemanticRingService.execute(args.target || "system");
+            return { output: `### OpenSemanticRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicvault_5mse_logic": {
+          try {
+            const { OpenHomomorphicVaultService } = await import("../liberty/openhomomorphicvault_5mse.service.js");
+            const res = await OpenHomomorphicVaultService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicVault failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendvortex_xh88_logic": {
           try {
             const { OpenMicroFrontendVortexService } = await import("../liberty/openmicro-frontendvortex_xh88.service.js");
