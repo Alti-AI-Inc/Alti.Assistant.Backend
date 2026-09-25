@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partynode_dlsn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyNode) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycore_v8vy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyCore) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorgrid_39ns_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorGrid) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterpriseoracle_9q7y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseOracle) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosplane_z06h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosPlane) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendatavortex_h5pe_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataVortex) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24172,6 +24212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partynode_dlsn_logic": {
+          try {
+            const { OpenMultiPartyNodeService } = await import("../liberty/openmulti-partynode_dlsn.service.js");
+            const res = await OpenMultiPartyNodeService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycore_v8vy_logic": {
+          try {
+            const { OpenHighFrequencyCoreService } = await import("../liberty/openhigh-frequencycore_v8vy.service.js");
+            const res = await OpenHighFrequencyCoreService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorgrid_39ns_logic": {
+          try {
+            const { OpenVectorGridService } = await import("../liberty/openvectorgrid_39ns.service.js");
+            const res = await OpenVectorGridService.execute(args.target || "system");
+            return { output: `### OpenVectorGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterpriseoracle_9q7y_logic": {
+          try {
+            const { OpenEnterpriseOracleService } = await import("../liberty/openenterpriseoracle_9q7y.service.js");
+            const res = await OpenEnterpriseOracleService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosplane_z06h_logic": {
+          try {
+            const { OpenChaosPlaneService } = await import("../liberty/openchaosplane_z06h.service.js");
+            const res = await OpenChaosPlaneService.execute(args.target || "system");
+            return { output: `### OpenChaosPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosPlane failed: ${err.message}` };
+          }
+        }
         case "execute_opendatavortex_h5pe_logic": {
           try {
             const { OpenDataVortexService } = await import("../liberty/opendatavortex_h5pe.service.js");
