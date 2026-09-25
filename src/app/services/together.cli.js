@@ -236,6 +236,17 @@ import {
   buildTTSWebSocketConfig,
   executeTTSSynthesis,
 } from './together.tts.js';
+import {
+  RERANK_MODELS_CATALOG,
+  EMBEDDING_MODELS_CATALOG,
+  getRerankOverview,
+  getEmbeddingsOverview,
+  validateRerankParams,
+  validateEmbeddingsParams,
+  executeRerank,
+  executeEmbeddings,
+  executeRagPipeline,
+} from './together.rerank.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -479,6 +490,8 @@ Standard Commands:
   vision, vis  Vision-language models, 560px tile tokens, URLs/base64, structured extraction, and function calling
   transcription, stt  Speech-to-text, streaming WebSocket, audio translation, VAD, and diarization
   tts, speech  Text-to-speech, streaming SSE, WebSocket API, Kokoro voice mixing, and synthesis
+  rerank       Reorder retrieved documents by relevance to query for sharper search & RAG
+  embeddings, embed  Compute dense vector embeddings for semantic search and retrieval
 
 Beta Commands (tg beta ...):
   models       DMI 2.0 custom models, weight uploads, and configs
@@ -492,7 +505,7 @@ Global Flags:
   --json           Format output as JSON
   --api-key <key>  Pass API key explicitly
 `.trim();
-    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'images', 'image', 'img', 'videos', 'video', 'vid', 'vision', 'vis', 'transcription', 'stt', 'tts', 'speech', 'beta'] };
+    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'images', 'image', 'img', 'videos', 'video', 'vid', 'vision', 'vis', 'transcription', 'stt', 'tts', 'speech', 'rerank', 'embeddings', 'embed', 'beta'] };
   }
 
   if (command === 'login' || command === 'init' || command === 'auth') {
@@ -2875,6 +2888,219 @@ ${result.words?.length ? `Word Timestamps: ${result.words.length} words aligned`
   throw new Error(`Unknown TTS command: ${action}. Use 'overview', 'streaming', 'websocket', 'validate', 'ws-config', or 'run'.`);
 }
 
+// ── Domain: Rerank & Semantic Reordering ─────────────────────────────────────
+async function handleRerank(parsed) {
+  const action = parsed.subcommand || 'overview';
+
+  if (action === 'overview' || action === 'docs' || action === 'list') {
+    const ov = getRerankOverview();
+    const text = `
+Together AI Rerank & Embeddings Overview:
+URL: ${ov.docs_url}
+Endpoint: ${ov.endpoint}
+Recommended Model: ${ov.recommended_model}
+Structured JSON Model: ${ov.structured_json_model}
+
+Rerank Models (${ov.models.length}):
+${ov.models.map(m => `  - ${m.id} [${m.type}] (Context: ${m.context_length}, Tier: ${m.latency_tier})`).join('\n')}
+
+Parameters Reference:
+${ov.parameters_reference.map(p => `  --${p.name}: ${p.description}`).join('\n')}
+`.trim();
+    return { ...ov, text };
+  }
+
+  if (action === 'validate') {
+    const model = parsed.flags.model || 'mixedbread-ai/mxbai-rerank-large-v2';
+    const query = parsed.flags.query || 'What animals can I find near Peru?';
+    let docs = [
+      'The giant panda is endemic to China.',
+      'The llama is a domesticated South American camelid widely used in Andean cultures.',
+      'The guanaco is a camelid native to South America.',
+    ];
+    if (parsed.flags.documents) {
+      docs = parsed.flags.documents.includes('|||')
+        ? parsed.flags.documents.split('|||').map(s => s.trim())
+        : [parsed.flags.documents];
+    }
+    const rankFields = parsed.flags.rank_fields
+      ? parsed.flags.rank_fields.split(',').map(s => s.trim())
+      : undefined;
+
+    const validation = validateRerankParams({
+      model,
+      query,
+      documents: docs,
+      top_n: parsed.flags.top_n || parsed.flags['top-n'] || parsed.flags.n,
+      rank_fields: rankFields,
+    });
+
+    const text = `
+Together AI Rerank Parameter Validation:
+Status: ${validation.valid ? 'VALID ✅' : 'INVALID ❌'}
+Model: ${validation.model}
+Document Count: ${validation.document_count}
+Top N: ${validation.top_n}
+Structured: ${validation.has_structured_documents}
+${validation.errors.length ? `Errors:\n${validation.errors.map(e => `  - ${e}`).join('\n')}` : ''}
+${validation.warnings.length ? `Warnings:\n${validation.warnings.map(w => `  - ${w}`).join('\n')}` : ''}
+`.trim();
+    return { ...validation, text };
+  }
+
+  if (action === 'run') {
+    const query = parsed.flags.query || parsed.args[0] || 'What animals can I find near Peru?';
+    const model = parsed.flags.model || 'mixedbread-ai/mxbai-rerank-large-v2';
+    const topN = parsed.flags.top_n || parsed.flags['top-n'] || parsed.flags.n || 2;
+    let docs = [
+      'The giant panda is a bear species endemic to China.',
+      'The llama is a domesticated South American camelid widely used in Andean cultures.',
+      'The wild Bactrian camel is endemic to Northwest China and southwestern Mongolia.',
+      'The guanaco is a camelid native to South America, closely related to the llama.',
+    ];
+    if (parsed.flags.documents) {
+      docs = parsed.flags.documents.includes('|||')
+        ? parsed.flags.documents.split('|||').map(s => s.trim())
+        : [parsed.flags.documents];
+    }
+    const rankFields = parsed.flags.rank_fields
+      ? parsed.flags.rank_fields.split(',').map(s => s.trim())
+      : undefined;
+    const dryRun = Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run || true);
+
+    const result = await executeRerank({
+      model,
+      query,
+      documents: docs,
+      top_n: topN,
+      rank_fields: rankFields,
+      dry_run: dryRun,
+    });
+
+    const text = `
+Together AI Rerank Result:
+Model: ${result.model}
+Query: "${result.query}"
+Dry Run: ${result.dry_run || false}
+Results (${(result.results || []).length} ranked):
+${(result.results || []).map((r, i) => `  [#${i + 1}] Index: ${r.index} | Score: ${r.relevance_score} | Text: "${r.document?.text || JSON.stringify(r.document)}"`).join('\n')}
+`.trim();
+    return { ...result, text };
+  }
+
+  if (action === 'rag' || action === 'rag-pipeline') {
+    const query = parsed.flags.query || parsed.args[0] || 'What animals can I find near Peru?';
+    const model = parsed.flags.model || 'mixedbread-ai/mxbai-rerank-large-v2';
+    const topN = parsed.flags.top_n || parsed.flags['top-n'] || parsed.flags.n || 2;
+    let candidates = [
+      'The giant panda is a bear species endemic to China.',
+      'The llama is a domesticated South American camelid widely used in Andean cultures.',
+      'The wild Bactrian camel is endemic to Northwest China.',
+      'The guanaco is a camelid native to South America.',
+    ];
+    if (parsed.flags.candidates || parsed.flags.documents) {
+      const src = parsed.flags.candidates || parsed.flags.documents;
+      candidates = src.includes('|||') ? src.split('|||').map(s => s.trim()) : [src];
+    }
+    const dryRun = Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run || true);
+
+    const pipeline = await executeRagPipeline({
+      query,
+      candidates,
+      model,
+      top_n: topN,
+      dry_run: dryRun,
+    });
+
+    const text = `
+Together AI Two-Stage RAG Pipeline:
+Query: "${pipeline.query}"
+Candidate Count: ${pipeline.candidate_count}
+Selected Count: ${pipeline.selected_count}
+Top Selected Context:
+${pipeline.top_documents.map((d, i) => `  ${i + 1}. [Score: ${d.relevance_score}] ${d.document?.text || JSON.stringify(d.document)}`).join('\n')}
+`.trim();
+    return { ...pipeline, text };
+  }
+
+  throw new Error(`Unknown rerank command: ${action}. Use 'overview', 'validate', 'run', or 'rag-pipeline'.`);
+}
+
+// ── Domain: Embeddings & Vector Representations ──────────────────────────────
+async function handleEmbeddings(parsed) {
+  const action = parsed.subcommand || 'overview';
+
+  if (action === 'overview' || action === 'docs' || action === 'list') {
+    const ov = getEmbeddingsOverview();
+    const text = `
+Together AI Embeddings Inference Overview:
+URL: ${ov.docs_url}
+Endpoint: ${ov.endpoint}
+Recommended Model: ${ov.recommended_model}
+
+Embedding Models (${ov.models.length}):
+${ov.models.map(m => `  - ${m.id} [${m.dimensions} dims, ${m.context_length} tokens] - ${m.recommended_for}`).join('\n')}
+
+Parameters:
+${ov.parameters_reference.map(p => `  --${p.name}: ${p.description}`).join('\n')}
+`.trim();
+    return { ...ov, text };
+  }
+
+  if (action === 'validate') {
+    const model = parsed.flags.model || 'BAAI/bge-large-en-v1.5';
+    const input = parsed.flags.input || parsed.args[0] || 'Sample input text';
+    const encodingFormat = parsed.flags.encoding_format || parsed.flags.format || 'float';
+    const dimensions = parsed.flags.dimensions || parsed.flags.dim;
+
+    const validation = validateEmbeddingsParams({
+      model,
+      input,
+      encoding_format: encodingFormat,
+      dimensions,
+    });
+
+    const text = `
+Together AI Embeddings Parameter Validation:
+Status: ${validation.valid ? 'VALID ✅' : 'INVALID ❌'}
+Model: ${validation.model}
+Encoding: ${validation.encoding_format}
+${validation.errors.length ? `Errors:\n${validation.errors.map(e => `  - ${e}`).join('\n')}` : ''}
+${validation.warnings.length ? `Warnings:\n${validation.warnings.map(w => `  - ${w}`).join('\n')}` : ''}
+`.trim();
+    return { ...validation, text };
+  }
+
+  if (action === 'run') {
+    const input = parsed.flags.input || parsed.args[0] || 'New York City';
+    const model = parsed.flags.model || 'BAAI/bge-large-en-v1.5';
+    const encodingFormat = parsed.flags.encoding_format || parsed.flags.format || 'float';
+    const dimensions = parsed.flags.dimensions || parsed.flags.dim;
+    const dryRun = Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run || true);
+
+    const result = await executeEmbeddings({
+      model,
+      input,
+      encoding_format: encodingFormat,
+      dimensions,
+      dry_run: dryRun,
+    });
+
+    const text = `
+Together AI Embeddings Result:
+Model: ${result.model}
+Object: ${result.object}
+Dry Run: ${result.dry_run || false}
+Vectors: ${(result.data || []).length} vectors generated
+Vector Dimensions: ${(result.data?.[0]?.embedding || []).length} dimensions
+Sample Vector: [${(result.data?.[0]?.embedding || []).slice(0, 5).join(', ')}...]
+`.trim();
+    return { ...result, text };
+  }
+
+  throw new Error(`Unknown embeddings command: ${action}. Use 'overview', 'validate', or 'run'.`);
+}
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -3021,6 +3247,15 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
         case 'text-to-speech':
           resultData = await handleTTS(parsed);
           domain = 'tts';
+          break;
+        case 'rerank':
+          resultData = await handleRerank(parsed);
+          domain = 'rerank';
+          break;
+        case 'embeddings':
+        case 'embed':
+          resultData = await handleEmbeddings(parsed);
+          domain = 'embeddings';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);

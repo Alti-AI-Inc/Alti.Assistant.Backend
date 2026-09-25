@@ -197,6 +197,16 @@ import {
   buildTTSWebSocketConfig,
   executeTTSSynthesis,
 } from '../../services/together.tts.js';
+import {
+  getRerankOverview,
+  getEmbeddingsOverview,
+  validateRerankParams,
+  validateEmbeddingsParams,
+  executeRerank,
+  executeEmbeddings,
+  executeRagPipeline,
+} from '../../services/together.rerank.js';
+
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -4075,6 +4085,102 @@ export const InferenceGateway = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error executing speech synthesis.' });
+    }
+  },
+
+  /**
+   * Retrieves Together AI Rerank Overview, Models, and Architecture Reference
+   * (GET /together/inference/embeddings/rerank, GET /v1/together/inference/embeddings/rerank)
+   */
+  async handleGetRerankOverview(req, res) {
+    try {
+      const data = getRerankOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving rerank overview.' });
+    }
+  },
+
+  /**
+   * Retrieves Together AI Embeddings Overview and Vector Catalog Reference
+   * (GET /together/inference/embeddings/overview, GET /v1/together/inference/embeddings/overview)
+   */
+  async handleGetEmbeddingsOverview(req, res) {
+    try {
+      const data = getEmbeddingsOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving embeddings overview.' });
+    }
+  },
+
+  /**
+   * Validates Reranking Parameters (Query, Documents, Rank Fields, Top N)
+   * (POST /together/inference/embeddings/rerank/validate, POST /v1/together/inference/embeddings/rerank/validate)
+   */
+  async handleValidateRerankParams(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = validateRerankParams(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating rerank parameters.' });
+    }
+  },
+
+  /**
+   * Validates Embeddings Parameters (Input, Model, Encoding Format)
+   * (POST /together/inference/embeddings/validate, POST /v1/together/inference/embeddings/validate)
+   */
+  async handleValidateEmbeddingsParams(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = validateEmbeddingsParams(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating embeddings parameters.' });
+    }
+  },
+
+  /**
+   * Re-ranks retrieved candidate documents by relevance score against query
+   * (POST /together/inference/embeddings/rerank/run, POST /v1/together/inference/embeddings/rerank/run)
+   */
+  async handleExecuteRerank(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await executeRerank(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing rerank.' });
+    }
+  },
+
+  /**
+   * Computes dense vector embeddings for input text(s)
+   * (POST /together/inference/embeddings/run, POST /v1/together/inference/embeddings/run)
+   */
+  async handleExecuteEmbeddings(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await executeEmbeddings(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing embeddings.' });
+    }
+  },
+
+  /**
+   * Executes end-to-end two-stage RAG pipeline (Retrieval candidates + Cross-encoder rerank)
+   * (POST /together/inference/embeddings/rerank/rag-pipeline, POST /v1/together/inference/embeddings/rerank/rag-pipeline)
+   */
+  async handleExecuteRagPipeline(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await executeRagPipeline(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing RAG pipeline.' });
     }
   },
 };

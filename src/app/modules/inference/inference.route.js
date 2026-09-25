@@ -2072,6 +2072,113 @@ ttsSynthesizeRoutes.forEach((path) => {
   });
 });
 
+// ── Together AI Rerank & Embeddings Inference Suite Routes ───────────────────
+
+// 1. Rerank Overview
+const rerankOverviewRoutes = [
+  '/together/inference/embeddings/rerank',
+  '/v1/together/inference/embeddings/rerank',
+  '/inference/embeddings/rerank',
+  '/v1/inference/embeddings/rerank',
+  '/together/rerank',
+  '/v1/rerank',
+];
+rerankOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetRerankOverview(req, res);
+  });
+});
+
+// 2. Embeddings Overview
+const embeddingsOverviewRoutes = [
+  '/together/inference/embeddings/overview',
+  '/v1/together/inference/embeddings/overview',
+  '/inference/embeddings/overview',
+  '/v1/inference/embeddings/overview',
+  '/together/embeddings',
+  '/v1/embeddings',
+];
+embeddingsOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetEmbeddingsOverview(req, res);
+  });
+});
+
+// 3. Validate Rerank Parameters
+const rerankValidateRoutes = [
+  '/together/inference/embeddings/rerank/validate',
+  '/v1/together/inference/embeddings/rerank/validate',
+  '/inference/embeddings/rerank/validate',
+  '/v1/inference/embeddings/rerank/validate',
+  '/together/rerank/validate',
+  '/v1/rerank/validate',
+];
+rerankValidateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateRerankParams(req, res);
+  });
+});
+
+// 4. Validate Embeddings Parameters
+const embeddingsValidateRoutes = [
+  '/together/inference/embeddings/validate',
+  '/v1/together/inference/embeddings/validate',
+  '/inference/embeddings/validate',
+  '/v1/inference/embeddings/validate',
+  '/together/embeddings/validate',
+  '/v1/embeddings/validate',
+];
+embeddingsValidateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateEmbeddingsParams(req, res);
+  });
+});
+
+// 5. Execute Rerank
+const rerankRunRoutes = [
+  '/together/inference/embeddings/rerank/run',
+  '/v1/together/inference/embeddings/rerank/run',
+  '/inference/embeddings/rerank/run',
+  '/v1/inference/embeddings/rerank/run',
+  '/together/rerank/run',
+  '/v1/rerank/run',
+];
+rerankRunRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteRerank(req, res);
+  });
+});
+
+// 6. Execute Embeddings
+const embeddingsRunRoutes = [
+  '/together/inference/embeddings/run',
+  '/v1/together/inference/embeddings/run',
+  '/inference/embeddings/run',
+  '/v1/inference/embeddings/run',
+  '/together/embeddings/run',
+  '/v1/embeddings/run',
+];
+embeddingsRunRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteEmbeddings(req, res);
+  });
+});
+
+// 7. Execute Two-Stage RAG Pipeline
+const ragPipelineRoutes = [
+  '/together/inference/embeddings/rerank/rag-pipeline',
+  '/v1/together/inference/embeddings/rerank/rag-pipeline',
+  '/inference/embeddings/rerank/rag-pipeline',
+  '/v1/inference/embeddings/rerank/rag-pipeline',
+  '/together/rerank/rag-pipeline',
+  '/v1/rerank/rag-pipeline',
+];
+ragPipelineRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteRagPipeline(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');
