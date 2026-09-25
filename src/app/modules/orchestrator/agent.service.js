@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizednode_zgsg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNode) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfplane_ptcf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFPlane) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustpipeline_khzt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustPipeline) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarystream_i4j6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryStream) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicbroker_e93k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicBroker) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgenet_ebmr_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeNet) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22652,6 +22692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizednode_zgsg_logic": {
+          try {
+            const { OpenDecentralizedNodeService } = await import("../liberty/opendecentralizednode_zgsg.service.js");
+            const res = await OpenDecentralizedNodeService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfplane_ptcf_logic": {
+          try {
+            const { OpeneBPFPlaneService } = await import("../liberty/openebpfplane_ptcf.service.js");
+            const res = await OpeneBPFPlaneService.execute(args.target || "system");
+            return { output: `### OpeneBPFPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustpipeline_khzt_logic": {
+          try {
+            const { OpenZeroTrustPipelineService } = await import("../liberty/openzero-trustpipeline_khzt.service.js");
+            const res = await OpenZeroTrustPipelineService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarystream_i4j6_logic": {
+          try {
+            const { OpenPlanetaryStreamService } = await import("../liberty/openplanetarystream_i4j6.service.js");
+            const res = await OpenPlanetaryStreamService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicbroker_e93k_logic": {
+          try {
+            const { OpenNeuromorphicBrokerService } = await import("../liberty/openneuromorphicbroker_e93k.service.js");
+            const res = await OpenNeuromorphicBrokerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicBroker failed: ${err.message}` };
+          }
+        }
         case "execute_openedgenet_ebmr_logic": {
           try {
             const { OpenEdgeNetService } = await import("../liberty/openedgenet_ebmr.service.js");
