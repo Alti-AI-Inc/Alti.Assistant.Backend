@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondledger_iqku_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondLedger) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustgrid_q9xm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustGrid) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorsync_kdpd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorSync) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractswarm_ok9h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractSwarm) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticbroker_ut9s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticBroker) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgechain_c8t1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeChain) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25572,6 +25612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondledger_iqku_logic": {
+          try {
+            const { OpenSubMillisecondLedgerService } = await import("../liberty/opensub-millisecondledger_iqku.service.js");
+            const res = await OpenSubMillisecondLedgerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustgrid_q9xm_logic": {
+          try {
+            const { OpenZeroTrustGridService } = await import("../liberty/openzero-trustgrid_q9xm.service.js");
+            const res = await OpenZeroTrustGridService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorsync_kdpd_logic": {
+          try {
+            const { OpenVectorSyncService } = await import("../liberty/openvectorsync_kdpd.service.js");
+            const res = await OpenVectorSyncService.execute(args.target || "system");
+            return { output: `### OpenVectorSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractswarm_ok9h_logic": {
+          try {
+            const { OpenAbstractSwarmService } = await import("../liberty/openabstractswarm_ok9h.service.js");
+            const res = await OpenAbstractSwarmService.execute(args.target || "system");
+            return { output: `### OpenAbstractSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticbroker_ut9s_logic": {
+          try {
+            const { OpenSemanticBrokerService } = await import("../liberty/opensemanticbroker_ut9s.service.js");
+            const res = await OpenSemanticBrokerService.execute(args.target || "system");
+            return { output: `### OpenSemanticBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticBroker failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgechain_c8t1_logic": {
           try {
             const { OpenZeroKnowledgeChainService } = await import("../liberty/openzero-knowledgechain_c8t1.service.js");
