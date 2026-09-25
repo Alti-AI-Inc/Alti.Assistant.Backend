@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "extract_ocr_document", description: "Use the Aphura OCR Engine (Tesseract.js, 34k stars, Apache 2.0) to parse text, line items, and numbers from scanned physical receipts, IDs, and invoices locally with zero data egress. Replaces IBM Datacap and Azure Document Intelligence.", parameters: { type: "object", properties: { imagePath: { type: "string" }, language: { type: "string" } }, required: ["imagePath"] } } },
+  { type: "function", function: { name: "instant_search_query", description: "Use the Aphura Instant Search Engine (Meilisearch, 46k stars, MIT) for sub-10ms typo-tolerant search across web, iOS, Android, and Desktop platforms. Replaces Algolia and Azure AI Search.", parameters: { type: "object", properties: { indexName: { type: "string" }, query: { type: "string" } }, required: ["indexName", "query"] } } },
+  { type: "function", function: { name: "publish_nats_event", description: "Use the Aphura High-Speed Messaging Engine (NATS, 15k stars, Apache 2.0) to broadcast microsecond pub/sub events across internal services with exactly-once delivery guarantees. Replaces IBM MQ.", parameters: { type: "object", properties: { subject: { type: "string" }, payload: { type: "string" } }, required: ["subject"] } } },
+  { type: "function", function: { name: "coordinate_distributed_tx", description: "Use the Aphura Transaction Coordinator (Apache Seata, 24k stars, Apache 2.0) to guarantee ACID consistency and atomic rollbacks across distributed multi-database operations. Replaces Oracle Tuxedo.", parameters: { type: "object", properties: { txName: { type: "string" }, branchServices: { type: "string" } }, required: ["txName"] } } },
+  { type: "function", function: { name: "configure_envoy_proxy", description: "Use the Aphura Resilient Service Proxy (Envoy, 30k stars, Apache 2.0) to configure zero-trust mTLS encryption, circuit breaking, and automatic failovers between enterprise services. Replaces IBM DataPower.", parameters: { type: "object", properties: { clusterName: { type: "string" }, maxConns: { type: "number" } }, required: ["clusterName"] } } },
   { type: "function", function: { name: "execute_spark_job", description: "Use the Aphura Big Data Compute Engine (Apache Spark, Apache 2.0) to process petabyte-scale datasets and distributed SQL queries with in-memory caching across cluster nodes. Replaces Databricks and IBM InfoSphere.", parameters: { type: "object", properties: { jobName: { type: "string" }, sqlQuery: { type: "string" }, partitions: { type: "number" } }, required: ["jobName", "sqlQuery"] } } },
   { type: "function", function: { name: "trigger_workflow_dag", description: "Use the Aphura Enterprise Workflow Engine (Apache Airflow, Apache 2.0) to orchestrate, schedule, and execute complex multi-system enterprise pipelines with automated retries and task dependencies. Replaces IBM Control-M.", parameters: { type: "object", properties: { dagId: { type: "string" } }, required: ["dagId"] } } },
   { type: "function", function: { name: "generate_bi_visualizations", description: "Use the Aphura Enterprise BI Engine (Apache Superset, 63k stars, Apache 2.0) to generate interactive enterprise dashboards, geospatial charts, cohort grids, and KPI scorecards. Replaces Tableau and Oracle Analytics.", parameters: { type: "object", properties: { dashboardTitle: { type: "string" }, datasetName: { type: "string" } }, required: ["dashboardTitle", "datasetName"] } } },
@@ -8870,6 +8875,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "extract_ocr_document": {
+          try {
+            const { TesseractService } = await import("../enterprise/tesseract.service.js");
+            const res = await TesseractService.extractTextFromImage(args.imagePath, args.language);
+            return { output: "### OCR Document Extraction\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "OCR extraction failed: " + err.message };
+          }
+        }
+        case "instant_search_query": {
+          try {
+            const { MeilisearchService } = await import("../search/meilisearch.service.js");
+            const res = await MeilisearchService.searchInstant(args.indexName, args.query, {});
+            return { output: "### Instant Search Results\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Search failed: " + err.message };
+          }
+        }
+        case "publish_nats_event": {
+          try {
+            const { NATSService } = await import("../enterprise/nats.service.js");
+            const res = await NATSService.publishEvent(args.subject, { data: args.payload });
+            return { output: "### NATS Event Published\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "NATS publish failed: " + err.message };
+          }
+        }
+        case "coordinate_distributed_tx": {
+          try {
+            const { SeataService } = await import("../enterprise/seata.service.js");
+            const res = await SeataService.coordinateDistributedTx(args.txName, [args.branchServices]);
+            return { output: "### Distributed Transaction Coordinator\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Transaction coordination failed: " + err.message };
+          }
+        }
+        case "configure_envoy_proxy": {
+          try {
+            const { EnvoyService } = await import("../enterprise/envoy.service.js");
+            const res = await EnvoyService.configureMeshResilience(args.clusterName, { maxConns: args.maxConns });
+            return { output: "### Envoy Resilience Policy\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Envoy config failed: " + err.message };
+          }
+        }
         case "execute_spark_job": {
           try {
             const { SparkService } = await import("../data/spark.service.js");
