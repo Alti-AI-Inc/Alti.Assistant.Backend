@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "generate_echarts_config", description: "Use the Aphura Interactive Visualization Engine (Apache ECharts, 61k stars, Apache 2.0) to compile hardware-accelerated 2D/3D charts, sunbursts, and financial candlestick graphs. Replaces Microsoft Power BI Custom Visuals.", parameters: { type: "object", properties: { chartType: { type: "string" } }, required: ["chartType"] } } },
+  { type: "function", function: { name: "evaluate_feature_toggle", description: "Use the Aphura Feature Flag Engine (Unleash, 11k stars, Apache 2.0) to execute live feature rollouts, canary tests, and tenant-targeted toggles without code deployment. Replaces LaunchDarkly.", parameters: { type: "object", properties: { flagName: { type: "string" } }, required: ["flagName"] } } },
+  { type: "function", function: { name: "create_virtual_api_stub", description: "Use the Aphura API Virtualization Engine (WireMock, 6k stars, Apache 2.0) to mock external banking and ERP endpoints with custom latency and fault injection. Replaces IBM Rational Test Virtualization.", parameters: { type: "object", properties: { endpoint: { type: "string" }, responseStatus: { type: "number" } }, required: ["endpoint"] } } },
+  { type: "function", function: { name: "generate_enterprise_sbom", description: "Use the Aphura Supply Chain Security Engine (Syft, 6.2k stars, Apache 2.0) to generate cryptographic Software Bill of Materials (CycloneDX/SPDX) for federal compliance. Replaces IBM Security AppScan SBOM.", parameters: { type: "object", properties: { targetPath: { type: "string" } }, required: ["targetPath"] } } },
+  { type: "function", function: { name: "verify_digital_signature", description: "Use the Aphura Cryptographic PKI Engine (PKI.js, MIT) to verify X.509 digital signatures and certificates on legal documents with non-repudiation guarantees. Replaces Adobe Sign Verification.", parameters: { type: "object", properties: { documentHash: { type: "string" } }, required: ["documentHash"] } } },
   { type: "function", function: { name: "execute_rpa_playwright", description: "Use the Aphura Browser Automation Engine (Microsoft Playwright, 69k stars, Apache 2.0) to execute headless browser RPA workflows, extract table data from external portals, and capture full-page assets. Replaces Microsoft Power Automate.", parameters: { type: "object", properties: { targetUrl: { type: "string" }, taskAction: { type: "string" } }, required: ["targetUrl"] } } },
   { type: "function", function: { name: "provision_db_sharding", description: "Use the Aphura Database Mesh Engine (Apache ShardingSphere, 19k stars, Apache 2.0) to cluster relational databases with horizontal sharding, read-write splitting, and transparent column encryption. Replaces Oracle RAC.", parameters: { type: "object", properties: { logicDatabase: { type: "string" } }, required: ["logicDatabase"] } } },
   { type: "function", function: { name: "query_timeseries_questdb", description: "Use the Aphura Time-Series Engine (QuestDB, 14k stars, Apache 2.0) to run vectorized sub-millisecond aggregations on high-frequency financial tick and telemetry data. Replaces kdb+ and Azure Time Series Insights.", parameters: { type: "object", properties: { symbol: { type: "string" }, timeFrame: { type: "string" } }, required: ["symbol"] } } },
@@ -8900,6 +8905,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "generate_echarts_config": {
+          try {
+            const { EChartsService } = await import("../ui/echarts.service.js");
+            const res = await EChartsService.generateChartConfig(args.chartType, []);
+            return { output: "### ECharts Visual Spec\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "ECharts generation failed: " + err.message };
+          }
+        }
+        case "evaluate_feature_toggle": {
+          try {
+            const { UnleashService } = await import("../devops/unleash.service.js");
+            const res = await UnleashService.evaluateFeatureToggle(args.flagName, {});
+            return { output: "### Feature Flag Evaluated\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Feature toggle failed: " + err.message };
+          }
+        }
+        case "create_virtual_api_stub": {
+          try {
+            const { WireMockService } = await import("../api/wiremock.service.js");
+            const res = await WireMockService.createVirtualStub(args.endpoint, args.responseStatus, {});
+            return { output: "### API Stub Virtualized\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "API stub creation failed: " + err.message };
+          }
+        }
+        case "generate_enterprise_sbom": {
+          try {
+            const { SyftService } = await import("../security/syft.service.js");
+            const res = await SyftService.generateSBOM(args.targetPath, "CycloneDX");
+            return { output: "### Certified Enterprise SBOM\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "SBOM generation failed: " + err.message };
+          }
+        }
+        case "verify_digital_signature": {
+          try {
+            const { PKIJSService } = await import("../security/pkijs.service.js");
+            const res = await PKIJSService.verifyDigitalSignature(args.documentHash, "", {});
+            return { output: "### Signature Verification Result\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Signature verification failed: " + err.message };
+          }
+        }
         case "execute_rpa_playwright": {
           try {
             const { PlaywrightService } = await import("../automation/playwright.service.js");
