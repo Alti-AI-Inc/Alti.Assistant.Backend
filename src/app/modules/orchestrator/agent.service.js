@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativeproxy_rcac_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeProxy) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractplane_j159_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractPlane) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessnode_11o0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNode) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorcore_y4k8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorCore) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatachain_jvej_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataChain) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openlogengine_4fjb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenLogEngine) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28932,6 +28972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativeproxy_rcac_logic": {
+          try {
+            const { OpenCloudNativeProxyService } = await import("../liberty/opencloud-nativeproxy_rcac.service.js");
+            const res = await OpenCloudNativeProxyService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractplane_j159_logic": {
+          try {
+            const { OpenAbstractPlaneService } = await import("../liberty/openabstractplane_j159.service.js");
+            const res = await OpenAbstractPlaneService.execute(args.target || "system");
+            return { output: `### OpenAbstractPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessnode_11o0_logic": {
+          try {
+            const { OpenHeadlessNodeService } = await import("../liberty/openheadlessnode_11o0.service.js");
+            const res = await OpenHeadlessNodeService.execute(args.target || "system");
+            return { output: `### OpenHeadlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorcore_y4k8_logic": {
+          try {
+            const { OpenVectorCoreService } = await import("../liberty/openvectorcore_y4k8.service.js");
+            const res = await OpenVectorCoreService.execute(args.target || "system");
+            return { output: `### OpenVectorCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatachain_jvej_logic": {
+          try {
+            const { OpenDataChainService } = await import("../liberty/opendatachain_jvej.service.js");
+            const res = await OpenDataChainService.execute(args.target || "system");
+            return { output: `### OpenDataChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataChain failed: ${err.message}` };
+          }
+        }
         case "execute_openlogengine_4fjb_logic": {
           try {
             const { OpenLogEngineService } = await import("../liberty/openlogengine_4fjb.service.js");
