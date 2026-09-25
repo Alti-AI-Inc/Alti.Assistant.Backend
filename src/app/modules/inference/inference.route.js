@@ -29,6 +29,7 @@ router.post('/v1/completions', async (req, res) => {
 });
 
 import audioUploader from '../../middlewares/uploder/uploadAudio.js';
+import datasetUploader from '../../middlewares/uploder/uploadDataset.js';
 
 // ── Image Generations (Official: https://docs.together.ai/reference/post-images-generations)
 router.post('/images/generations', async (req, res) => {
@@ -47,6 +48,16 @@ router.post('/audio/speech', async (req, res) => {
 router.post('/v1/audio/speech', async (req, res) => {
   await InferenceGateway.handleSpeech(req, res);
 });
+
+// ── Audio Voices (Official: https://docs.together.ai/reference/audio-voices) ──
+router.get('/audio/voices', async (req, res) => {
+  await InferenceGateway.handleListVoices(req, res);
+});
+
+router.get('/v1/audio/voices', async (req, res) => {
+  await InferenceGateway.handleListVoices(req, res);
+});
+
 
 // ── Realtime Speech WebSocket Info (Official: https://docs.together.ai/reference/audio-speech-websocket)
 router.get('/audio/speech/websocket', (req, res) => {
@@ -137,6 +148,278 @@ const modelsHandler = async (req, res) => {
 
 router.get('/models', modelsHandler);
 router.get('/v1/models', modelsHandler);
+
+// ── Embeddings (Official: https://docs.together.ai/reference/embeddings) ────
+router.post('/embeddings', async (req, res) => {
+  await InferenceGateway.handleEmbeddings(req, res);
+});
+
+router.post('/v1/embeddings', async (req, res) => {
+  await InferenceGateway.handleEmbeddings(req, res);
+});
+
+// ── Rerank (Official: https://docs.together.ai/reference/rerank) ────────────
+router.post('/rerank', async (req, res) => {
+  await InferenceGateway.handleRerank(req, res);
+});
+
+router.post('/v1/rerank', async (req, res) => {
+  await InferenceGateway.handleRerank(req, res);
+});
+
+// ── Files (Official: https://docs.together.ai/reference/files) ──────────────
+router.post('/files', datasetUploader.single('file'), async (req, res) => {
+  await InferenceGateway.handleUploadFile(req, res);
+});
+
+router.post('/v1/files', datasetUploader.single('file'), async (req, res) => {
+  await InferenceGateway.handleUploadFile(req, res);
+});
+
+router.get('/files', async (req, res) => {
+  await InferenceGateway.handleListFiles(req, res);
+});
+
+router.get('/v1/files', async (req, res) => {
+  await InferenceGateway.handleListFiles(req, res);
+});
+
+router.get('/files/:id/content', async (req, res) => {
+  await InferenceGateway.handleGetFileContent(req, res);
+});
+
+router.get('/v1/files/:id/content', async (req, res) => {
+  await InferenceGateway.handleGetFileContent(req, res);
+});
+
+router.get('/files/:id', async (req, res) => {
+  await InferenceGateway.handleGetFile(req, res);
+});
+
+router.get('/v1/files/:id', async (req, res) => {
+  await InferenceGateway.handleGetFile(req, res);
+});
+
+router.delete('/files/:id', async (req, res) => {
+  await InferenceGateway.handleDeleteFile(req, res);
+});
+
+router.delete('/v1/files/:id', async (req, res) => {
+  await InferenceGateway.handleDeleteFile(req, res);
+});
+
+// ── Fine-Tuning (Official: https://docs.together.ai/reference/fine-tuning) ──
+router.post('/fine-tunes', async (req, res) => {
+  await InferenceGateway.handleCreateFineTune(req, res);
+});
+
+router.post('/v1/fine-tunes', async (req, res) => {
+  await InferenceGateway.handleCreateFineTune(req, res);
+});
+
+router.post('/fine-tuning', async (req, res) => {
+  await InferenceGateway.handleCreateFineTune(req, res);
+});
+
+router.post('/v1/fine-tuning', async (req, res) => {
+  await InferenceGateway.handleCreateFineTune(req, res);
+});
+
+router.get('/fine-tunes', async (req, res) => {
+  await InferenceGateway.handleListFineTunes(req, res);
+});
+
+router.get('/v1/fine-tunes', async (req, res) => {
+  await InferenceGateway.handleListFineTunes(req, res);
+});
+
+router.get('/fine-tuning', async (req, res) => {
+  await InferenceGateway.handleListFineTunes(req, res);
+});
+
+router.get('/v1/fine-tuning', async (req, res) => {
+  await InferenceGateway.handleListFineTunes(req, res);
+});
+
+router.get('/fine-tunes/:id/events', async (req, res) => {
+  await InferenceGateway.handleListFineTuneEvents(req, res);
+});
+
+router.get('/v1/fine-tunes/:id/events', async (req, res) => {
+  await InferenceGateway.handleListFineTuneEvents(req, res);
+});
+
+router.get('/fine-tunes/:id/checkpoints', async (req, res) => {
+  await InferenceGateway.handleListFineTuneCheckpoints(req, res);
+});
+
+router.get('/v1/fine-tunes/:id/checkpoints', async (req, res) => {
+  await InferenceGateway.handleListFineTuneCheckpoints(req, res);
+});
+
+router.post('/fine-tunes/:id/cancel', async (req, res) => {
+  await InferenceGateway.handleCancelFineTune(req, res);
+});
+
+router.post('/v1/fine-tunes/:id/cancel', async (req, res) => {
+  await InferenceGateway.handleCancelFineTune(req, res);
+});
+
+router.get('/fine-tunes/:id', async (req, res) => {
+  await InferenceGateway.handleGetFineTune(req, res);
+});
+
+router.get('/v1/fine-tunes/:id', async (req, res) => {
+  await InferenceGateway.handleGetFineTune(req, res);
+});
+
+// ── Batches (Official: https://docs.together.ai/reference/batches) ──────────
+router.post('/batches', async (req, res) => {
+  await InferenceGateway.handleCreateBatch(req, res);
+});
+
+router.post('/v1/batches', async (req, res) => {
+  await InferenceGateway.handleCreateBatch(req, res);
+});
+
+router.get('/batches', async (req, res) => {
+  await InferenceGateway.handleListBatches(req, res);
+});
+
+router.get('/v1/batches', async (req, res) => {
+  await InferenceGateway.handleListBatches(req, res);
+});
+
+router.post('/batches/:id/cancel', async (req, res) => {
+  await InferenceGateway.handleCancelBatch(req, res);
+});
+
+router.post('/v1/batches/:id/cancel', async (req, res) => {
+  await InferenceGateway.handleCancelBatch(req, res);
+});
+
+router.get('/batches/:id', async (req, res) => {
+  await InferenceGateway.handleGetBatch(req, res);
+});
+
+router.get('/v1/batches/:id', async (req, res) => {
+  await InferenceGateway.handleGetBatch(req, res);
+});
+
+// ── Dedicated Endpoints (Official: https://docs.together.ai/reference/endpoints)
+router.post('/endpoints', async (req, res) => {
+  await InferenceGateway.handleCreateEndpoint(req, res);
+});
+
+router.post('/v1/endpoints', async (req, res) => {
+  await InferenceGateway.handleCreateEndpoint(req, res);
+});
+
+router.get('/endpoints', async (req, res) => {
+  await InferenceGateway.handleListEndpoints(req, res);
+});
+
+router.get('/v1/endpoints', async (req, res) => {
+  await InferenceGateway.handleListEndpoints(req, res);
+});
+
+router.get('/endpoints/hardware', async (req, res) => {
+  await InferenceGateway.handleListHardware(req, res);
+});
+
+router.get('/v1/endpoints/hardware', async (req, res) => {
+  await InferenceGateway.handleListHardware(req, res);
+});
+
+router.get('/endpoints/avzones', async (req, res) => {
+  await InferenceGateway.handleListAvzones(req, res);
+});
+
+router.get('/v1/endpoints/avzones', async (req, res) => {
+  await InferenceGateway.handleListAvzones(req, res);
+});
+
+router.get('/endpoints/:id', async (req, res) => {
+  await InferenceGateway.handleGetEndpoint(req, res);
+});
+
+router.get('/v1/endpoints/:id', async (req, res) => {
+  await InferenceGateway.handleGetEndpoint(req, res);
+});
+
+router.put('/endpoints/:id', async (req, res) => {
+  await InferenceGateway.handleUpdateEndpoint(req, res);
+});
+
+router.put('/v1/endpoints/:id', async (req, res) => {
+  await InferenceGateway.handleUpdateEndpoint(req, res);
+});
+
+router.patch('/endpoints/:id', async (req, res) => {
+  await InferenceGateway.handleUpdateEndpoint(req, res);
+});
+
+router.patch('/v1/endpoints/:id', async (req, res) => {
+  await InferenceGateway.handleUpdateEndpoint(req, res);
+});
+
+router.delete('/endpoints/:id', async (req, res) => {
+  await InferenceGateway.handleDeleteEndpoint(req, res);
+});
+
+router.delete('/v1/endpoints/:id', async (req, res) => {
+  await InferenceGateway.handleDeleteEndpoint(req, res);
+});
+
+// ── Evaluations (Official: https://docs.together.ai/reference/evals) ────────
+router.post('/evaluations', async (req, res) => {
+  await InferenceGateway.handleCreateEval(req, res);
+});
+
+router.post('/v1/evaluations', async (req, res) => {
+  await InferenceGateway.handleCreateEval(req, res);
+});
+
+router.post('/evals', async (req, res) => {
+  await InferenceGateway.handleCreateEval(req, res);
+});
+
+router.post('/v1/evals', async (req, res) => {
+  await InferenceGateway.handleCreateEval(req, res);
+});
+
+router.get('/evaluations', async (req, res) => {
+  await InferenceGateway.handleListEvals(req, res);
+});
+
+router.get('/v1/evaluations', async (req, res) => {
+  await InferenceGateway.handleListEvals(req, res);
+});
+
+router.get('/evals', async (req, res) => {
+  await InferenceGateway.handleListEvals(req, res);
+});
+
+router.get('/v1/evals', async (req, res) => {
+  await InferenceGateway.handleListEvals(req, res);
+});
+
+router.get('/evaluations/:id', async (req, res) => {
+  await InferenceGateway.handleGetEval(req, res);
+});
+
+router.get('/v1/evaluations/:id', async (req, res) => {
+  await InferenceGateway.handleGetEval(req, res);
+});
+
+router.get('/evals/:id', async (req, res) => {
+  await InferenceGateway.handleGetEval(req, res);
+});
+
+router.get('/v1/evals/:id', async (req, res) => {
+  await InferenceGateway.handleGetEval(req, res);
+});
+
 
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {

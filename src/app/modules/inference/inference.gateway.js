@@ -11,6 +11,34 @@ import {
   createFallbackWav,
   llmRealtimeTTSConfig,
   llmRealtimeSTTConfig,
+  llmListVoices,
+  llmCreateEmbeddings,
+  llmRerank,
+  llmUploadFile,
+  llmListFiles,
+  llmGetFile,
+  llmDeleteFile,
+  llmGetFileContent,
+  llmCreateFineTune,
+  llmListFineTunes,
+  llmGetFineTune,
+  llmCancelFineTune,
+  llmListFineTuneEvents,
+  llmListFineTuneCheckpoints,
+  llmCreateBatch,
+  llmListBatches,
+  llmGetBatch,
+  llmCancelBatch,
+  llmCreateEndpoint,
+  llmListEndpoints,
+  llmGetEndpoint,
+  llmUpdateEndpoint,
+  llmDeleteEndpoint,
+  llmListEndpointHardware,
+  llmListEndpointAvzones,
+  llmCreateEval,
+  llmListEvals,
+  llmGetEval,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -1013,6 +1041,382 @@ export const InferenceGateway = {
           ],
         },
       });
+    }
+  },
+
+  /**
+   * Lists available TTS voices (GET /audio/voices & GET /v1/audio/voices)
+   */
+  async handleListVoices(req, res) {
+    try {
+      const data = await llmListVoices();
+      return res.status(200).json(data);
+    } catch (error) {
+      logger.error('[Inference Gateway] Failed to list voices:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Creates embeddings (POST /embeddings & POST /v1/embeddings)
+   * Official Reference: https://docs.together.ai/reference/embeddings
+   */
+  async handleEmbeddings(req, res) {
+    const { input, model } = req.body || {};
+    if (!input) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'input'.",
+          type: 'invalid_request_error',
+          param: 'input',
+        },
+      });
+    }
+    try {
+      const data = await llmCreateEmbeddings(input, { model });
+      return res.status(200).json(data);
+    } catch (error) {
+      logger.error('[Inference Gateway] Embeddings error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Reranks documents against query (POST /rerank & POST /v1/rerank)
+   * Official Reference: https://docs.together.ai/reference/rerank
+   */
+  async handleRerank(req, res) {
+    const { query, documents, model, top_n, return_documents } = req.body || {};
+    if (!query || !documents) {
+      return res.status(400).json({
+        error: {
+          message: "Parameters 'query' and 'documents' are required.",
+          type: 'invalid_request_error',
+        },
+      });
+    }
+    try {
+      const data = await llmRerank(query, documents, { model, topN: top_n, returnDocuments: return_documents });
+      return res.status(200).json(data);
+    } catch (error) {
+      logger.error('[Inference Gateway] Rerank error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Upload dataset or fine-tuning file (POST /files & POST /v1/files)
+   * Official Reference: https://docs.together.ai/reference/files
+   */
+  async handleUploadFile(req, res) {
+    try {
+      const file = req.file || req.body?.file || req.body?.filePath;
+      const purpose = req.body?.purpose || 'fine-tune';
+      if (!file) {
+        return res.status(400).json({ error: { message: 'No file provided for upload.' } });
+      }
+      const data = await llmUploadFile(file, { purpose, filename: req.file?.originalname });
+      return res.status(200).json(data);
+    } catch (error) {
+      logger.error('[Inference Gateway] File upload failed:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists uploaded files (GET /files & GET /v1/files)
+   */
+  async handleListFiles(req, res) {
+    try {
+      const data = await llmListFiles(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves file metadata (GET /files/:id & GET /v1/files/:id)
+   */
+  async handleGetFile(req, res) {
+    try {
+      const data = await llmGetFile(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Deletes uploaded file (DELETE /files/:id & DELETE /v1/files/:id)
+   */
+  async handleDeleteFile(req, res) {
+    try {
+      const data = await llmDeleteFile(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves file content (GET /files/:id/content & GET /v1/files/:id/content)
+   */
+  async handleGetFileContent(req, res) {
+    try {
+      const data = await llmGetFileContent(req.params.id);
+      res.setHeader('Content-Type', 'text/plain');
+      return res.send(typeof data === 'string' ? data : JSON.stringify(data));
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Creates fine-tuning job (POST /fine-tunes & POST /v1/fine-tunes)
+   * Official Reference: https://docs.together.ai/reference/fine-tuning
+   */
+  async handleCreateFineTune(req, res) {
+    const payload = req.body || {};
+    if (!payload.training_file && !payload.trainingFile) {
+      return res.status(400).json({ error: { message: "Missing required parameter 'training_file'." } });
+    }
+    try {
+      const data = await llmCreateFineTune(payload);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists fine-tuning jobs (GET /fine-tunes & GET /v1/fine-tunes)
+   */
+  async handleListFineTunes(req, res) {
+    try {
+      const data = await llmListFineTunes(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves fine-tuning job details (GET /fine-tunes/:id & GET /v1/fine-tunes/:id)
+   */
+  async handleGetFineTune(req, res) {
+    try {
+      const data = await llmGetFineTune(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Cancels fine-tuning job (POST /fine-tunes/:id/cancel & POST /v1/fine-tunes/:id/cancel)
+   */
+  async handleCancelFineTune(req, res) {
+    try {
+      const data = await llmCancelFineTune(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists fine-tuning job events (GET /fine-tunes/:id/events & GET /v1/fine-tunes/:id/events)
+   */
+  async handleListFineTuneEvents(req, res) {
+    try {
+      const data = await llmListFineTuneEvents(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists fine-tuning checkpoints (GET /fine-tunes/:id/checkpoints & GET /v1/fine-tunes/:id/checkpoints)
+   */
+  async handleListFineTuneCheckpoints(req, res) {
+    try {
+      const data = await llmListFineTuneCheckpoints(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Creates batch job (POST /batches & POST /v1/batches)
+   * Official Reference: https://docs.together.ai/reference/batches
+   */
+  async handleCreateBatch(req, res) {
+    try {
+      const data = await llmCreateBatch(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists batch jobs (GET /batches & GET /v1/batches)
+   */
+  async handleListBatches(req, res) {
+    try {
+      const data = await llmListBatches(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves batch job (GET /batches/:id & GET /v1/batches/:id)
+   */
+  async handleGetBatch(req, res) {
+    try {
+      const data = await llmGetBatch(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Cancels batch job (POST /batches/:id/cancel & POST /v1/batches/:id/cancel)
+   */
+  async handleCancelBatch(req, res) {
+    try {
+      const data = await llmCancelBatch(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Creates dedicated endpoint (POST /endpoints & POST /v1/endpoints)
+   * Official Reference: https://docs.together.ai/reference/endpoints
+   */
+  async handleCreateEndpoint(req, res) {
+    try {
+      const data = await llmCreateEndpoint(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists dedicated endpoints (GET /endpoints & GET /v1/endpoints)
+   */
+  async handleListEndpoints(req, res) {
+    try {
+      const data = await llmListEndpoints();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves dedicated endpoint details (GET /endpoints/:id & GET /v1/endpoints/:id)
+   */
+  async handleGetEndpoint(req, res) {
+    try {
+      const data = await llmGetEndpoint(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Updates dedicated endpoint (PUT /endpoints/:id & PATCH /endpoints/:id)
+   */
+  async handleUpdateEndpoint(req, res) {
+    try {
+      const data = await llmUpdateEndpoint(req.params.id, req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Deletes dedicated endpoint (DELETE /endpoints/:id & DELETE /v1/endpoints/:id)
+   */
+  async handleDeleteEndpoint(req, res) {
+    try {
+      const data = await llmDeleteEndpoint(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists dedicated endpoint hardware options (GET /endpoints/hardware & GET /v1/endpoints/hardware)
+   */
+  async handleListHardware(req, res) {
+    try {
+      const data = await llmListEndpointHardware();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists dedicated endpoint availability zones (GET /endpoints/avzones & GET /v1/endpoints/avzones)
+   */
+  async handleListAvzones(req, res) {
+    try {
+      const data = await llmListEndpointAvzones();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Creates evaluation (POST /evaluations & POST /v1/evaluations)
+   * Official Reference: https://docs.together.ai/reference/evals
+   */
+  async handleCreateEval(req, res) {
+    try {
+      const data = await llmCreateEval(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists evaluations (GET /evaluations & GET /v1/evaluations)
+   */
+  async handleListEvals(req, res) {
+    try {
+      const data = await llmListEvals(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves evaluation details (GET /evaluations/:id & GET /v1/evaluations/:id)
+   */
+  async handleGetEval(req, res) {
+    try {
+      const data = await llmGetEval(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
     }
   },
 };
