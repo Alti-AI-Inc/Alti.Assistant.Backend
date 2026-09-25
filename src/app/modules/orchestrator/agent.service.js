@@ -39,6 +39,30 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "generate_pitch_deck",
+      description: "Use the Aphura Pitch Deck Agent to generate a complete, professional pitch deck from a single prompt. Outputs simultaneously as: interactive HTML slides (viewable in chat), downloadable PowerPoint .pptx, and PDF. Supports templates: startup (12 slides), sales (6 slides), investor (10 slides). The AI generates all slide content, charts, and talking points.",
+      parameters: { type: "object", properties: { prompt: { type: "string", description: "Describe the company, product, or topic for the pitch deck" }, deckType: { type: "string", description: "Template type: startup, sales, or investor" } }, required: ["prompt"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "render_interactive_slides",
+      description: "Use the Aphura Presentation Renderer (Reveal.js, 68k stars) to render beautiful, animated, navigable HTML presentation slides directly inline in the chat window.",
+      parameters: { type: "object", properties: { markdown: { type: "string", description: "Slide content in Markdown with --- separators" } }, required: ["markdown"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_powerpoint_file",
+      description: "Use the Aphura PowerPoint Generator (PptxGenJS) to create a real .pptx file that opens in PowerPoint, Google Slides, and Keynote. Returns a download link.",
+      parameters: { type: "object", properties: { title: { type: "string" }, slideCount: { type: "number" } }, required: ["title"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "render_visual_diagram",
       description: "Use the Aphura Visual Intelligence Engine (Mermaid, 73k stars) to render beautiful SVG diagrams from text — flowcharts, sequence diagrams, ERDs, Gantt charts, class diagrams, state machines, git graphs, and mind maps. Renders inline in the chat.",
       parameters: { type: "object", properties: { diagramType: { type: "string" }, definition: { type: "string" } }, required: ["diagramType", "definition"] }
@@ -8831,7 +8855,33 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "render_visual_diagram": {
+        case "generate_pitch_deck": {
+          try {
+            const { PitchDeckAgent } = await import("../presentations/pitchdeck.agent.js");
+            const res = await PitchDeckAgent.generatePitchDeck(args.prompt, args.deckType || "startup");
+            return { output: "### Pitch Deck Generated\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Pitch deck generation failed: " + err.message };
+          }
+        }
+        case "render_interactive_slides": {
+          try {
+            const { MarpService } = await import("../presentations/marp.service.js");
+            const res = await MarpService.compileMarkdownToSlides(args.markdown, "html");
+            return { output: "### Slides Rendered\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Slide rendering failed: " + err.message };
+          }
+        }
+        case "generate_powerpoint_file": {
+          try {
+            const { PptxGenService } = await import("../presentations/pptxgen.service.js");
+            const res = await PptxGenService.generatePPTX([{ title: args.title }], {});
+            return { output: "### PowerPoint Generated\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "PPTX generation failed: " + err.message };
+          }
+        }        case "render_visual_diagram": {
           try {
             const { MermaidService } = await import("../ui/mermaid.service.js");
             const res = await MermaidService.renderDiagram(args.diagramType, args.definition);
