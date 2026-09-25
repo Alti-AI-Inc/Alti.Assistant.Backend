@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterplane_j11l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterPlane) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryvortex_w099_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryVortex) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticledger_e0sq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticLedger) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativevortex_owxf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVortex) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedvault_qxnt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedVault) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizednode_zgsg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNode) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22692,6 +22732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterplane_j11l_logic": {
+          try {
+            const { OpenCrossClusterPlaneService } = await import("../liberty/opencross-clusterplane_j11l.service.js");
+            const res = await OpenCrossClusterPlaneService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryvortex_w099_logic": {
+          try {
+            const { OpenInMemoryVortexService } = await import("../liberty/openin-memoryvortex_w099.service.js");
+            const res = await OpenInMemoryVortexService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticledger_e0sq_logic": {
+          try {
+            const { OpenSemanticLedgerService } = await import("../liberty/opensemanticledger_e0sq.service.js");
+            const res = await OpenSemanticLedgerService.execute(args.target || "system");
+            return { output: `### OpenSemanticLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativevortex_owxf_logic": {
+          try {
+            const { OpenCloudNativeVortexService } = await import("../liberty/opencloud-nativevortex_owxf.service.js");
+            const res = await OpenCloudNativeVortexService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedvault_qxnt_logic": {
+          try {
+            const { OpenDistributedVaultService } = await import("../liberty/opendistributedvault_qxnt.service.js");
+            const res = await OpenDistributedVaultService.execute(args.target || "system");
+            return { output: `### OpenDistributedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedVault failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizednode_zgsg_logic": {
           try {
             const { OpenDecentralizedNodeService } = await import("../liberty/opendecentralizednode_zgsg.service.js");
