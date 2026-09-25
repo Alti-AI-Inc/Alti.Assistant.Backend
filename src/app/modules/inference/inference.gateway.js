@@ -129,6 +129,13 @@ import {
   executeSkillChain,
   handleMcpToolExecution,
 } from '../../services/together.skills.js';
+import {
+  getInferenceOverview,
+  getOpenAiCompatibilityDocs,
+  getPartnerSdkIntegrations,
+  getPartnerSdkDoc,
+  executeSharedInference,
+} from '../../services/together.inference.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -3310,6 +3317,73 @@ export const InferenceGateway = {
       return res.status(200).json({ success: true, tool, ...result, result });
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error executing MCP tool.' });
+    }
+  },
+
+  /**
+   * Retrieves Together AI Inference Overview, Deployment Modes, and Capabilities
+   * (GET /together/inference/overview, GET /v1/together/inference/overview, GET /inference/overview)
+   */
+  async handleGetInferenceOverview(req, res) {
+    try {
+      const data = getInferenceOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving inference overview.' });
+    }
+  },
+
+  /**
+   * Retrieves OpenAI Compatibility reference, endpoint matrix, and quirks
+   * (GET /together/inference/openai-compatibility, GET /v1/together/inference/openai-compatibility, GET /inference/openai-compatibility)
+   */
+  async handleGetOpenAiCompatibility(req, res) {
+    try {
+      const data = getOpenAiCompatibilityDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving OpenAI compatibility info.' });
+    }
+  },
+
+  /**
+   * Lists third-party partner SDK integrations (Hugging Face, Vercel AI, Mastra, LangChain, LiteLLM, Helicone, etc.)
+   * (GET /together/inference/sdk-integrations, GET /v1/together/inference/sdk-integrations, GET /inference/sdk-integrations)
+   */
+  async handleGetPartnerSdks(req, res) {
+    try {
+      const data = getPartnerSdkIntegrations();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving partner SDK integrations.' });
+    }
+  },
+
+  /**
+   * Retrieves detailed documentation and code snippets for a specific third-party partner SDK
+   * (GET /together/inference/sdk-integrations/:sdk, GET /v1/together/inference/sdk-integrations/:sdk, GET /inference/sdk-integrations/:sdk)
+   */
+  async handleGetPartnerSdkDoc(req, res) {
+    try {
+      const sdk = req.params?.sdk;
+      const data = getPartnerSdkDoc(sdk);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(404).json({ error: error.message || 'Partner SDK documentation not found.' });
+    }
+  },
+
+  /**
+   * Executes shared inference across serverless, provisioned throughput, or dedicated endpoints
+   * (POST /together/inference/execute, POST /v1/together/inference/execute, POST /inference/execute)
+   */
+  async handleExecuteSharedInference(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await executeSharedInference(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing shared inference.' });
     }
   },
 };

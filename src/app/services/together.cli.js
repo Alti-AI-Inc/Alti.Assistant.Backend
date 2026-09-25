@@ -138,6 +138,17 @@ import {
   executeSkillChain,
   handleMcpToolExecution,
 } from './together.skills.js';
+import {
+  INFERENCE_MODES,
+  MODEL_CAPABILITIES,
+  OPENAI_COMPATIBILITY_MATRIX,
+  PARTNER_SDK_INTEGRATIONS,
+  getInferenceOverview,
+  getOpenAiCompatibilityDocs,
+  getPartnerSdkIntegrations,
+  getPartnerSdkDoc,
+  executeSharedInference,
+} from './together.inference.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -373,6 +384,7 @@ Standard Commands:
   frameworks   Explore & run agent frameworks (Composio, CrewAI, LangGraph, DSPy, PydanticAI, AutoGen, Agno)
   skills       Inspect and execute 12 coding agent skills (chat, images, audio, etc.)
   mcp          Docs MCP Server info and tool proxy (search, get doc, skill specs)
+  inference    Explore inference overview, OpenAI compatibility, and partner SDKs
 
 Beta Commands (tg beta ...):
   models       DMI 2.0 custom models, weight uploads, and configs
@@ -386,7 +398,7 @@ Global Flags:
   --json           Format output as JSON
   --api-key <key>  Pass API key explicitly
 `.trim();
-    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'beta'] };
+    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'beta'] };
   }
 
   if (command === 'login' || command === 'init' || command === 'auth') {
@@ -1622,6 +1634,99 @@ ${JSON.stringify(info.client_configs.universal, null, 2)}
   throw new Error(`Unknown mcp command: ${action}. Use 'info', 'search <query>', 'get <path>', 'spec <skill>', or 'call <tool>'.`);
 }
 
+// ── Domain 17: Inference Overview, OpenAI Compatibility & Partner SDKs ───────
+async function handleInference(parsed) {
+  const action = parsed.subcommand || 'overview';
+
+  if (action === 'overview' || action === 'modes') {
+    const overview = getInferenceOverview();
+    const modeRows = Object.values(overview.modes).map(m => [m.id, m.name, m.pricing_model, m.example_models[0]]);
+    const capRows = overview.capabilities.map(c => [c.id, c.title, c.endpoint]);
+    const text = `
+Together AI Inference Suite:
+${overview.title} (${overview.url})
+Documentation Index: ${overview.documentation_index}
+
+Deployment Modes:
+${formatTable(['MODE ID', 'NAME', 'PRICING', 'EXAMPLE MODEL'], modeRows)}
+
+Model Capabilities:
+${formatTable(['CAPABILITY', 'TITLE', 'ENDPOINT'], capRows)}
+
+Batch Processing:
+  ${overview.batch_processing.savings}
+  ${overview.batch_processing.description}
+`.trim();
+    return { ...overview, text };
+  }
+
+  if (action === 'openai' || action === 'compat') {
+    const compat = getOpenAiCompatibilityDocs();
+    const rows = compat.matrix.map(m => [m.sdk_call, m.endpoint, m.status]);
+    const text = `
+OpenAI Compatibility Layer:
+Base URL: ${compat.base_url}
+Specification: ${compat.openapi_spec}
+
+Endpoint Compatibility Matrix:
+${formatTable(['OPENAI SDK CALL', 'TOGETHER ENDPOINT', 'STATUS'], rows)}
+
+Python Client Drop-in:
+${compat.drop_in_setup.python}
+
+TypeScript Client Drop-in:
+${compat.drop_in_setup.typescript}
+`.trim();
+    return { ...compat, text };
+  }
+
+  if (action === 'sdks' || action === 'partners') {
+    const sdks = getPartnerSdkIntegrations();
+    const rows = sdks.integrations.map(s => [s.id, s.name, s.package, s.url]);
+    const text = `
+Supported Partner SDKs & Integrations:
+${formatTable(['SDK ID', 'NAME', 'PACKAGE', 'DOCUMENTATION URL'], rows)}
+`.trim();
+    return { ...sdks, text };
+  }
+
+  if (action === 'sdk' || action === 'partner') {
+    const sdkId = parsed.subsubcommand || parsed.flags.sdk || 'vercel_ai';
+    const doc = getPartnerSdkDoc(sdkId);
+    const s = doc.sdk;
+    const text = `
+Partner SDK: ${s.name} (${s.id})
+Package: ${s.package}
+Docs URL: ${s.url}
+Install:
+${s.install_command}
+
+TypeScript Snippet:
+${s.typescript_snippet || 'N/A'}
+
+Python Snippet:
+${s.python_snippet || 'N/A'}
+`.trim();
+    return { ...doc, text };
+  }
+
+  if (action === 'run' || action === 'execute') {
+    const payload = {
+      model: parsed.flags.model || 'moonshotai/Kimi-K3',
+      prompt: parsed.flags.prompt || 'Sovereign shared inference test',
+      dry_run: Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run),
+      ...parsed.flags,
+    };
+    const res = await executeSharedInference(payload);
+    return {
+      ...res,
+      text: `Executed shared inference successfully (${res.duration_ms}ms) with model '${res.model}'.\nResult: ${JSON.stringify(res.data, null, 2)}`,
+    };
+  }
+
+  throw new Error(`Unknown inference command: ${action}. Use 'overview', 'openai', 'sdks', 'sdk <sdk_id>', or 'run'.`);
+}
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -1725,6 +1830,10 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
         case 'mcp':
           resultData = await handleMcp(parsed);
           domain = 'mcp';
+          break;
+        case 'inference':
+          resultData = await handleInference(parsed);
+          domain = 'inference';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);

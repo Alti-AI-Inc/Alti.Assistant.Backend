@@ -1362,6 +1362,67 @@ mcpToolsCallRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Inference Overview, OpenAI Compatibility, & SDK Integrations
+const inferenceOverviewRoutes = [
+  '/together/inference/overview',
+  '/v1/together/inference/overview',
+  '/inference/overview',
+  '/v1/inference/overview',
+];
+inferenceOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetInferenceOverview(req, res);
+  });
+});
+
+const openAiCompatibilityRoutes = [
+  '/together/inference/openai-compatibility',
+  '/v1/together/inference/openai-compatibility',
+  '/inference/openai-compatibility',
+  '/v1/inference/openai-compatibility',
+];
+openAiCompatibilityRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetOpenAiCompatibility(req, res);
+  });
+});
+
+const partnerSdksRoutes = [
+  '/together/inference/sdk-integrations',
+  '/v1/together/inference/sdk-integrations',
+  '/inference/sdk-integrations',
+  '/v1/inference/sdk-integrations',
+];
+partnerSdksRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetPartnerSdks(req, res);
+  });
+});
+
+const partnerSdkDocRoutes = [
+  '/together/inference/sdk-integrations/:sdk',
+  '/v1/together/inference/sdk-integrations/:sdk',
+  '/inference/sdk-integrations/:sdk',
+  '/v1/inference/sdk-integrations/:sdk',
+];
+partnerSdkDocRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetPartnerSdkDoc(req, res);
+  });
+});
+
+const executeSharedInferenceRoutes = [
+  '/together/inference/execute',
+  '/v1/together/inference/execute',
+  '/inference/execute',
+  '/v1/inference/execute',
+];
+executeSharedInferenceRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteSharedInference(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');
