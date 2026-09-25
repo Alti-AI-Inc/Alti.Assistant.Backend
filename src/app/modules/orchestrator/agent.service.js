@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedgraph_7hox_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustoracle_k5b3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustOracle) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractbroker_fit8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractBroker) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentlayer_8pxu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentLayer) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpfabric_prr1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPFabric) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhigh-frequencylayer_f06u_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyLayer) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24332,6 +24372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedgraph_7hox_logic": {
+          try {
+            const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_7hox.service.js");
+            const res = await OpenDecentralizedGraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustoracle_k5b3_logic": {
+          try {
+            const { OpenZeroTrustOracleService } = await import("../liberty/openzero-trustoracle_k5b3.service.js");
+            const res = await OpenZeroTrustOracleService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractbroker_fit8_logic": {
+          try {
+            const { OpenAbstractBrokerService } = await import("../liberty/openabstractbroker_fit8.service.js");
+            const res = await OpenAbstractBrokerService.execute(args.target || "system");
+            return { output: `### OpenAbstractBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentlayer_8pxu_logic": {
+          try {
+            const { OpenPersistentLayerService } = await import("../liberty/openpersistentlayer_8pxu.service.js");
+            const res = await OpenPersistentLayerService.execute(args.target || "system");
+            return { output: `### OpenPersistentLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpfabric_prr1_logic": {
+          try {
+            const { OpenBGPFabricService } = await import("../liberty/openbgpfabric_prr1.service.js");
+            const res = await OpenBGPFabricService.execute(args.target || "system");
+            return { output: `### OpenBGPFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openhigh-frequencylayer_f06u_logic": {
           try {
             const { OpenHighFrequencyLayerService } = await import("../liberty/openhigh-frequencylayer_f06u.service.js");
