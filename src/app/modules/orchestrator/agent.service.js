@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpplane_7zjo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPPlane) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencycontroller_xdcl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyController) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepvault_b9xa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepVault) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedsync_5xdt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedSync) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosvault_x6l7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosVault) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepswarm_iold_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepSwarm) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23212,6 +23252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpplane_7zjo_logic": {
+          try {
+            const { OpenBGPPlaneService } = await import("../liberty/openbgpplane_7zjo.service.js");
+            const res = await OpenBGPPlaneService.execute(args.target || "system");
+            return { output: `### OpenBGPPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencycontroller_xdcl_logic": {
+          try {
+            const { OpenHighFrequencyControllerService } = await import("../liberty/openhigh-frequencycontroller_xdcl.service.js");
+            const res = await OpenHighFrequencyControllerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyController failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepvault_b9xa_logic": {
+          try {
+            const { OpenDeepVaultService } = await import("../liberty/opendeepvault_b9xa.service.js");
+            const res = await OpenDeepVaultService.execute(args.target || "system");
+            return { output: `### OpenDeepVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedsync_5xdt_logic": {
+          try {
+            const { OpenAutomatedSyncService } = await import("../liberty/openautomatedsync_5xdt.service.js");
+            const res = await OpenAutomatedSyncService.execute(args.target || "system");
+            return { output: `### OpenAutomatedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosvault_x6l7_logic": {
+          try {
+            const { OpenChaosVaultService } = await import("../liberty/openchaosvault_x6l7.service.js");
+            const res = await OpenChaosVaultService.execute(args.target || "system");
+            return { output: `### OpenChaosVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosVault failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepswarm_iold_logic": {
           try {
             const { OpenDeepSwarmService } = await import("../liberty/opendeepswarm_iold.service.js");
