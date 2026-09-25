@@ -36,6 +36,9 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "boot_sovereign_system", description: "Initialize the entire Aphura Sovereign System, registering all 20 domains and 3,664 engines into a single unified organism powered by Liberty Center One.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "run_system_health_sweep", description: "Execute a comprehensive health sweep across all 20 sovereign domains, verifying Docker isolation, Calico eBPF networking, license compliance, and egress blocking.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "get_sovereign_system_report", description: "Generate a full architectural report of the entire Aphura Sovereign Backend including engine count, network topology, security posture, and infrastructure status.", parameters: { type: "object", properties: {} } } },
   {
     type: "function",
     function: {
@@ -29958,6 +29961,34 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "boot_sovereign_system": {
+          try {
+            const { SovereignCore } = await import("../core/sovereign_core.js");
+            const res = await SovereignCore.initialize();
+            return { output: "### Sovereign System Online\n\nDomains: " + res.totalDomains + "\nNamed Engines: " + res.totalNamedEngines + "\nGenerated Engines: " + res.totalGeneratedEngines + "\nStatus: " + res.status };
+          } catch (err) {
+            return { output: "Boot failed: " + err.message };
+          }
+        }
+        case "run_system_health_sweep": {
+          try {
+            const { SovereignCore } = await import("../core/sovereign_core.js");
+            const res = await SovereignCore.runHealthSweep();
+            const summary = Object.entries(res).map(function(e) { return e[0] + ": " + e[1].status + " (" + e[1].engines + " engines)"; }).join("\n");
+            return { output: "### System Health Sweep\n\n" + summary };
+          } catch (err) {
+            return { output: "Health sweep failed: " + err.message };
+          }
+        }
+        case "get_sovereign_system_report": {
+          try {
+            const { SovereignCore } = await import("../core/sovereign_core.js");
+            const res = SovereignCore.getSystemReport();
+            return { output: "### Sovereign System Report\n\n" + JSON.stringify(res, null, 2) };
+          } catch (err) {
+            return { output: "Report failed: " + err.message };
+          }
+        }
         case "extract_connector_data": {
           try {
             const { AphuraUnifiedETL } = await import("../etl/unified_etl_engine.js");
