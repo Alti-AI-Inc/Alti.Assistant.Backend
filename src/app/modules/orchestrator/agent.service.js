@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedgraph_tsti_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedGraph) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventplane_eyey_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventPlane) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticledger_svq7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticLedger) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativevault_4e2z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVault) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryproxy_wu8x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryProxy) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarypipeline_xolh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryPipeline) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23492,6 +23532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedgraph_tsti_logic": {
+          try {
+            const { OpenAdvancedGraphService } = await import("../liberty/openadvancedgraph_tsti.service.js");
+            const res = await OpenAdvancedGraphService.execute(args.target || "system");
+            return { output: `### OpenAdvancedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventplane_eyey_logic": {
+          try {
+            const { OpenEventPlaneService } = await import("../liberty/openeventplane_eyey.service.js");
+            const res = await OpenEventPlaneService.execute(args.target || "system");
+            return { output: `### OpenEventPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticledger_svq7_logic": {
+          try {
+            const { OpenStaticLedgerService } = await import("../liberty/openstaticledger_svq7.service.js");
+            const res = await OpenStaticLedgerService.execute(args.target || "system");
+            return { output: `### OpenStaticLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativevault_4e2z_logic": {
+          try {
+            const { OpenCloudNativeVaultService } = await import("../liberty/opencloud-nativevault_4e2z.service.js");
+            const res = await OpenCloudNativeVaultService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryproxy_wu8x_logic": {
+          try {
+            const { OpenPlanetaryProxyService } = await import("../liberty/openplanetaryproxy_wu8x.service.js");
+            const res = await OpenPlanetaryProxyService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarypipeline_xolh_logic": {
           try {
             const { OpenPlanetaryPipelineService } = await import("../liberty/openplanetarypipeline_xolh.service.js");
