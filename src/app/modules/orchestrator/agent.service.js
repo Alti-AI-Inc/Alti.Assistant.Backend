@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterpriseledger_jiq9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseLedger) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfpipeline_eh35_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFPipeline) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticengine_j017_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticEngine) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencymesh_iflh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyMesh) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriescluster_h4oa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCluster) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengraphengine_n0zi_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGraphEngine) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27372,6 +27412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterpriseledger_jiq9_logic": {
+          try {
+            const { OpenEnterpriseLedgerService } = await import("../liberty/openenterpriseledger_jiq9.service.js");
+            const res = await OpenEnterpriseLedgerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfpipeline_eh35_logic": {
+          try {
+            const { OpeneBPFPipelineService } = await import("../liberty/openebpfpipeline_eh35.service.js");
+            const res = await OpeneBPFPipelineService.execute(args.target || "system");
+            return { output: `### OpeneBPFPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticengine_j017_logic": {
+          try {
+            const { OpenSemanticEngineService } = await import("../liberty/opensemanticengine_j017.service.js");
+            const res = await OpenSemanticEngineService.execute(args.target || "system");
+            return { output: `### OpenSemanticEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencymesh_iflh_logic": {
+          try {
+            const { OpenHighFrequencyMeshService } = await import("../liberty/openhigh-frequencymesh_iflh.service.js");
+            const res = await OpenHighFrequencyMeshService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriescluster_h4oa_logic": {
+          try {
+            const { OpenTimeSeriesClusterService } = await import("../liberty/opentime-seriescluster_h4oa.service.js");
+            const res = await OpenTimeSeriesClusterService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesCluster failed: ${err.message}` };
+          }
+        }
         case "execute_opengraphengine_n0zi_logic": {
           try {
             const { OpenGraphEngineService } = await import("../liberty/opengraphengine_n0zi.service.js");
