@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partylayer_vqkd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyLayer) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesssync_aeit_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessSync) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantummesh_5exh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumMesh) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfcore_ixbw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFCore) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatednexus_vzbp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedNexus) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlesscore_n35w_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCore) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23852,6 +23892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partylayer_vqkd_logic": {
+          try {
+            const { OpenMultiPartyLayerService } = await import("../liberty/openmulti-partylayer_vqkd.service.js");
+            const res = await OpenMultiPartyLayerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesssync_aeit_logic": {
+          try {
+            const { OpenHeadlessSyncService } = await import("../liberty/openheadlesssync_aeit.service.js");
+            const res = await OpenHeadlessSyncService.execute(args.target || "system");
+            return { output: `### OpenHeadlessSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantummesh_5exh_logic": {
+          try {
+            const { OpenQuantumMeshService } = await import("../liberty/openquantummesh_5exh.service.js");
+            const res = await OpenQuantumMeshService.execute(args.target || "system");
+            return { output: `### OpenQuantumMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfcore_ixbw_logic": {
+          try {
+            const { OpeneBPFCoreService } = await import("../liberty/openebpfcore_ixbw.service.js");
+            const res = await OpeneBPFCoreService.execute(args.target || "system");
+            return { output: `### OpeneBPFCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatednexus_vzbp_logic": {
+          try {
+            const { OpenFederatedNexusService } = await import("../liberty/openfederatednexus_vzbp.service.js");
+            const res = await OpenFederatedNexusService.execute(args.target || "system");
+            return { output: `### OpenFederatedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlesscore_n35w_logic": {
           try {
             const { OpenHeadlessCoreService } = await import("../liberty/openheadlesscore_n35w.service.js");
