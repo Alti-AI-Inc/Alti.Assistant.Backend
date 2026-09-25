@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendring_mx4y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRing) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosfabric_bdh5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosFabric) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialproxy_ffj7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialProxy) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphgraph_nw12_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphGraph) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedcompiler_3ap5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedCompiler) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwarering_butn_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareRing) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27612,6 +27652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendring_mx4y_logic": {
+          try {
+            const { OpenMicroFrontendRingService } = await import("../liberty/openmicro-frontendring_mx4y.service.js");
+            const res = await OpenMicroFrontendRingService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosfabric_bdh5_logic": {
+          try {
+            const { OpenChaosFabricService } = await import("../liberty/openchaosfabric_bdh5.service.js");
+            const res = await OpenChaosFabricService.execute(args.target || "system");
+            return { output: `### OpenChaosFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialproxy_ffj7_logic": {
+          try {
+            const { OpenFinancialProxyService } = await import("../liberty/openfinancialproxy_ffj7.service.js");
+            const res = await OpenFinancialProxyService.execute(args.target || "system");
+            return { output: `### OpenFinancialProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphgraph_nw12_logic": {
+          try {
+            const { OpenGraphGraphService } = await import("../liberty/opengraphgraph_nw12.service.js");
+            const res = await OpenGraphGraphService.execute(args.target || "system");
+            return { output: `### OpenGraphGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedcompiler_3ap5_logic": {
+          try {
+            const { OpenFederatedCompilerService } = await import("../liberty/openfederatedcompiler_3ap5.service.js");
+            const res = await OpenFederatedCompilerService.execute(args.target || "system");
+            return { output: `### OpenFederatedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwarering_butn_logic": {
           try {
             const { OpenHardwareRingService } = await import("../liberty/openhardwarering_butn.service.js");
