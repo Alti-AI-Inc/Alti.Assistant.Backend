@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendataengine_4pxl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataEngine) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarematrix_rdt6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareMatrix) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantummesh_n9jn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumMesh) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfpipeline_1211_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFPipeline) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventrouter_t2zf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventRouter) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablecluster_dvbj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableCluster) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26812,6 +26852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendataengine_4pxl_logic": {
+          try {
+            const { OpenDataEngineService } = await import("../liberty/opendataengine_4pxl.service.js");
+            const res = await OpenDataEngineService.execute(args.target || "system");
+            return { output: `### OpenDataEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarematrix_rdt6_logic": {
+          try {
+            const { OpenHardwareMatrixService } = await import("../liberty/openhardwarematrix_rdt6.service.js");
+            const res = await OpenHardwareMatrixService.execute(args.target || "system");
+            return { output: `### OpenHardwareMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantummesh_n9jn_logic": {
+          try {
+            const { OpenQuantumMeshService } = await import("../liberty/openquantummesh_n9jn.service.js");
+            const res = await OpenQuantumMeshService.execute(args.target || "system");
+            return { output: `### OpenQuantumMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfpipeline_1211_logic": {
+          try {
+            const { OpeneBPFPipelineService } = await import("../liberty/openebpfpipeline_1211.service.js");
+            const res = await OpeneBPFPipelineService.execute(args.target || "system");
+            return { output: `### OpeneBPFPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventrouter_t2zf_logic": {
+          try {
+            const { OpenEventRouterService } = await import("../liberty/openeventrouter_t2zf.service.js");
+            const res = await OpenEventRouterService.execute(args.target || "system");
+            return { output: `### OpenEventRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablecluster_dvbj_logic": {
           try {
             const { OpenImmutableClusterService } = await import("../liberty/openimmutablecluster_dvbj.service.js");
