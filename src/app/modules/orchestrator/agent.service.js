@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalnode_shmt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalNode) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendoracle_burm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendOracle) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustmatrix_57f3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustMatrix) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryvortex_tc24_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryVortex) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencymesh_n0hi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyMesh) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictiveengine_y6st_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveEngine) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22092,6 +22132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalnode_shmt_logic": {
+          try {
+            const { OpenHyperDimensionalNodeService } = await import("../liberty/openhyper-dimensionalnode_shmt.service.js");
+            const res = await OpenHyperDimensionalNodeService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendoracle_burm_logic": {
+          try {
+            const { OpenMicroFrontendOracleService } = await import("../liberty/openmicro-frontendoracle_burm.service.js");
+            const res = await OpenMicroFrontendOracleService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustmatrix_57f3_logic": {
+          try {
+            const { OpenZeroTrustMatrixService } = await import("../liberty/openzero-trustmatrix_57f3.service.js");
+            const res = await OpenZeroTrustMatrixService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryvortex_tc24_logic": {
+          try {
+            const { OpenPlanetaryVortexService } = await import("../liberty/openplanetaryvortex_tc24.service.js");
+            const res = await OpenPlanetaryVortexService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencymesh_n0hi_logic": {
+          try {
+            const { OpenHighFrequencyMeshService } = await import("../liberty/openhigh-frequencymesh_n0hi.service.js");
+            const res = await OpenHighFrequencyMeshService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictiveengine_y6st_logic": {
           try {
             const { OpenPredictiveEngineService } = await import("../liberty/openpredictiveengine_y6st.service.js");
