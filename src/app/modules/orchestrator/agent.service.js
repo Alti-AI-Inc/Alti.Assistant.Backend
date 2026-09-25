@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustbroker_x01f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustBroker) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyengine_w632_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyEngine) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgevault_hjqz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeVault) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumvortex_r5gm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumVortex) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessvault_loog_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessVault) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfnet_jbtk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFNet) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24852,6 +24892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustbroker_x01f_logic": {
+          try {
+            const { OpenZeroTrustBrokerService } = await import("../liberty/openzero-trustbroker_x01f.service.js");
+            const res = await OpenZeroTrustBrokerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyengine_w632_logic": {
+          try {
+            const { OpenHighFrequencyEngineService } = await import("../liberty/openhigh-frequencyengine_w632.service.js");
+            const res = await OpenHighFrequencyEngineService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgevault_hjqz_logic": {
+          try {
+            const { OpenZeroKnowledgeVaultService } = await import("../liberty/openzero-knowledgevault_hjqz.service.js");
+            const res = await OpenZeroKnowledgeVaultService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumvortex_r5gm_logic": {
+          try {
+            const { OpenQuantumVortexService } = await import("../liberty/openquantumvortex_r5gm.service.js");
+            const res = await OpenQuantumVortexService.execute(args.target || "system");
+            return { output: `### OpenQuantumVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessvault_loog_logic": {
+          try {
+            const { OpenServerlessVaultService } = await import("../liberty/openserverlessvault_loog.service.js");
+            const res = await OpenServerlessVaultService.execute(args.target || "system");
+            return { output: `### OpenServerlessVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessVault failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfnet_jbtk_logic": {
           try {
             const { OpeneBPFNetService } = await import("../liberty/openebpfnet_jbtk.service.js");
