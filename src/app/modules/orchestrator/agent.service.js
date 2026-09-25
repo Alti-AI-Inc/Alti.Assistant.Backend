@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosoracle_tusp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosOracle) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryfabric_esli_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryFabric) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterbroker_0t87_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterBroker) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelcore_ayh4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelCore) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractcompiler_xgvz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractCompiler) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalvault_v80a_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalVault) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25732,6 +25772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosoracle_tusp_logic": {
+          try {
+            const { OpenChaosOracleService } = await import("../liberty/openchaosoracle_tusp.service.js");
+            const res = await OpenChaosOracleService.execute(args.target || "system");
+            return { output: `### OpenChaosOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryfabric_esli_logic": {
+          try {
+            const { OpenInMemoryFabricService } = await import("../liberty/openin-memoryfabric_esli.service.js");
+            const res = await OpenInMemoryFabricService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterbroker_0t87_logic": {
+          try {
+            const { OpenCrossClusterBrokerService } = await import("../liberty/opencross-clusterbroker_0t87.service.js");
+            const res = await OpenCrossClusterBrokerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelcore_ayh4_logic": {
+          try {
+            const { OpenMicroKernelCoreService } = await import("../liberty/openmicro-kernelcore_ayh4.service.js");
+            const res = await OpenMicroKernelCoreService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractcompiler_xgvz_logic": {
+          try {
+            const { OpenAbstractCompilerService } = await import("../liberty/openabstractcompiler_xgvz.service.js");
+            const res = await OpenAbstractCompilerService.execute(args.target || "system");
+            return { output: `### OpenAbstractCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalvault_v80a_logic": {
           try {
             const { OpenHyperDimensionalVaultService } = await import("../liberty/openhyper-dimensionalvault_v80a.service.js");
