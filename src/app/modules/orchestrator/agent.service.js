@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalring_aplb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalRing) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicgraph_7lx9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicGraph) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisecore_lpk9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseCore) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustproxy_nu0i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustProxy) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriessync_iwda_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesSync) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablecluster_ks9d_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableCluster) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29652,6 +29692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalring_aplb_logic": {
+          try {
+            const { OpenHyperDimensionalRingService } = await import("../liberty/openhyper-dimensionalring_aplb.service.js");
+            const res = await OpenHyperDimensionalRingService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicgraph_7lx9_logic": {
+          try {
+            const { OpenNeuromorphicGraphService } = await import("../liberty/openneuromorphicgraph_7lx9.service.js");
+            const res = await OpenNeuromorphicGraphService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisecore_lpk9_logic": {
+          try {
+            const { OpenEnterpriseCoreService } = await import("../liberty/openenterprisecore_lpk9.service.js");
+            const res = await OpenEnterpriseCoreService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustproxy_nu0i_logic": {
+          try {
+            const { OpenZeroTrustProxyService } = await import("../liberty/openzero-trustproxy_nu0i.service.js");
+            const res = await OpenZeroTrustProxyService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriessync_iwda_logic": {
+          try {
+            const { OpenTimeSeriesSyncService } = await import("../liberty/opentime-seriessync_iwda.service.js");
+            const res = await OpenTimeSeriesSyncService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesSync failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablecluster_ks9d_logic": {
           try {
             const { OpenImmutableClusterService } = await import("../liberty/openimmutablecluster_ks9d.service.js");
