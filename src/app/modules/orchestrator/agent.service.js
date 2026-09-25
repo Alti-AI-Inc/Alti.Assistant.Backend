@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentledger_p6hv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentLedger) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorybroker_nofu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryBroker) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatagraph_84gq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataGraph) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicmatrix_rnwz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMatrix) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessplane_v47k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessPlane) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialvortex_9zkk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialVortex) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29772,6 +29812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentledger_p6hv_logic": {
+          try {
+            const { OpenPersistentLedgerService } = await import("../liberty/openpersistentledger_p6hv.service.js");
+            const res = await OpenPersistentLedgerService.execute(args.target || "system");
+            return { output: `### OpenPersistentLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorybroker_nofu_logic": {
+          try {
+            const { OpenInMemoryBrokerService } = await import("../liberty/openin-memorybroker_nofu.service.js");
+            const res = await OpenInMemoryBrokerService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatagraph_84gq_logic": {
+          try {
+            const { OpenDataGraphService } = await import("../liberty/opendatagraph_84gq.service.js");
+            const res = await OpenDataGraphService.execute(args.target || "system");
+            return { output: `### OpenDataGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicmatrix_rnwz_logic": {
+          try {
+            const { OpenHomomorphicMatrixService } = await import("../liberty/openhomomorphicmatrix_rnwz.service.js");
+            const res = await OpenHomomorphicMatrixService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessplane_v47k_logic": {
+          try {
+            const { OpenHeadlessPlaneService } = await import("../liberty/openheadlessplane_v47k.service.js");
+            const res = await OpenHeadlessPlaneService.execute(args.target || "system");
+            return { output: `### OpenHeadlessPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialvortex_9zkk_logic": {
           try {
             const { OpenFinancialVortexService } = await import("../liberty/openfinancialvortex_9zkk.service.js");
