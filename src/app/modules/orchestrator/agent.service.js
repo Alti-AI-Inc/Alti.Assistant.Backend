@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgeplane_iixp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgePlane) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticbroker_g6og_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticBroker) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscompiler_hnds_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCompiler) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosswarm_g4iw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosSwarm) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivegraph_62yd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveGraph) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialvortex_c6xc_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialVortex) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21972,6 +22012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgeplane_iixp_logic": {
+          try {
+            const { OpenZeroKnowledgePlaneService } = await import("../liberty/openzero-knowledgeplane_iixp.service.js");
+            const res = await OpenZeroKnowledgePlaneService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticbroker_g6og_logic": {
+          try {
+            const { OpenStaticBrokerService } = await import("../liberty/openstaticbroker_g6og.service.js");
+            const res = await OpenStaticBrokerService.execute(args.target || "system");
+            return { output: `### OpenStaticBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscompiler_hnds_logic": {
+          try {
+            const { OpenChaosCompilerService } = await import("../liberty/openchaoscompiler_hnds.service.js");
+            const res = await OpenChaosCompilerService.execute(args.target || "system");
+            return { output: `### OpenChaosCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosswarm_g4iw_logic": {
+          try {
+            const { OpenChaosSwarmService } = await import("../liberty/openchaosswarm_g4iw.service.js");
+            const res = await OpenChaosSwarmService.execute(args.target || "system");
+            return { output: `### OpenChaosSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivegraph_62yd_logic": {
+          try {
+            const { OpenPredictiveGraphService } = await import("../liberty/openpredictivegraph_62yd.service.js");
+            const res = await OpenPredictiveGraphService.execute(args.target || "system");
+            return { output: `### OpenPredictiveGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialvortex_c6xc_logic": {
           try {
             const { OpenFinancialVortexService } = await import("../liberty/openfinancialvortex_c6xc.service.js");
