@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepswarm_iold_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepSwarm) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedmesh_l2r9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedMesh) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivegrid_rdtx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveGrid) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnode_yuch_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNode) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedcompiler_0ar1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedCompiler) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancedvortex_diiz_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedVortex) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23172,6 +23212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepswarm_iold_logic": {
+          try {
+            const { OpenDeepSwarmService } = await import("../liberty/opendeepswarm_iold.service.js");
+            const res = await OpenDeepSwarmService.execute(args.target || "system");
+            return { output: `### OpenDeepSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedmesh_l2r9_logic": {
+          try {
+            const { OpenAutomatedMeshService } = await import("../liberty/openautomatedmesh_l2r9.service.js");
+            const res = await OpenAutomatedMeshService.execute(args.target || "system");
+            return { output: `### OpenAutomatedMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivegrid_rdtx_logic": {
+          try {
+            const { OpenPredictiveGridService } = await import("../liberty/openpredictivegrid_rdtx.service.js");
+            const res = await OpenPredictiveGridService.execute(args.target || "system");
+            return { output: `### OpenPredictiveGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnode_yuch_logic": {
+          try {
+            const { OpenGraphNodeService } = await import("../liberty/opengraphnode_yuch.service.js");
+            const res = await OpenGraphNodeService.execute(args.target || "system");
+            return { output: `### OpenGraphNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedcompiler_0ar1_logic": {
+          try {
+            const { OpenAutomatedCompilerService } = await import("../liberty/openautomatedcompiler_0ar1.service.js");
+            const res = await OpenAutomatedCompilerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancedvortex_diiz_logic": {
           try {
             const { OpenAdvancedVortexService } = await import("../liberty/openadvancedvortex_diiz.service.js");
