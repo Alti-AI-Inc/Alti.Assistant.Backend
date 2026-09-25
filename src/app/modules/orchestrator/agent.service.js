@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendvortex_xh88_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendVortex) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyproxy_5fyt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyProxy) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicrouter_rphz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicRouter) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventengine_16xv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventEngine) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatastream_ig6n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataStream) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivelayer_94y4_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveLayer) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23292,6 +23332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendvortex_xh88_logic": {
+          try {
+            const { OpenMicroFrontendVortexService } = await import("../liberty/openmicro-frontendvortex_xh88.service.js");
+            const res = await OpenMicroFrontendVortexService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyproxy_5fyt_logic": {
+          try {
+            const { OpenHighFrequencyProxyService } = await import("../liberty/openhigh-frequencyproxy_5fyt.service.js");
+            const res = await OpenHighFrequencyProxyService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicrouter_rphz_logic": {
+          try {
+            const { OpenHomomorphicRouterService } = await import("../liberty/openhomomorphicrouter_rphz.service.js");
+            const res = await OpenHomomorphicRouterService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventengine_16xv_logic": {
+          try {
+            const { OpenEventEngineService } = await import("../liberty/openeventengine_16xv.service.js");
+            const res = await OpenEventEngineService.execute(args.target || "system");
+            return { output: `### OpenEventEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatastream_ig6n_logic": {
+          try {
+            const { OpenDataStreamService } = await import("../liberty/opendatastream_ig6n.service.js");
+            const res = await OpenDataStreamService.execute(args.target || "system");
+            return { output: `### OpenDataStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataStream failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivelayer_94y4_logic": {
           try {
             const { OpenPredictiveLayerService } = await import("../liberty/openpredictivelayer_94y4.service.js");
