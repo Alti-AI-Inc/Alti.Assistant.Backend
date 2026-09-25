@@ -45,6 +45,22 @@ import {
   llmListOrgEndpoints,
   llmListEndpointHardware,
   llmListEndpointAvzones,
+  llmListSupportedModels,
+  llmGetSupportedModel,
+  llmListCustomModels,
+  llmCreateCustomModel,
+  llmGetCustomModel,
+  llmUpdateCustomModel,
+  llmDeleteCustomModel,
+  llmListCustomModelFiles,
+  llmListCustomModelRevisions,
+  llmListOrgModels,
+  llmCreateModelUpload,
+  llmListModelUploads,
+  llmGetModelUpload,
+  llmListModelUploadEvents,
+  llmListModelConfigs,
+  llmGetModelConfig,
   llmCreateEval,
   llmListEvals,
   llmGetEval,
@@ -1782,6 +1798,215 @@ export const InferenceGateway = {
   async handleListAvzones(req, res) {
     try {
       const data = await llmListEndpointAvzones();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 1. Lists Together-hosted base models for dedicated inference (GET /supported-models & /v1/supported-models)
+   * Official Reference: https://docs.together.ai/reference/dmi/supported-models-list
+   */
+  async handleListSupportedModels(req, res) {
+    try {
+      const data = await llmListSupportedModels({ ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 2. Retrieves a supported model by identifier (GET /supported-models/:id & /v1/supported-models/:id)
+   * Official Reference: https://docs.together.ai/reference/dmi/supported-models-get
+   */
+  async handleGetSupportedModel(req, res) {
+    try {
+      const data = await llmGetSupportedModel(req.params.id, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 3. Lists custom model resources owned by project (GET /models & GET /projects/:projectId/models)
+   * Official Reference: https://docs.together.ai/reference/dmi/models-list
+   */
+  async handleListCustomModels(req, res) {
+    try {
+      const data = await llmListCustomModels({ ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 4. Creates a custom model resource (POST /models & POST /projects/:projectId/models)
+   * Official Reference: https://docs.together.ai/reference/dmi/models-create
+   */
+  async handleCreateCustomModel(req, res) {
+    try {
+      const data = await llmCreateCustomModel(req.body, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 5. Retrieves a custom model resource (GET /models/:id & GET /projects/:projectId/models/:id)
+   * Official Reference: https://docs.together.ai/reference/dmi/models-get
+   */
+  async handleGetCustomModel(req, res) {
+    try {
+      const data = await llmGetCustomModel(req.params.id, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 6. Updates a custom model resource (PATCH /models/:id & PUT /models/:id)
+   * Official Reference: https://docs.together.ai/reference/dmi/models-update
+   */
+  async handleUpdateCustomModel(req, res) {
+    try {
+      const data = await llmUpdateCustomModel(req.params.id, req.body, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 7. Deletes a custom model resource (DELETE /models/:id & DELETE /projects/:projectId/models/:id)
+   * Official Reference: https://docs.together.ai/reference/dmi/models-delete
+   */
+  async handleDeleteCustomModel(req, res) {
+    try {
+      const data = await llmDeleteCustomModel(req.params.id, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 8. Lists files in a custom model (GET /models/:id/files & /projects/:projectId/models/:id/files)
+   * Official Reference: https://docs.together.ai/reference/dmi/models-list-files
+   */
+  async handleListCustomModelFiles(req, res) {
+    try {
+      const data = await llmListCustomModelFiles(req.params.id, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 9. Lists revisions in a custom model (GET /models/:id/revisions & /projects/:projectId/models/:id/revisions)
+   * Official Reference: https://docs.together.ai/reference/dmi/models-list-revisions
+   */
+  async handleListCustomModelRevisions(req, res) {
+    try {
+      const data = await llmListCustomModelRevisions(req.params.id, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 10. Lists models shared with organization (GET /models/organization, GET /models/org, GET /organizations/:organizationId/models)
+   * Official Reference: https://docs.together.ai/reference/dmi/models-list-organization
+   */
+  async handleListOrgModels(req, res) {
+    try {
+      const orgId = req.params?.organizationId || req.query?.organizationId || req.query?.orgId;
+      const data = await llmListOrgModels(orgId, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 11. Creates a remote model upload (POST /models/uploads & POST /projects/:projectId/models/uploads)
+   * Official Reference: https://docs.together.ai/reference/dmi/model-uploads-create
+   */
+  async handleCreateModelUpload(req, res) {
+    try {
+      const data = await llmCreateModelUpload(req.body, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 12. Lists remote model uploads (GET /models/uploads & GET /projects/:projectId/models/uploads)
+   * Official Reference: https://docs.together.ai/reference/dmi/model-uploads-list
+   */
+  async handleListModelUploads(req, res) {
+    try {
+      const data = await llmListModelUploads({ ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 13. Retrieves a remote model upload (GET /models/uploads/:id & GET /projects/:projectId/models/uploads/:id)
+   * Official Reference: https://docs.together.ai/reference/dmi/model-uploads-get
+   */
+  async handleGetModelUpload(req, res) {
+    try {
+      const data = await llmGetModelUpload(req.params.id, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 14. Lists events for a model upload (GET /models/uploads/:id/events & GET /projects/:projectId/models/uploads/:id/events)
+   * Official Reference: https://docs.together.ai/reference/dmi/model-uploads-list-events
+   */
+  async handleListModelUploadEvents(req, res) {
+    try {
+      const data = await llmListModelUploadEvents(req.params.id, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 15. Lists model configurations (GET /configs & GET /projects/:projectId/configs)
+   * Official Reference: https://docs.together.ai/reference/dmi/configs-list
+   */
+  async handleListModelConfigs(req, res) {
+    try {
+      const data = await llmListModelConfigs({ ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * 16. Retrieves a model configuration (GET /configs/:id & GET /projects/:projectId/configs/:id)
+   * Official Reference: https://docs.together.ai/reference/dmi/configs-get
+   */
+  async handleGetModelConfig(req, res) {
+    try {
+      const data = await llmGetModelConfig(req.params.id, { ...req.query, ...req.params });
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });

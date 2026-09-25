@@ -132,6 +132,9 @@ router.get('/v1/tci/sessions', async (req, res) => {
 // ── Models Discovery (OpenAI/Together SDK compatible format) ───────────────
 const modelsHandler = async (req, res) => {
   try {
+    if (req.query?.projectId || req.query?.visibility || req.query?.organizationId) {
+      return await InferenceGateway.handleListCustomModels(req, res);
+    }
     const list = await llmListModels();
     const data = (Array.isArray(list) ? list : list?.data || []).map((m) => ({
       id: typeof m === 'string' ? m : m.id,
@@ -496,6 +499,202 @@ const deleteEndpointRoutes = [
 deleteEndpointRoutes.forEach((p) => {
   router.delete(p, async (req, res) => {
     await InferenceGateway.handleDeleteEndpoint(req, res);
+  });
+});
+
+// ── Dedicated Model Inference (DMI) - Models, Uploads & Configs ──────────
+// Official Reference: https://docs.together.ai/reference/dmi/supported-models-list
+
+// 1. Supported Models
+const listSupportedModelsRoutes = ['/supported-models', '/v1/supported-models'];
+listSupportedModelsRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListSupportedModels(req, res);
+  });
+});
+
+const getSupportedModelRoutes = ['/supported-models/:id', '/v1/supported-models/:id'];
+getSupportedModelRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleGetSupportedModel(req, res);
+  });
+});
+
+// 2. Organization Scoped Models (Mounted BEFORE /models/:id)
+const orgModelRoutes = [
+  '/models/organization',
+  '/v1/models/organization',
+  '/models/org',
+  '/v1/models/org',
+  '/models/organization/:organizationId',
+  '/v1/models/organization/:organizationId',
+  '/organizations/:organizationId/models',
+  '/v1/organizations/:organizationId/models',
+];
+orgModelRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListOrgModels(req, res);
+  });
+});
+
+// 3. Remote Model Uploads (Mounted BEFORE /models/:id)
+const createModelUploadRoutes = [
+  '/models/uploads',
+  '/v1/models/uploads',
+  '/projects/:projectId/models/uploads',
+  '/v1/projects/:projectId/models/uploads',
+];
+createModelUploadRoutes.forEach((p) => {
+  router.post(p, async (req, res) => {
+    await InferenceGateway.handleCreateModelUpload(req, res);
+  });
+});
+
+const listModelUploadsRoutes = [
+  '/models/uploads',
+  '/v1/models/uploads',
+  '/projects/:projectId/models/uploads',
+  '/v1/projects/:projectId/models/uploads',
+];
+listModelUploadsRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListModelUploads(req, res);
+  });
+});
+
+const modelUploadEventsRoutes = [
+  '/models/uploads/:id/events',
+  '/v1/models/uploads/:id/events',
+  '/projects/:projectId/models/uploads/:id/events',
+  '/v1/projects/:projectId/models/uploads/:id/events',
+];
+modelUploadEventsRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListModelUploadEvents(req, res);
+  });
+});
+
+const getModelUploadRoutes = [
+  '/models/uploads/:id',
+  '/v1/models/uploads/:id',
+  '/projects/:projectId/models/uploads/:id',
+  '/v1/projects/:projectId/models/uploads/:id',
+];
+getModelUploadRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleGetModelUpload(req, res);
+  });
+});
+
+// 4. Project Models Sub-resources (Files & Revisions - Mounted BEFORE /models/:id)
+const modelFilesRoutes = [
+  '/models/:id/files',
+  '/v1/models/:id/files',
+  '/projects/:projectId/models/:id/files',
+  '/v1/projects/:projectId/models/:id/files',
+];
+modelFilesRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListCustomModelFiles(req, res);
+  });
+});
+
+const modelRevisionsRoutes = [
+  '/models/:id/revisions',
+  '/v1/models/:id/revisions',
+  '/projects/:projectId/models/:id/revisions',
+  '/v1/projects/:projectId/models/:id/revisions',
+];
+modelRevisionsRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListCustomModelRevisions(req, res);
+  });
+});
+
+// 5. Project Models CRUD
+const createCustomModelRoutes = [
+  '/models',
+  '/v1/models',
+  '/projects/:projectId/models',
+  '/v1/projects/:projectId/models',
+];
+createCustomModelRoutes.forEach((p) => {
+  router.post(p, async (req, res) => {
+    await InferenceGateway.handleCreateCustomModel(req, res);
+  });
+});
+
+const listProjectModelsRoutes = [
+  '/projects/:projectId/models',
+  '/v1/projects/:projectId/models',
+];
+listProjectModelsRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListCustomModels(req, res);
+  });
+});
+
+const getCustomModelRoutes = [
+  '/models/:id',
+  '/v1/models/:id',
+  '/projects/:projectId/models/:id',
+  '/v1/projects/:projectId/models/:id',
+];
+getCustomModelRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleGetCustomModel(req, res);
+  });
+});
+
+const updateCustomModelRoutes = [
+  '/models/:id',
+  '/v1/models/:id',
+  '/projects/:projectId/models/:id',
+  '/v1/projects/:projectId/models/:id',
+];
+updateCustomModelRoutes.forEach((p) => {
+  router.put(p, async (req, res) => {
+    await InferenceGateway.handleUpdateCustomModel(req, res);
+  });
+  router.patch(p, async (req, res) => {
+    await InferenceGateway.handleUpdateCustomModel(req, res);
+  });
+});
+
+const deleteCustomModelRoutes = [
+  '/models/:id',
+  '/v1/models/:id',
+  '/projects/:projectId/models/:id',
+  '/v1/projects/:projectId/models/:id',
+];
+deleteCustomModelRoutes.forEach((p) => {
+  router.delete(p, async (req, res) => {
+    await InferenceGateway.handleDeleteCustomModel(req, res);
+  });
+});
+
+// 6. Model Configurations (Configs)
+const listConfigsRoutes = [
+  '/configs',
+  '/v1/configs',
+  '/projects/:projectId/configs',
+  '/v1/projects/:projectId/configs',
+];
+listConfigsRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListModelConfigs(req, res);
+  });
+});
+
+const getConfigRoutes = [
+  '/configs/:id',
+  '/v1/configs/:id',
+  '/projects/:projectId/configs/:id',
+  '/v1/projects/:projectId/configs/:id',
+];
+getConfigRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleGetModelConfig(req, res);
   });
 });
 
