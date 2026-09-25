@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpvortex_0er6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPVortex) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaossync_5dpw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosSync) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialrouter_9e5q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialRouter) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticstream_9bsk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticStream) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondbroker_p7e1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondBroker) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessgraph_ua8r_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessGraph) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24572,6 +24612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpvortex_0er6_logic": {
+          try {
+            const { OpenBGPVortexService } = await import("../liberty/openbgpvortex_0er6.service.js");
+            const res = await OpenBGPVortexService.execute(args.target || "system");
+            return { output: `### OpenBGPVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaossync_5dpw_logic": {
+          try {
+            const { OpenChaosSyncService } = await import("../liberty/openchaossync_5dpw.service.js");
+            const res = await OpenChaosSyncService.execute(args.target || "system");
+            return { output: `### OpenChaosSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialrouter_9e5q_logic": {
+          try {
+            const { OpenFinancialRouterService } = await import("../liberty/openfinancialrouter_9e5q.service.js");
+            const res = await OpenFinancialRouterService.execute(args.target || "system");
+            return { output: `### OpenFinancialRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticstream_9bsk_logic": {
+          try {
+            const { OpenSemanticStreamService } = await import("../liberty/opensemanticstream_9bsk.service.js");
+            const res = await OpenSemanticStreamService.execute(args.target || "system");
+            return { output: `### OpenSemanticStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondbroker_p7e1_logic": {
+          try {
+            const { OpenSubMillisecondBrokerService } = await import("../liberty/opensub-millisecondbroker_p7e1.service.js");
+            const res = await OpenSubMillisecondBrokerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondBroker failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessgraph_ua8r_logic": {
           try {
             const { OpenServerlessGraphService } = await import("../liberty/openserverlessgraph_ua8r.service.js");
