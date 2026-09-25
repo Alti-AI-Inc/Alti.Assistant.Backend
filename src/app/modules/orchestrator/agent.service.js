@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlesscore_n35w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCore) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatanexus_1yw3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataNexus) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicfabric_29hc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicFabric) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarychain_s7g3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryChain) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventchain_dv8e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventChain) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectorrouter_kqlh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorRouter) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23812,6 +23852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlesscore_n35w_logic": {
+          try {
+            const { OpenHeadlessCoreService } = await import("../liberty/openheadlesscore_n35w.service.js");
+            const res = await OpenHeadlessCoreService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatanexus_1yw3_logic": {
+          try {
+            const { OpenDataNexusService } = await import("../liberty/opendatanexus_1yw3.service.js");
+            const res = await OpenDataNexusService.execute(args.target || "system");
+            return { output: `### OpenDataNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicfabric_29hc_logic": {
+          try {
+            const { OpenNeuromorphicFabricService } = await import("../liberty/openneuromorphicfabric_29hc.service.js");
+            const res = await OpenNeuromorphicFabricService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarychain_s7g3_logic": {
+          try {
+            const { OpenPlanetaryChainService } = await import("../liberty/openplanetarychain_s7g3.service.js");
+            const res = await OpenPlanetaryChainService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventchain_dv8e_logic": {
+          try {
+            const { OpenEventChainService } = await import("../liberty/openeventchain_dv8e.service.js");
+            const res = await OpenEventChainService.execute(args.target || "system");
+            return { output: `### OpenEventChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventChain failed: ${err.message}` };
+          }
+        }
         case "execute_openvectorrouter_kqlh_logic": {
           try {
             const { OpenVectorRouterService } = await import("../liberty/openvectorrouter_kqlh.service.js");
