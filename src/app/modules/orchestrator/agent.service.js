@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedvault_g6lj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedVault) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialchain_tz6j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialChain) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondcore_02tn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondCore) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticchain_gpij_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticChain) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencygrid_v84p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyGrid) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opentime-seriesvault_fqf2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesVault) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29332,6 +29372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedvault_g6lj_logic": {
+          try {
+            const { OpenAutomatedVaultService } = await import("../liberty/openautomatedvault_g6lj.service.js");
+            const res = await OpenAutomatedVaultService.execute(args.target || "system");
+            return { output: `### OpenAutomatedVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialchain_tz6j_logic": {
+          try {
+            const { OpenFinancialChainService } = await import("../liberty/openfinancialchain_tz6j.service.js");
+            const res = await OpenFinancialChainService.execute(args.target || "system");
+            return { output: `### OpenFinancialChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondcore_02tn_logic": {
+          try {
+            const { OpenSubMillisecondCoreService } = await import("../liberty/opensub-millisecondcore_02tn.service.js");
+            const res = await OpenSubMillisecondCoreService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticchain_gpij_logic": {
+          try {
+            const { OpenSemanticChainService } = await import("../liberty/opensemanticchain_gpij.service.js");
+            const res = await OpenSemanticChainService.execute(args.target || "system");
+            return { output: `### OpenSemanticChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencygrid_v84p_logic": {
+          try {
+            const { OpenHighFrequencyGridService } = await import("../liberty/openhigh-frequencygrid_v84p.service.js");
+            const res = await OpenHighFrequencyGridService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opentime-seriesvault_fqf2_logic": {
           try {
             const { OpenTimeSeriesVaultService } = await import("../liberty/opentime-seriesvault_fqf2.service.js");
