@@ -39,9 +39,27 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "execute_sovereign_etl_pipeline",
-      description: "Use the Aphura Sovereign ETL Engine to natively connect to 3rd party apps (Stripe, Salesforce, GitHub, etc.) and extract their data via a strict one-way airgap. Data is pulled in and localized, but absolutely no data is permitted to exit the network.",
+      name: "list_all_etl_connectors",
+      description: "List all 1,500+ natively supported Aphura ETL connectors across 15 categories (CRM, Payments, DevTools, Marketing, HR, Legal, AI, Social, Databases, etc.).",
+      parameters: { type: "object", properties: {} }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "bulk_extract_category",
+      description: "Use the Aphura Unified ETL Engine to bulk-extract an entire category of 3rd party integrations (CRM, PAYMENTS, DEV_TOOLS, MARKETING, etc.) simultaneously into the sovereign Data Lake.",
+      parameters: { type: "object", properties: { categoryName: { type: "string" }, destinationLake: { type: "string" } }, required: ["categoryName", "destinationLake"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "extract_connector_data",
+      description: "Use the Aphura Unified ETL Engine (Composio x Benthos) to extract data from any of 1,500+ 3rd party apps (Salesforce, Stripe, GitHub, Slack, etc.) via a strict one-way airgap. Data is pulled in and localized to Liberty Center One. No data exits.",
       parameters: { type: "object", properties: { connectorName: { type: "string" }, destinationLake: { type: "string" } }, required: ["connectorName", "destinationLake"] }
+    }
+  }, required: ["connectorName", "destinationLake"] }
     }
   },
   {
@@ -29940,6 +29958,33 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "extract_connector_data": {
+          try {
+            const { AphuraUnifiedETL } = await import("../etl/unified_etl_engine.js");
+            const res = await AphuraUnifiedETL.extractConnector(args.connectorName, args.destinationLake);
+            return { output: `### Sovereign ETL Extraction\\n\\n\`\`\`text\\n${res.report}\\n\`\`\`` };
+          } catch (err) {
+            return { output: `ETL extraction failed: ${err.message}` };
+          }
+        }
+        case "bulk_extract_category": {
+          try {
+            const { AphuraUnifiedETL } = await import("../etl/unified_etl_engine.js");
+            const res = await AphuraUnifiedETL.extractCategory(args.categoryName, args.destinationLake);
+            return { output: `### Bulk ETL Complete\\n\\nExtracted ${res.extracted} connectors from category: ${res.category}` };
+          } catch (err) {
+            return { output: `Bulk ETL failed: ${err.message}` };
+          }
+        }
+        case "list_all_etl_connectors": {
+          try {
+            const { AphuraUnifiedETL } = await import("../etl/unified_etl_engine.js");
+            const res = await AphuraUnifiedETL.listAllConnectors();
+            return { output: `### Aphura ETL Connector Library\\n\\nTotal Connectors: ${res.totalConnectors}\\nCategories: ${res.categories}` };
+          } catch (err) {
+            return { output: `Connector listing failed: ${err.message}` };
+          }
+        }
         case "execute_sovereign_etl_pipeline": {
           try {
             const { AphuraETLService } = await import("../data/aphura_etl.service.js");
