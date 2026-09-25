@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openabstractswarm_aens_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractSwarm) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialcompiler_oa2f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialCompiler) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaregrid_17nm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareGrid) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterchain_65k8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterChain) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelmesh_0kj0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMesh) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedrouter_f9xa_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedRouter) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26892,6 +26932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openabstractswarm_aens_logic": {
+          try {
+            const { OpenAbstractSwarmService } = await import("../liberty/openabstractswarm_aens.service.js");
+            const res = await OpenAbstractSwarmService.execute(args.target || "system");
+            return { output: `### OpenAbstractSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialcompiler_oa2f_logic": {
+          try {
+            const { OpenFinancialCompilerService } = await import("../liberty/openfinancialcompiler_oa2f.service.js");
+            const res = await OpenFinancialCompilerService.execute(args.target || "system");
+            return { output: `### OpenFinancialCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaregrid_17nm_logic": {
+          try {
+            const { OpenHardwareGridService } = await import("../liberty/openhardwaregrid_17nm.service.js");
+            const res = await OpenHardwareGridService.execute(args.target || "system");
+            return { output: `### OpenHardwareGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterchain_65k8_logic": {
+          try {
+            const { OpenCrossClusterChainService } = await import("../liberty/opencross-clusterchain_65k8.service.js");
+            const res = await OpenCrossClusterChainService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelmesh_0kj0_logic": {
+          try {
+            const { OpenMicroKernelMeshService } = await import("../liberty/openmicro-kernelmesh_0kj0.service.js");
+            const res = await OpenMicroKernelMeshService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelMesh failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedrouter_f9xa_logic": {
           try {
             const { OpenDistributedRouterService } = await import("../liberty/opendistributedrouter_f9xa.service.js");
