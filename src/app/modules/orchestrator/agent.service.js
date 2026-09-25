@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedring_v4fd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedRing) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumplane_i9ia_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumPlane) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivepipeline_fghd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictivePipeline) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessproxy_fgzy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessProxy) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicgrid_8ei5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicGrid) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedswarm_19kh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedSwarm) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26972,6 +27012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedring_v4fd_logic": {
+          try {
+            const { OpenDistributedRingService } = await import("../liberty/opendistributedring_v4fd.service.js");
+            const res = await OpenDistributedRingService.execute(args.target || "system");
+            return { output: `### OpenDistributedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumplane_i9ia_logic": {
+          try {
+            const { OpenQuantumPlaneService } = await import("../liberty/openquantumplane_i9ia.service.js");
+            const res = await OpenQuantumPlaneService.execute(args.target || "system");
+            return { output: `### OpenQuantumPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivepipeline_fghd_logic": {
+          try {
+            const { OpenPredictivePipelineService } = await import("../liberty/openpredictivepipeline_fghd.service.js");
+            const res = await OpenPredictivePipelineService.execute(args.target || "system");
+            return { output: `### OpenPredictivePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictivePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessproxy_fgzy_logic": {
+          try {
+            const { OpenHeadlessProxyService } = await import("../liberty/openheadlessproxy_fgzy.service.js");
+            const res = await OpenHeadlessProxyService.execute(args.target || "system");
+            return { output: `### OpenHeadlessProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicgrid_8ei5_logic": {
+          try {
+            const { OpenHomomorphicGridService } = await import("../liberty/openhomomorphicgrid_8ei5.service.js");
+            const res = await OpenHomomorphicGridService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedswarm_19kh_logic": {
           try {
             const { OpenFederatedSwarmService } = await import("../liberty/openfederatedswarm_19kh.service.js");
