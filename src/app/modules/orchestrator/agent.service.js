@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfvortex_xapj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFVortex) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgesync_30lb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeSync) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelrouter_g64h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelRouter) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorsync_owzq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorSync) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyoracle_x9mo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyOracle) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openlogmesh_tva1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenLogMesh) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28092,6 +28132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfvortex_xapj_logic": {
+          try {
+            const { OpeneBPFVortexService } = await import("../liberty/openebpfvortex_xapj.service.js");
+            const res = await OpeneBPFVortexService.execute(args.target || "system");
+            return { output: `### OpeneBPFVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgesync_30lb_logic": {
+          try {
+            const { OpenZeroKnowledgeSyncService } = await import("../liberty/openzero-knowledgesync_30lb.service.js");
+            const res = await OpenZeroKnowledgeSyncService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelrouter_g64h_logic": {
+          try {
+            const { OpenMicroKernelRouterService } = await import("../liberty/openmicro-kernelrouter_g64h.service.js");
+            const res = await OpenMicroKernelRouterService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorsync_owzq_logic": {
+          try {
+            const { OpenVectorSyncService } = await import("../liberty/openvectorsync_owzq.service.js");
+            const res = await OpenVectorSyncService.execute(args.target || "system");
+            return { output: `### OpenVectorSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyoracle_x9mo_logic": {
+          try {
+            const { OpenHighFrequencyOracleService } = await import("../liberty/openhigh-frequencyoracle_x9mo.service.js");
+            const res = await OpenHighFrequencyOracleService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openlogmesh_tva1_logic": {
           try {
             const { OpenLogMeshService } = await import("../liberty/openlogmesh_tva1.service.js");
