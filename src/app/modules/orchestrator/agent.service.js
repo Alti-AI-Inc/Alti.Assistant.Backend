@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancednode_xyn3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNode) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphiccompiler_odwu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicCompiler) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventpipeline_c4os_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventPipeline) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticledger_e57d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticLedger) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablenode_9dzl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableNode) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendnode_7x0e_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendNode) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27092,6 +27132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancednode_xyn3_logic": {
+          try {
+            const { OpenAdvancedNodeService } = await import("../liberty/openadvancednode_xyn3.service.js");
+            const res = await OpenAdvancedNodeService.execute(args.target || "system");
+            return { output: `### OpenAdvancedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphiccompiler_odwu_logic": {
+          try {
+            const { OpenHomomorphicCompilerService } = await import("../liberty/openhomomorphiccompiler_odwu.service.js");
+            const res = await OpenHomomorphicCompilerService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventpipeline_c4os_logic": {
+          try {
+            const { OpenEventPipelineService } = await import("../liberty/openeventpipeline_c4os.service.js");
+            const res = await OpenEventPipelineService.execute(args.target || "system");
+            return { output: `### OpenEventPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticledger_e57d_logic": {
+          try {
+            const { OpenSemanticLedgerService } = await import("../liberty/opensemanticledger_e57d.service.js");
+            const res = await OpenSemanticLedgerService.execute(args.target || "system");
+            return { output: `### OpenSemanticLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablenode_9dzl_logic": {
+          try {
+            const { OpenImmutableNodeService } = await import("../liberty/openimmutablenode_9dzl.service.js");
+            const res = await OpenImmutableNodeService.execute(args.target || "system");
+            return { output: `### OpenImmutableNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableNode failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendnode_7x0e_logic": {
           try {
             const { OpenMicroFrontendNodeService } = await import("../liberty/openmicro-frontendnode_7x0e.service.js");
