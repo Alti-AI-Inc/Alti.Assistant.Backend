@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondvortex_kfhg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondVortex) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcluster_egf3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPCluster) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticbroker_f1j3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticBroker) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryledger_nter_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryLedger) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessplane_oekc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessPlane) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendring_mx4y_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRing) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27652,6 +27692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondvortex_kfhg_logic": {
+          try {
+            const { OpenSubMillisecondVortexService } = await import("../liberty/opensub-millisecondvortex_kfhg.service.js");
+            const res = await OpenSubMillisecondVortexService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcluster_egf3_logic": {
+          try {
+            const { OpenBGPClusterService } = await import("../liberty/openbgpcluster_egf3.service.js");
+            const res = await OpenBGPClusterService.execute(args.target || "system");
+            return { output: `### OpenBGPCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticbroker_f1j3_logic": {
+          try {
+            const { OpenStaticBrokerService } = await import("../liberty/openstaticbroker_f1j3.service.js");
+            const res = await OpenStaticBrokerService.execute(args.target || "system");
+            return { output: `### OpenStaticBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryledger_nter_logic": {
+          try {
+            const { OpenPlanetaryLedgerService } = await import("../liberty/openplanetaryledger_nter.service.js");
+            const res = await OpenPlanetaryLedgerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessplane_oekc_logic": {
+          try {
+            const { OpenServerlessPlaneService } = await import("../liberty/openserverlessplane_oekc.service.js");
+            const res = await OpenServerlessPlaneService.execute(args.target || "system");
+            return { output: `### OpenServerlessPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessPlane failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendring_mx4y_logic": {
           try {
             const { OpenMicroFrontendRingService } = await import("../liberty/openmicro-frontendring_mx4y.service.js");
