@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedmatrix_8hkr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedMatrix) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednexus_x0ht_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNexus) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partynet_szji_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyNet) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticgrid_0912_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticGrid) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentchain_aota_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentChain) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativeproxy_1un9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeProxy) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27972,6 +28012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedmatrix_8hkr_logic": {
+          try {
+            const { OpenDistributedMatrixService } = await import("../liberty/opendistributedmatrix_8hkr.service.js");
+            const res = await OpenDistributedMatrixService.execute(args.target || "system");
+            return { output: `### OpenDistributedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednexus_x0ht_logic": {
+          try {
+            const { OpenDecentralizedNexusService } = await import("../liberty/opendecentralizednexus_x0ht.service.js");
+            const res = await OpenDecentralizedNexusService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partynet_szji_logic": {
+          try {
+            const { OpenMultiPartyNetService } = await import("../liberty/openmulti-partynet_szji.service.js");
+            const res = await OpenMultiPartyNetService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticgrid_0912_logic": {
+          try {
+            const { OpenStaticGridService } = await import("../liberty/openstaticgrid_0912.service.js");
+            const res = await OpenStaticGridService.execute(args.target || "system");
+            return { output: `### OpenStaticGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentchain_aota_logic": {
+          try {
+            const { OpenPersistentChainService } = await import("../liberty/openpersistentchain_aota.service.js");
+            const res = await OpenPersistentChainService.execute(args.target || "system");
+            return { output: `### OpenPersistentChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentChain failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativeproxy_1un9_logic": {
           try {
             const { OpenCloudNativeProxyService } = await import("../liberty/opencloud-nativeproxy_1un9.service.js");
