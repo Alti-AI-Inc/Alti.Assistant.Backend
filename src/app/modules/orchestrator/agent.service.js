@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondvault_wo99_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondVault) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicswarm_6u4e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicSwarm) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwareswarm_8he3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareSwarm) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedcore_6u1y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedCore) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventring_q0js_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventRing) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfmatrix_0ny6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFMatrix) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22812,6 +22852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondvault_wo99_logic": {
+          try {
+            const { OpenSubMillisecondVaultService } = await import("../liberty/opensub-millisecondvault_wo99.service.js");
+            const res = await OpenSubMillisecondVaultService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicswarm_6u4e_logic": {
+          try {
+            const { OpenNeuromorphicSwarmService } = await import("../liberty/openneuromorphicswarm_6u4e.service.js");
+            const res = await OpenNeuromorphicSwarmService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwareswarm_8he3_logic": {
+          try {
+            const { OpenHardwareSwarmService } = await import("../liberty/openhardwareswarm_8he3.service.js");
+            const res = await OpenHardwareSwarmService.execute(args.target || "system");
+            return { output: `### OpenHardwareSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedcore_6u1y_logic": {
+          try {
+            const { OpenAdvancedCoreService } = await import("../liberty/openadvancedcore_6u1y.service.js");
+            const res = await OpenAdvancedCoreService.execute(args.target || "system");
+            return { output: `### OpenAdvancedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventring_q0js_logic": {
+          try {
+            const { OpenEventRingService } = await import("../liberty/openeventring_q0js.service.js");
+            const res = await OpenEventRingService.execute(args.target || "system");
+            return { output: `### OpenEventRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventRing failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfmatrix_0ny6_logic": {
           try {
             const { OpeneBPFMatrixService } = await import("../liberty/openebpfmatrix_0ny6.service.js");
