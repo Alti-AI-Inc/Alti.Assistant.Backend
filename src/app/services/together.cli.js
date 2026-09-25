@@ -177,6 +177,17 @@ import {
   validateToolDefinition,
   executeFunctionCallLoop,
 } from './together.function_calling.js';
+import {
+  IMAGE_MODELS_CATALOG,
+  COMMON_RESOLUTIONS,
+  MODEL_COMPATIBILITY_MATRIX,
+  IMAGE_PARAMETERS_SCHEMA,
+  getImagesOverview,
+  getReferenceImagesDocs,
+  getImageParametersDocs,
+  validateImageParameters,
+  executeImageGeneration,
+} from './together.images.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -415,6 +426,7 @@ Standard Commands:
   inference    Explore inference overview, OpenAI compatibility, and partner SDKs
   chat         Chat completions, parameters, structured outputs, reasoning, caching, logprobs
   fc, tools    Function calling, single/parallel calls, agentic loops, validation, best practices
+  images, img  Text-to-image, reference images, parameters, validation, and generation
 
 Beta Commands (tg beta ...):
   models       DMI 2.0 custom models, weight uploads, and configs
@@ -428,7 +440,7 @@ Global Flags:
   --json           Format output as JSON
   --api-key <key>  Pass API key explicitly
 `.trim();
-    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'beta'] };
+    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'images', 'image', 'img', 'beta'] };
   }
 
   if (command === 'login' || command === 'init' || command === 'auth') {
@@ -2057,6 +2069,131 @@ Final Response: ${loopResult.final_response}
   throw new Error(`Unknown function-calling command: ${action}. Use 'overview', 'single', 'parallel', 'agentic', 'best-practices', 'validate', or 'run'.`);
 }
 
+// ── Domain 20: Images Inference (Text-to-Image, Reference Images, Parameters, Validation, Generation) ──
+async function handleImages(parsed) {
+  const action = parsed.subcommand || 'overview';
+
+  if (action === 'overview' || action === 'models') {
+    const overview = getImagesOverview();
+    const modelRows = overview.models.map(m => [m.name, m.id, m.notes.slice(0, 45) + '...']);
+    const resRows = overview.common_resolutions.map(r => [r.name, `${r.width}x${r.height}`, r.aspect_ratio, r.use_case.slice(0, 35) + '...']);
+    const text = `
+Together AI Text-to-Image Generation Overview:
+${overview.title} (${overview.docs_url})
+Recommended Production Model: ${overview.recommended_model}
+
+Supported Image Models:
+${formatTable(['NAME', 'MODEL ID', 'NOTES'], modelRows)}
+
+Common Aspect Ratios & Resolutions:
+${formatTable(['RATIO', 'DIMENSIONS', 'ASPECT', 'USE CASE'], resRows)}
+
+Saving Pattern:
+${overview.save_to_disk_pattern.recommendation}
+${overview.save_to_disk_pattern.cdn_warning}
+
+Python Snippet:
+${overview.code_snippets.python}
+`.trim();
+    return { ...overview, text };
+  }
+
+  if (action === 'reference' || action === 'reference-images' || action === 'img2img') {
+    const refDocs = getReferenceImagesDocs();
+    const paramRows = refDocs.parameters.map(p => [p.name, p.type, p.models.join(', ')]);
+    const text = `
+Image-to-Image with Reference Images:
+${refDocs.title} (${refDocs.docs_url})
+
+Supported Reference Parameters:
+${formatTable(['PARAMETER', 'TYPE', 'SUPPORTED MODELS'], paramRows)}
+
+Rules:
+${refDocs.rules.map(r => `• ${r}`).join('\n')}
+
+Kontext Image Editing Snippet:
+${refDocs.code_snippets.kontext_python}
+
+FLUX.2 Reference Images Snippet:
+${refDocs.code_snippets.flux2_python}
+`.trim();
+    return { ...refDocs, text };
+  }
+
+  if (action === 'parameters' || action === 'params' || action === 'troubleshooting') {
+    const paramsDocs = getImageParametersDocs();
+    const schemaRows = Object.entries(paramsDocs.schema).map(([k, v]) => [
+      k,
+      v.type,
+      String(v.default ?? (v.required ? 'REQUIRED' : 'unset')),
+      v.description.slice(0, 45) + '...',
+    ]);
+    const text = `
+Image Generation Parameters & Troubleshooting Reference:
+${paramsDocs.title} (${paramsDocs.docs_url})
+
+Parameter Schema:
+${formatTable(['PARAMETER', 'TYPE', 'DEFAULT', 'DESCRIPTION'], schemaRows)}
+
+Quick Troubleshooting:
+${paramsDocs.quick_troubleshooting.map(q => `• ${q.problem} -> ${q.solution}`).join('\n')}
+`.trim();
+    return { ...paramsDocs, text };
+  }
+
+  if (action === 'validate' || action === 'check') {
+    const payload = {
+      prompt: parsed.flags.prompt || parsed.positionals[2] || 'A sunset landscape',
+      width: parsed.flags.width ? parseInt(parsed.flags.width, 10) : undefined,
+      height: parsed.flags.height ? parseInt(parsed.flags.height, 10) : undefined,
+      steps: parsed.flags.steps ? parseInt(parsed.flags.steps, 10) : undefined,
+      n: parsed.flags.n ? parseInt(parsed.flags.n, 10) : undefined,
+      response_format: parsed.flags.response_format || parsed.flags['response-format'],
+      output_format: parsed.flags.output_format || parsed.flags['output-format'],
+      guidance_scale: parsed.flags.guidance_scale ? parseFloat(parsed.flags.guidance_scale) : undefined,
+    };
+    const valResult = validateImageParameters(payload);
+    const text = `
+Image Parameters Validation:
+Status: ${valResult.valid ? 'VALID ✅' : 'INVALID ❌'}
+${valResult.errors?.length ? `Errors:\n${valResult.errors.map(e => `  • ${e}`).join('\n')}` : 'Errors: None'}
+${valResult.warnings?.length ? `Warnings:\n${valResult.warnings.map(w => `  • ${w}`).join('\n')}` : 'Warnings: None'}
+`.trim();
+    return { ...valResult, text };
+  }
+
+  if (action === 'generate' || action === 'run' || action === 'create') {
+    const payload = {
+      model: parsed.flags.model || 'black-forest-labs/FLUX.1.1-pro',
+      prompt: parsed.flags.prompt || parsed.positionals.slice(2).join(' ') || 'A serene mountain landscape at sunset with a lake reflection',
+      width: parsed.flags.width ? parseInt(parsed.flags.width, 10) : 1024,
+      height: parsed.flags.height ? parseInt(parsed.flags.height, 10) : 1024,
+      steps: parsed.flags.steps ? parseInt(parsed.flags.steps, 10) : 20,
+      n: parsed.flags.n ? parseInt(parsed.flags.n, 10) : 1,
+      response_format: parsed.flags.response_format || (parsed.flags.b64 ? 'base64' : 'url'),
+      output_format: parsed.flags.output_format || 'jpeg',
+      seed: parsed.flags.seed ? parseInt(parsed.flags.seed, 10) : undefined,
+      negative_prompt: parsed.flags.negative_prompt,
+      disable_safety_checker: Boolean(parsed.flags.disable_safety_checker),
+      image_url: parsed.flags.image_url,
+      reference_images: parsed.flags.reference_images ? [parsed.flags.reference_images].flat() : undefined,
+      dry_run: Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run || true),
+      ...parsed.flags,
+    };
+    const result = await executeImageGeneration(payload);
+    const imageOutputs = result.data?.map((img, i) => `  [${i + 1}] ${img.url ? img.url : `b64_json (${img.b64_json?.length} chars)`}`).join('\n') || 'None';
+    const text = `
+Image Generation (${result.duration_ms}ms, model: ${result.model}):
+Prompt: "${result.prompt || payload.prompt}"
+Images Generated (${result.data?.length || 0}):
+${imageOutputs}
+`.trim();
+    return { ...result, text };
+  }
+
+  throw new Error(`Unknown image command: ${action}. Use 'overview', 'reference', 'parameters', 'validate', or 'generate'.`);
+}
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -2174,6 +2311,12 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
         case 'tools':
           resultData = await handleFunctionCalling(parsed);
           domain = 'function-calling';
+          break;
+        case 'images':
+        case 'image':
+        case 'img':
+          resultData = await handleImages(parsed);
+          domain = 'images';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);

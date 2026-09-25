@@ -154,6 +154,13 @@ import {
   validateToolDefinition,
   executeFunctionCallLoop,
 } from '../../services/together.function_calling.js';
+import {
+  getImagesOverview,
+  getReferenceImagesDocs,
+  getImageParametersDocs,
+  validateImageParameters,
+  executeImageGeneration,
+} from '../../services/together.images.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -3587,6 +3594,73 @@ export const InferenceGateway = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error executing function calling loop.' });
+    }
+  },
+
+  /**
+   * Retrieves Together AI Text-to-Image Generation Overview and Serverless Models Catalog
+   * (GET /together/inference/images/overview, GET /v1/together/inference/images/overview, GET /inference/images/overview)
+   */
+  async handleGetImagesOverview(req, res) {
+    try {
+      const data = getImagesOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving images overview.' });
+    }
+  },
+
+  /**
+   * Retrieves Image-to-Image and Reference Images Reference (image_url vs reference_images)
+   * (GET /together/inference/images/reference-images, GET /v1/together/inference/images/reference-images, GET /inference/images/reference-images)
+   */
+  async handleGetReferenceImagesDocs(req, res) {
+    try {
+      const data = getReferenceImagesDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving reference images docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Image Generation Parameters, Troubleshooting Matrix, and Model Compatibility Matrix
+   * (GET /together/inference/images/parameters, GET /v1/together/inference/images/parameters, GET /inference/images/parameters)
+   */
+  async handleGetImageParametersDocs(req, res) {
+    try {
+      const data = getImageParametersDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving image parameters docs.' });
+    }
+  },
+
+  /**
+   * Validates image generation parameters against API rules (multiples of 8, n in 1..4, steps, formats)
+   * (POST /together/inference/images/validate, POST /v1/together/inference/images/validate, POST /inference/images/validate)
+   */
+  async handleValidateImageParameters(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = validateImageParameters(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating image parameters.' });
+    }
+  },
+
+  /**
+   * Dispatches text-to-image or image-to-image generation with base64 / URL response handling
+   * (POST /together/inference/images/generations, POST /v1/together/inference/images/generations, POST /inference/images/generations)
+   */
+  async handleExecuteImageGeneration(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await executeImageGeneration(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error generating image.' });
     }
   },
 };

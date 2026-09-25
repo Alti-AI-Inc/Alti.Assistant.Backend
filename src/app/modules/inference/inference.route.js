@@ -1593,6 +1593,69 @@ fcExecuteRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Images Inference Suite (Overview, Reference-Images, Parameters, Validate, Generations)
+const imageOverviewRoutes = [
+  '/together/inference/images/overview',
+  '/v1/together/inference/images/overview',
+  '/inference/images/overview',
+  '/v1/inference/images/overview',
+];
+imageOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetImagesOverview(req, res);
+  });
+});
+
+const imageReferenceRoutes = [
+  '/together/inference/images/reference-images',
+  '/v1/together/inference/images/reference-images',
+  '/inference/images/reference-images',
+  '/v1/inference/images/reference-images',
+];
+imageReferenceRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetReferenceImagesDocs(req, res);
+  });
+});
+
+const imageParametersRoutes = [
+  '/together/inference/images/parameters',
+  '/v1/together/inference/images/parameters',
+  '/inference/images/parameters',
+  '/v1/inference/images/parameters',
+];
+imageParametersRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetImageParametersDocs(req, res);
+  });
+});
+
+const imageValidateRoutes = [
+  '/together/inference/images/validate',
+  '/v1/together/inference/images/validate',
+  '/inference/images/validate',
+  '/v1/inference/images/validate',
+];
+imageValidateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateImageParameters(req, res);
+  });
+});
+
+const imageGenerationsRoutes = [
+  '/together/inference/images/generations',
+  '/v1/together/inference/images/generations',
+  '/inference/images/generations',
+  '/v1/inference/images/generations',
+  '/together/images/generations',
+  '/v1/images/generations',
+];
+imageGenerationsRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteImageGeneration(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

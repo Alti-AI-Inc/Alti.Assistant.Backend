@@ -1,21 +1,149 @@
-import assert from 'assert';
-import { llmGenerateImage, llmImageToImage } from '../src/app/services/llm.client.js';
+/**
+ * Test Suite: Aphura Sovereign Together.ai Images Inference Suite
+ * Validates all 3 Images domains, Validation Engine, Dispatcher, Gateway Handlers, and CLI Commands
+ */
+
+import assert from 'node:assert';
+import {
+  IMAGE_MODELS_CATALOG,
+  COMMON_RESOLUTIONS,
+  MODEL_COMPATIBILITY_MATRIX,
+  IMAGE_PARAMETERS_SCHEMA,
+  getImagesOverview,
+  getReferenceImagesDocs,
+  getImageParametersDocs,
+  validateImageParameters,
+  executeImageGeneration,
+} from '../src/app/services/together.images.js';
+import { executeTogetherCliCommand } from '../src/app/services/together.cli.js';
 import { InferenceGateway } from '../src/app/modules/inference/inference.gateway.js';
 
-console.log('🧪 Testing Together.ai Image Generation (POST /v1/images/generations)...');
+console.log('🧪 Starting Together.ai Images Inference Suite Validation...\n');
 
-// Mock Express res
+// 1. Text-to-Image Overview & Models
+console.log('1. Testing Images Overview & Supported Models Catalog...');
+const overview = getImagesOverview();
+assert.strictEqual(overview.success, true);
+assert.strictEqual(overview.recommended_model, 'black-forest-labs/FLUX.1.1-pro');
+assert.strictEqual(overview.models.length, 7);
+assert.strictEqual(overview.common_resolutions.length, 3);
+assert.ok(IMAGE_MODELS_CATALOG.some(m => m.id === 'black-forest-labs/FLUX.2-dev'));
+assert.ok(IMAGE_MODELS_CATALOG.some(m => m.id === 'black-forest-labs/FLUX.1-kontext-pro'));
+assert.ok(overview.save_to_disk_pattern.recommendation.includes('base64'));
+console.log('   ✅ Images Overview passed.');
+
+// 2. Reference Images & Image-to-Image
+console.log('2. Testing Reference Images & Img2Img Docs...');
+const refDocs = getReferenceImagesDocs();
+assert.strictEqual(refDocs.success, true);
+assert.strictEqual(refDocs.parameters.length, 2);
+assert.ok(refDocs.parameters.some(p => p.name === 'image_url'));
+assert.ok(refDocs.parameters.some(p => p.name === 'reference_images'));
+assert.ok(refDocs.rules.length >= 3);
+assert.ok(refDocs.code_snippets.kontext_python.includes('image_url'));
+assert.ok(refDocs.code_snippets.flux2_python.includes('reference_images'));
+console.log('   ✅ Reference Images passed.');
+
+// 3. Parameters, Troubleshooting & Compatibility
+console.log('3. Testing Parameters, Troubleshooting & Compatibility Matrix...');
+const paramsDocs = getImageParametersDocs();
+assert.strictEqual(paramsDocs.success, true);
+assert.ok('prompt' in paramsDocs.schema);
+assert.ok('width' in paramsDocs.schema);
+assert.ok('height' in paramsDocs.schema);
+assert.ok('steps' in paramsDocs.schema);
+assert.ok('guidance_scale' in paramsDocs.schema);
+assert.ok('seed' in paramsDocs.schema);
+assert.ok('n' in paramsDocs.schema);
+assert.ok('response_format' in paramsDocs.schema);
+assert.ok('disable_safety_checker' in paramsDocs.schema);
+assert.ok('FLUX.2 Dev' in paramsDocs.compatibility_matrix);
+assert.ok('Kontext Pro/Max' in paramsDocs.compatibility_matrix);
+assert.ok(paramsDocs.quick_troubleshooting.length >= 6);
+console.log('   ✅ Parameters, Troubleshooting & Compatibility passed.');
+
+// 4. Parameter Validation Engine
+console.log('4. Testing Image Parameter Validation Engine...');
+// Valid parameters
+const validParams = {
+  prompt: 'A futuristic cybernetic garden at dawn',
+  width: 1344,
+  height: 768,
+  steps: 25,
+  n: 2,
+  response_format: 'base64',
+  output_format: 'png',
+  guidance_scale: 7.5,
+};
+const valResult1 = validateImageParameters(validParams);
+assert.strictEqual(valResult1.valid, true);
+assert.strictEqual(valResult1.errors.length, 0);
+
+// Invalid parameters: width not multiple of 8, n > 4, missing prompt
+const invalidParams = {
+  width: 1005, // not multiple of 8
+  n: 10,       // exceeds max 4
+};
+const valResult2 = validateImageParameters(invalidParams);
+assert.strictEqual(valResult2.valid, false);
+assert.ok(valResult2.errors.length >= 3);
+assert.ok(valResult2.errors.some(e => e.includes('multiple of 8')));
+assert.ok(valResult2.errors.some(e => e.includes('prompt is required')));
+console.log('   ✅ Image Parameter Validation passed.');
+
+// 5. Image Generation Execution (Dry Run)
+console.log('5. Testing Image Generation Execution (Dry Run)...');
+// URL mode
+const resUrl = await executeImageGeneration({
+  prompt: 'Alpine meadow with snowcapped peaks',
+  dry_run: true,
+  n: 1,
+});
+assert.strictEqual(resUrl.success, true);
+assert.strictEqual(resUrl.dry_run, true);
+assert.strictEqual(resUrl.data.length, 1);
+assert.ok(resUrl.data[0].url.startsWith('https://'));
+
+// Base64 mode with 3 variations
+const resB64 = await executeImageGeneration({
+  prompt: 'Floating islands in the sky',
+  response_format: 'base64',
+  n: 3,
+  dry_run: true,
+});
+assert.strictEqual(resB64.success, true);
+assert.strictEqual(resB64.data.length, 3);
+assert.ok(resB64.data[0].b64_json.length > 20);
+console.log('   ✅ Image Generation Execution passed.');
+
+// 6. Together CLI Subcommands
+console.log('6. Testing Together CLI Image Subcommands...');
+const cliOverview = await executeTogetherCliCommand(['images', 'overview']);
+assert.ok(cliOverview.output.includes('Together AI Text-to-Image Generation Overview:'));
+
+const cliRef = await executeTogetherCliCommand(['images', 'reference']);
+assert.ok(cliRef.output.includes('Image-to-Image with Reference Images:'));
+
+const cliParams = await executeTogetherCliCommand(['images', 'parameters']);
+assert.ok(cliParams.output.includes('Image Generation Parameters & Troubleshooting Reference:'));
+
+const cliValidate = await executeTogetherCliCommand(['images', 'validate']);
+assert.ok(cliValidate.output.includes('Image Parameters Validation:'));
+assert.ok(cliValidate.output.includes('VALID ✅'));
+
+const cliGen = await executeTogetherCliCommand(['images', 'generate', '--dry-run', '--prompt', 'Cyberpunk city', '--n', '2', '--b64']);
+assert.ok(cliGen.output.includes('Image Generation'));
+assert.ok(cliGen.output.includes('Images Generated (2)'));
+console.log('   ✅ Together CLI Image subcommands passed.');
+
+// 7. Inference Gateway Handlers
+console.log('7. Testing Inference Gateway Handlers...');
 function createMockRes() {
   return {
     statusCode: 200,
-    headers: {},
     body: null,
     status(code) {
       this.statusCode = code;
-      return this;
-    },
-    setHeader(k, v) {
-      this.headers[k] = v;
       return this;
     },
     json(data) {
@@ -25,96 +153,30 @@ function createMockRes() {
   };
 }
 
-async function runTests() {
-  // Test 1: llmGenerateImage default base64 return
-  console.log('[Test 1] llmGenerateImage base64...');
-  const b64 = await llmGenerateImage('a futuristic city in sunset');
-  assert(typeof b64 === 'string', 'Should return a string base64');
-  assert(b64.length > 50, 'Base64 string should have content');
-  console.log('✅ Test 1 Passed: Generated base64 image length:', b64.length);
+const mockRes1 = createMockRes();
+await InferenceGateway.handleGetImagesOverview({}, mockRes1);
+assert.strictEqual(mockRes1.statusCode, 200);
+assert.strictEqual(mockRes1.body.success, true);
 
-  // Test 2: llmGenerateImage URL format return
-  console.log('[Test 2] llmGenerateImage url format...');
-  const urlRes = await llmGenerateImage('quantum computer core', { response_format: 'url' });
-  assert(typeof urlRes === 'string', 'Should return a string URL or data URI');
-  assert(urlRes.startsWith('data:image/') || urlRes.startsWith('http'), 'Should be a valid URL/URI');
-  console.log('✅ Test 2 Passed: Generated URL/URI:', urlRes.slice(0, 40) + '...');
+const mockRes2 = createMockRes();
+await InferenceGateway.handleGetReferenceImagesDocs({}, mockRes2);
+assert.strictEqual(mockRes2.statusCode, 200);
+assert.strictEqual(mockRes2.body.success, true);
 
-  // Test 3: llmGenerateImage raw response object
-  console.log('[Test 3] llmGenerateImage raw response object...');
-  const rawRes = await llmGenerateImage('neural network nodes glowing', {
-    raw: true,
-    model: 'black-forest-labs/FLUX.1-schnell',
-    width: 512,
-    height: 512,
-    steps: 4,
-    seed: 42,
-    n: 2,
-  });
-  assert(rawRes && rawRes.object === 'list', 'Should have object: list');
-  assert(Array.isArray(rawRes.data), 'data should be an array');
-  assert.strictEqual(rawRes.data.length, 2, 'Should generate 2 images');
-  assert.strictEqual(rawRes.data[0].index, 0, 'First index should be 0');
-  assert.strictEqual(rawRes.data[1].index, 1, 'Second index should be 1');
-  console.log('✅ Test 3 Passed: Raw list object with 2 items and seed 42.');
+const mockRes3 = createMockRes();
+await InferenceGateway.handleGetImageParametersDocs({}, mockRes3);
+assert.strictEqual(mockRes3.statusCode, 200);
+assert.strictEqual(mockRes3.body.success, true);
 
-  // Test 4: llmImageToImage with conditioning image_url
-  console.log('[Test 4] llmImageToImage...');
-  const img2img = await llmImageToImage('make it cyberpunk style', {
-    image_url: 'https://example.com/input.png',
-    raw: true,
-  });
-  assert(img2img && img2img.object === 'list', 'Should return image list');
-  console.log('✅ Test 4 Passed: Image-to-image returned successfully.');
+const mockRes4 = createMockRes();
+await InferenceGateway.handleValidateImageParameters({ body: validParams }, mockRes4);
+assert.strictEqual(mockRes4.statusCode, 200);
+assert.strictEqual(mockRes4.body.valid, true);
 
-  // Test 5: InferenceGateway.handleImageGeneration with b64_json
-  console.log('[Test 5] InferenceGateway.handleImageGeneration b64_json...');
-  const res1 = createMockRes();
-  await InferenceGateway.handleImageGeneration(
-    {
-      prompt: 'cybernetic lion in neon lights',
-      model: 'black-forest-labs/FLUX.1.1-pro',
-      width: 1024,
-      height: 1024,
-      response_format: 'b64_json',
-      steps: 20,
-      guidance_scale: 7.5,
-    },
-    res1
-  );
-  assert.strictEqual(res1.statusCode, 200, 'Status should be 200');
-  assert(res1.body.object === 'list', 'Body object should be list');
-  assert(res1.body.data[0].b64_json, 'Should contain b64_json in data');
-  console.log('✅ Test 5 Passed: Gateway returned 200 with list schema.');
+const mockRes5 = createMockRes();
+await InferenceGateway.handleExecuteImageGeneration({ body: { dry_run: true, prompt: 'Serene sea' } }, mockRes5);
+assert.strictEqual(mockRes5.statusCode, 200);
+assert.strictEqual(mockRes5.body.dry_run, true);
+console.log('   ✅ Inference Gateway Handlers passed.');
 
-  // Test 6: InferenceGateway.handleImageGeneration with url format
-  console.log('[Test 6] InferenceGateway.handleImageGeneration url...');
-  const res2 = createMockRes();
-  await InferenceGateway.handleImageGeneration(
-    {
-      prompt: 'hyper-realistic satellite orbiting earth',
-      model: 'black-forest-labs/FLUX.1-schnell',
-      response_format: 'url',
-      n: 1,
-    },
-    res2
-  );
-  assert.strictEqual(res2.statusCode, 200, 'Status should be 200');
-  assert(res2.body.data[0].url, 'Should contain url in data');
-  console.log('✅ Test 6 Passed: Gateway returned URL image data.');
-
-  // Test 7: Missing prompt validation
-  console.log('[Test 7] Missing prompt error handling...');
-  const res3 = createMockRes();
-  await InferenceGateway.handleImageGeneration({}, res3);
-  assert.strictEqual(res3.statusCode, 400, 'Should return 400');
-  assert.strictEqual(res3.body.error.param, 'prompt', 'Param should be prompt');
-  console.log('✅ Test 7 Passed: Validated prompt requirement (400).');
-
-  console.log('\n🎉 ALL 7 TOGETHER.AI IMAGE GENERATION TESTS PASSED CLEANLY!\n');
-}
-
-runTests().catch((err) => {
-  console.error('❌ Test failed:', err);
-  process.exit(1);
-});
+console.log('\n🎉 ALL 7 IMAGES INFERENCE TEST SUITES COMPLETED WITH 100% SUCCESS!');
