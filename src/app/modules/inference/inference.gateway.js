@@ -121,6 +121,14 @@ import {
   getFrameworkDoc,
   executeFrameworkAgent,
 } from '../../services/together.frameworks.js';
+import {
+  listTogetherSkills,
+  getTogetherSkill,
+  getDocsMcpServerInfo,
+  executeAgentSkill,
+  executeSkillChain,
+  handleMcpToolExecution,
+} from '../../services/together.skills.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -3228,6 +3236,80 @@ export const InferenceGateway = {
       });
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error retrieving framework config.' });
+    }
+  },
+
+  /**
+   * Lists all 12 official Together AI coding agent skills
+   * (GET /together/skills, GET /v1/together/skills, GET /skills)
+   */
+  async handleListAgentSkills(req, res) {
+    try {
+      const data = listTogetherSkills();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error listing agent skills.' });
+    }
+  },
+
+  /**
+   * Retrieves official SKILL.md specification and metadata for a specific skill
+   * (GET /together/skills/:skill, GET /v1/together/skills/:skill)
+   */
+  async handleGetAgentSkill(req, res) {
+    try {
+      const skill = req.params.skill;
+      const data = getTogetherSkill(skill);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(404).json({ error: error.message || 'Skill not found.' });
+    }
+  },
+
+  /**
+   * Executes a single agent skill or multi-skill chain
+   * (POST /together/skills/execute, POST /v1/together/skills/execute, POST /skills/execute)
+   */
+  async handleExecuteAgentSkill(req, res) {
+    try {
+      if (Array.isArray(req.body?.chain)) {
+        const result = await executeSkillChain(req.body.chain, req.body.input || {});
+        return res.status(200).json(result);
+      }
+      const skill = req.body?.skill || 'together-chat-completions';
+      const params = req.body?.params || req.body || {};
+      const result = await executeAgentSkill(skill, params);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing agent skill.' });
+    }
+  },
+
+  /**
+   * Returns Docs MCP Server configuration and tool specifications
+   * (GET /together/mcp, GET /v1/together/mcp, GET /mcp)
+   */
+  async handleGetMcpServerInfo(req, res) {
+    try {
+      const data = getDocsMcpServerInfo();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving MCP server info.' });
+    }
+  },
+
+  /**
+   * Executes an MCP tool call against the Together AI Docs MCP Server
+   * (POST /together/mcp/tools, POST /v1/together/mcp/tools, POST /mcp/tools)
+   */
+  async handleMcpToolsCall(req, res) {
+    try {
+      const tool = req.body?.tool || req.body?.name || 'search_docs';
+      const args = req.body?.arguments || req.body?.args || {};
+      const result = await handleMcpToolExecution(tool, args);
+      return res.status(200).json({ success: true, tool, ...result, result });
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing MCP tool.' });
     }
   },
 };

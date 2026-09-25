@@ -1300,6 +1300,68 @@ getFrameworkConfigRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Coding Agent Skills (Official: https://docs.together.ai/docs/agent-skills)
+const listAgentSkillsRoutes = [
+  '/together/skills',
+  '/v1/together/skills',
+  '/skills',
+  '/v1/skills',
+];
+listAgentSkillsRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleListAgentSkills(req, res);
+  });
+});
+
+const getAgentSkillRoutes = [
+  '/together/skills/:skill',
+  '/v1/together/skills/:skill',
+  '/skills/:skill',
+  '/v1/skills/:skill',
+];
+getAgentSkillRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetAgentSkill(req, res);
+  });
+});
+
+const executeAgentSkillRoutes = [
+  '/together/skills/execute',
+  '/v1/together/skills/execute',
+  '/skills/execute',
+  '/v1/skills/execute',
+];
+executeAgentSkillRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteAgentSkill(req, res);
+  });
+});
+
+// ── Together.ai Docs MCP Server (Official: https://docs.together.ai/mcp)
+const getMcpServerInfoRoutes = [
+  '/together/mcp',
+  '/v1/together/mcp',
+  '/mcp',
+  '/v1/mcp',
+];
+getMcpServerInfoRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetMcpServerInfo(req, res);
+  });
+});
+
+const mcpToolsCallRoutes = [
+  '/together/mcp/tools',
+  '/v1/together/mcp/tools',
+  '/mcp/tools',
+  '/v1/mcp/tools',
+];
+mcpToolsCallRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleMcpToolsCall(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

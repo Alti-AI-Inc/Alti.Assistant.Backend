@@ -128,6 +128,16 @@ import {
   getFrameworkDoc,
   executeFrameworkAgent,
 } from './together.frameworks.js';
+import {
+  TOGETHER_AGENT_SKILLS,
+  DOCS_MCP_SERVER,
+  listTogetherSkills,
+  getTogetherSkill,
+  getDocsMcpServerInfo,
+  executeAgentSkill,
+  executeSkillChain,
+  handleMcpToolExecution,
+} from './together.skills.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -361,6 +371,8 @@ Standard Commands:
   whoami       Display authenticated identity and organization details
   telemetry    View and configure anonymous telemetry status
   frameworks   Explore & run agent frameworks (Composio, CrewAI, LangGraph, DSPy, PydanticAI, AutoGen, Agno)
+  skills       Inspect and execute 12 coding agent skills (chat, images, audio, etc.)
+  mcp          Docs MCP Server info and tool proxy (search, get doc, skill specs)
 
 Beta Commands (tg beta ...):
   models       DMI 2.0 custom models, weight uploads, and configs
@@ -374,7 +386,7 @@ Global Flags:
   --json           Format output as JSON
   --api-key <key>  Pass API key explicitly
 `.trim();
-    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'beta'] };
+    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'beta'] };
   }
 
   if (command === 'login' || command === 'init' || command === 'auth') {
@@ -1486,6 +1498,130 @@ ${f.typescript_snippet}
   throw new Error(`Unknown frameworks command: ${action}. Use 'list', 'docs <framework>', or 'run <framework>'.`);
 }
 
+// ── Domain 15: Agent Skills (12 Coding Agent Skills, Chains, Specs) ──────────
+async function handleSkills(parsed) {
+  const action = parsed.subcommand || 'list';
+
+  if (action === 'list' || action === 'ls') {
+    const list = listTogetherSkills();
+    const rows = list.skills.map(s => [s.name, s.title, (s.recommended_models && s.recommended_models[0]) || 'default', s.specification_url]);
+    const text = formatTable(['SKILL NAME', 'TITLE', 'DEFAULT MODEL', 'SPEC URL'], rows);
+    return { ...list, text };
+  }
+
+  if (action === 'info' || action === 'get' || action === 'spec') {
+    const skillName = parsed.subsubcommand || parsed.flags.skill || parsed.flags.name || 'together-chat-completions';
+    const skill = getTogetherSkill(skillName);
+    const text = `
+Skill: ${skill.name} (${skill.title})
+Description: ${skill.description}
+Specification URL: ${skill.specification_url}
+Recommended Models: ${(skill.recommended_models || []).join(', ')}
+Trigger Keywords: ${(skill.triggers || []).join(', ')}
+
+--- SKILL.md ---
+${skill.skill_md}
+`.trim();
+    return { ...skill, text };
+  }
+
+  if (action === 'run' || action === 'execute') {
+    const skillName = parsed.subsubcommand || parsed.flags.skill || parsed.flags.name || 'together-chat-completions';
+    const payload = {
+      model: parsed.flags.model,
+      prompt: parsed.flags.prompt,
+      messages: parsed.flags.messages ? JSON.parse(parsed.flags.messages) : undefined,
+      text: parsed.flags.text,
+      input: parsed.flags.input,
+      ...parsed.flags,
+    };
+    const res = await executeAgentSkill(skillName, payload);
+    return {
+      ...res,
+      text: `Executed skill '${skillName}' successfully in ${res.duration_ms}ms.\nResult: ${JSON.stringify(res.data, null, 2)}`,
+    };
+  }
+
+  if (action === 'chain') {
+    const chainParam = parsed.subsubcommand || parsed.flags.skills || parsed.flags.chain || '';
+    const skillNames = chainParam.split(',').map(s => s.trim()).filter(Boolean);
+    if (skillNames.length === 0) {
+      throw new Error("Missing skills to chain. Use 'together skills chain <skill1,skill2,...>' or --skills flag.");
+    }
+    const payload = {
+      model: parsed.flags.model,
+      prompt: parsed.flags.prompt,
+      input: parsed.flags.input,
+      ...parsed.flags,
+    };
+    const res = await executeSkillChain(skillNames, payload);
+    return {
+      ...res,
+      text: `Executed skill chain [${skillNames.join(' -> ')}] with ${res.steps.length} steps.\nResult: ${JSON.stringify(res, null, 2)}`,
+    };
+  }
+
+  throw new Error(`Unknown skills command: ${action}. Use 'list', 'info <skill>', 'run <skill>', or 'chain <s1,s2>'.`);
+}
+
+// ── Domain 16: Docs MCP Server Proxy & Tools ─────────────────────────────────
+async function handleMcp(parsed) {
+  const action = parsed.subcommand || 'info';
+
+  if (action === 'info' || action === 'status') {
+    const info = getDocsMcpServerInfo();
+    const rows = info.tools.map(t => [t.name, t.description]);
+    const text = `
+Docs MCP Server: ${info.server.name} (v${info.server.version})
+URL: ${info.server.url}
+Specification: ${info.server.docs_url}
+Available Tools:
+${formatTable(['TOOL NAME', 'DESCRIPTION'], rows)}
+
+Universal MCP Config:
+${JSON.stringify(info.client_configs.universal, null, 2)}
+`.trim();
+    return { ...info, text };
+  }
+
+  if (action === 'search') {
+    const query = parsed.subsubcommand || parsed.flags.query || parsed.positionals.slice(2).join(' ') || '';
+    const res = await handleMcpToolExecution('search_docs', { query });
+    const rows = (res.matches || []).map(m => [m.name, m.title, m.url]);
+    const text = `Search query: "${query}" (${res.total_matches} matches)\n${formatTable(['NAME', 'TITLE', 'DOC URL'], rows)}`;
+    return { ...res, text };
+  }
+
+  if (action === 'get') {
+    const docPath = parsed.subsubcommand || parsed.flags.path || '/docs/agent-skills';
+    const res = await handleMcpToolExecution('get_doc_page', { path: docPath });
+    const text = `Retrieved Doc Page: ${res.url}\nSource: ${res.source}`;
+    return { ...res, text };
+  }
+
+  if (action === 'spec') {
+    const skillName = parsed.subsubcommand || parsed.flags.skill || 'together-chat-completions';
+    const res = await handleMcpToolExecution('get_skill_spec', { skill_name: skillName });
+    const text = `Skill Spec for ${res.name}:\n${res.skill_md}`;
+    return { ...res, text };
+  }
+
+  if (action === 'call' || action === 'run') {
+    const toolName = parsed.subsubcommand || parsed.flags.tool;
+    if (!toolName) {
+      throw new Error("Missing tool name. Use 'together mcp call <tool_name> [flags]'.");
+    }
+    const res = await handleMcpToolExecution(toolName, parsed.flags);
+    return {
+      tool: toolName,
+      result: res,
+      text: `MCP Tool '${toolName}' executed successfully.\nResult: ${JSON.stringify(res, null, 2)}`,
+    };
+  }
+
+  throw new Error(`Unknown mcp command: ${action}. Use 'info', 'search <query>', 'get <path>', 'spec <skill>', or 'call <tool>'.`);
+}
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -1580,6 +1716,15 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
         case 'frameworks':
           resultData = await handleFrameworks(parsed);
           domain = 'frameworks';
+          break;
+        case 'skills':
+        case 'agent-skills':
+          resultData = await handleSkills(parsed);
+          domain = 'skills';
+          break;
+        case 'mcp':
+          resultData = await handleMcp(parsed);
+          domain = 'mcp';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);
