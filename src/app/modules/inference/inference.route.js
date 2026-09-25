@@ -1207,6 +1207,28 @@ billingUsageRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Error Codes & Diagnostics (Official: https://docs.together.ai/docs/error-codes)
+const errorCodesRoutes = ['/together/error-codes', '/v1/together/error-codes', '/error-codes', '/v1/error-codes'];
+errorCodesRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleListErrorCodes(req, res);
+  });
+});
+
+const errorCodeDetailRoutes = ['/together/error-codes/:code', '/v1/together/error-codes/:code', '/error-codes/:code', '/v1/error-codes/:code'];
+errorCodeDetailRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetErrorCode(req, res);
+  });
+});
+
+const diagnoseErrorRoutes = ['/together/diagnose-error', '/v1/together/diagnose-error', '/diagnose-error', '/v1/diagnose-error'];
+diagnoseErrorRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleDiagnoseError(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

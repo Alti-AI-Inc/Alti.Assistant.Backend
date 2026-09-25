@@ -107,6 +107,9 @@ import {
   llmGetQueueMetrics,
   llmWhoami,
   llmGetBillingUsage,
+  llmGetErrorCodes,
+  llmGetErrorCode,
+  llmDiagnoseTogetherError,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -3045,6 +3048,62 @@ export const InferenceGateway = {
       return res.status(500).json({
         error: {
           message: error.message || 'Error retrieving billing usage report.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Lists Together.ai error codes and resolutions (GET /together/error-codes & /v1/together/error-codes)
+   * Official Reference: https://docs.together.ai/docs/error-codes
+   */
+  async handleListErrorCodes(req, res) {
+    try {
+      const data = await llmGetErrorCodes(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error listing Together AI error codes.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Retrieves specific Together.ai error code details (GET /together/error-codes/:code & /v1/together/error-codes/:code)
+   * Official Reference: https://docs.together.ai/docs/error-codes
+   */
+  async handleGetErrorCode(req, res) {
+    try {
+      const code = req.params?.code;
+      const data = await llmGetErrorCode(code);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error retrieving Together AI error code details.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Diagnoses an incoming error and provides actionable fixes (POST /together/diagnose-error & /v1/together/diagnose-error)
+   * Official Reference: https://docs.together.ai/docs/error-codes
+   */
+  async handleDiagnoseError(req, res) {
+    try {
+      const payload = req.body || {};
+      const data = await llmDiagnoseTogetherError(payload);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error diagnosing error payload.',
           type: 'api_error',
         },
       });

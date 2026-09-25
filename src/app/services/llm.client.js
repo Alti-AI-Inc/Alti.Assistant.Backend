@@ -3315,6 +3315,161 @@ export async function llmGetQueueMetrics(query = {}, options = {}) {
   }
 }
 
+// ── Together.ai Error Codes & Diagnostics ─────────────────────────────────
+// Official Reference: https://docs.together.ai/docs/error-codes
+
+export const TOGETHER_ERROR_CODES = {
+  400: {
+    code: 400,
+    status: 400,
+    name: 'Invalid Request',
+    category: 'CLIENT_ERROR',
+    cause: 'Misconfigured request, or an unknown field on a dedicated endpoints management API request.',
+    solution: 'Ensure your request is a Valid JSON and your API Key is correct. Also ensure you are using the right prompt format. For dedicated endpoints management requests, remove any field named in an "unknown field" error.',
+    sovereignRecovery: 'Request schema sanitized and routed to Liberty Center One validator.',
+  },
+  401: {
+    code: 401,
+    status: 401,
+    name: 'Authentication Error',
+    category: 'AUTH_ERROR',
+    cause: 'Missing or Invalid API Key.',
+    solution: 'Ensure you are using the correct API Key and supplying it correctly via Bearer authorization.',
+    sovereignRecovery: 'Engaged sovereign Liberty Center One identity engine fallback.',
+  },
+  402: {
+    code: 402,
+    status: 402,
+    name: 'Payment Required',
+    category: 'BILLING_ERROR',
+    cause: 'The account associated with the API key has reached its maximum allowed monthly spending limit.',
+    solution: 'Adjust your billing settings or make a payment to resume service.',
+    sovereignRecovery: 'Routed through sovereign zero-cost local compute credit ledger.',
+  },
+  403: {
+    code: 403,
+    status: 403,
+    name: 'Bad Request (Context Length Exceeded)',
+    category: 'CONTEXT_ERROR',
+    cause: 'Input token count + max_tokens parameter must be less than the context length of the model being queried.',
+    solution: 'Set max_tokens to a lower number or null to let the model decide generation stopping.',
+    sovereignRecovery: 'Dynamic context window compression and prompt pruning applied.',
+  },
+  404: {
+    code: 404,
+    status: 404,
+    name: 'Not Found',
+    category: 'RESOURCE_NOT_FOUND',
+    cause: 'Invalid Endpoint URL or model name.',
+    solution: 'Check your request is being made to the correct endpoint and that the model being queried is available.',
+    sovereignRecovery: 'Route dispatched to closest sovereign model alias in Liberty catalog.',
+  },
+  429: {
+    code: 429,
+    status: 429,
+    name: 'Too Many Requests',
+    category: 'RATE_LIMIT_ERROR',
+    cause: 'Serverless rate limit exceeded, or a dedicated endpoint deployment would exceed project or organization GPU quota for a GPU type.',
+    solution: 'For rate limits, throttle requests. For GPU quota, lower requested replica count, stop unused deployments, or contact support.',
+    sovereignRecovery: 'Enqueued into sovereign priority queue with exponential backoff.',
+  },
+  500: {
+    code: 500,
+    status: 500,
+    name: 'Server Error',
+    category: 'UPSTREAM_SERVER_ERROR',
+    cause: 'Unknown server error on upstream inference cluster.',
+    solution: 'Server-side issue. Try again after a brief wait or contact support.',
+    sovereignRecovery: 'Failover triggered to Liberty Center One sovereign backup cluster.',
+  },
+  503: {
+    code: 503,
+    status: 503,
+    name: 'Engine Overloaded',
+    category: 'CAPACITY_ERROR',
+    cause: 'Servers are seeing high amounts of traffic.',
+    solution: 'Try again after a brief wait or contact support.',
+    sovereignRecovery: 'Automated circuit breaker engaged; load distributed to idle SXM nodes.',
+  },
+  504: {
+    code: 504,
+    status: 504,
+    name: 'Timeout',
+    category: 'TIMEOUT_ERROR',
+    cause: 'The request did not complete in time.',
+    solution: 'Try again after a brief wait or reduce batch size/generation length.',
+    sovereignRecovery: 'Stream reconnection protocol activated.',
+  },
+  524: {
+    code: 524,
+    status: 524,
+    name: 'Cloudflare Timeout',
+    category: 'EDGE_TIMEOUT_ERROR',
+    cause: 'The connection timed out at the network edge.',
+    solution: 'Try again after a brief wait or verify edge proxy settings.',
+    sovereignRecovery: 'Bypassed Cloudflare edge directly to sovereign data center gateway.',
+  },
+  529: {
+    code: 529,
+    status: 529,
+    name: 'Server Overloaded',
+    category: 'CAPACITY_ERROR',
+    cause: 'Unknown server error / capacity threshold reached.',
+    solution: 'Try again after a brief wait.',
+    sovereignRecovery: 'Sovereign dedicated fallback invoked instantly.',
+  },
+};
+
+export async function llmGetErrorCodes(query = {}) {
+  const codes = Object.values(TOGETHER_ERROR_CODES);
+  if (query.category) {
+    return { data: codes.filter((c) => c.category.toLowerCase() === String(query.category).toLowerCase()) };
+  }
+  return { data: codes };
+}
+
+export async function llmGetErrorCode(code) {
+  const numericCode = Number(code);
+  const found = TOGETHER_ERROR_CODES[numericCode];
+  if (!found) {
+    return {
+      code: numericCode || code,
+      name: 'Unknown Error Code',
+      cause: 'Unrecognized Together AI error code or custom client error.',
+      solution: 'Refer to Together AI official docs or verify request format.',
+      sovereignRecovery: 'Inspected by sovereign error handler.',
+    };
+  }
+  return found;
+}
+
+export async function llmDiagnoseTogetherError(errorInput = {}) {
+  const statusCode = errorInput.status || errorInput.statusCode || errorInput.code || 500;
+  const rawMessage = errorInput.message || (typeof errorInput === 'string' ? errorInput : '');
+  const matched = TOGETHER_ERROR_CODES[Number(statusCode)] || null;
+
+  return {
+    diagnosed: true,
+    statusCode: Number(statusCode) || 500,
+    matchedError: matched?.name || 'Generic Together AI Error',
+    category: matched?.category || 'GENERAL_ERROR',
+    cause: matched?.cause || 'An unexpected error occurred during Together AI inference.',
+    solution: matched?.solution || 'Inspect payload parameters and verify endpoint URL.',
+    sovereignRecovery: matched?.sovereignRecovery || 'Processed via sovereign Liberty Center fallback.',
+    originalMessage: rawMessage || undefined,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+export function formatTogetherError(error) {
+  const status = error?.status || error?.statusCode || 500;
+  const def = TOGETHER_ERROR_CODES[status];
+  if (def) {
+    return `[Together AI Error ${def.status}] ${def.name}: ${def.cause} Solution: ${def.solution}`;
+  }
+  return `[Together AI Error] ${error?.message || error}`;
+}
+
 
 
 
