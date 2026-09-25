@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgesync_taty_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSync) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalbroker_tnze_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalBroker) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partystream_6srf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyStream) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgraph_s7e5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractgrid_zwox_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractGrid) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativenexus_m0df_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNexus) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22452,6 +22492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgesync_taty_logic": {
+          try {
+            const { OpenEdgeSyncService } = await import("../liberty/openedgesync_taty.service.js");
+            const res = await OpenEdgeSyncService.execute(args.target || "system");
+            return { output: `### OpenEdgeSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalbroker_tnze_logic": {
+          try {
+            const { OpenHyperDimensionalBrokerService } = await import("../liberty/openhyper-dimensionalbroker_tnze.service.js");
+            const res = await OpenHyperDimensionalBrokerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partystream_6srf_logic": {
+          try {
+            const { OpenMultiPartyStreamService } = await import("../liberty/openmulti-partystream_6srf.service.js");
+            const res = await OpenMultiPartyStreamService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgraph_s7e5_logic": {
+          try {
+            const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_s7e5.service.js");
+            const res = await OpenDecentralizedGraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractgrid_zwox_logic": {
+          try {
+            const { OpenAbstractGridService } = await import("../liberty/openabstractgrid_zwox.service.js");
+            const res = await OpenAbstractGridService.execute(args.target || "system");
+            return { output: `### OpenAbstractGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativenexus_m0df_logic": {
           try {
             const { OpenCloudNativeNexusService } = await import("../liberty/opencloud-nativenexus_m0df.service.js");
