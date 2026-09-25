@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package supervisor;
+
+service SupervisorNode {
+  rpc RoutePrompt (RouteRequest) returns (RouteResponse) {}
+}
+
+message RouteRequest {
+  string prompt = 1;
+}
+
+message RouteResponse {
+  bool success = 1;
+  string route = 2;
+}
