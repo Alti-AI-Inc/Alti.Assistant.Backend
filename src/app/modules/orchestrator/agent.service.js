@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictiveengine_y6st_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveEngine) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendataoracle_ndir_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataOracle) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicring_owhv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicRing) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedswarm_zox1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedSwarm) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendgrid_es12_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendGrid) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativegraph_2gqo_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeGraph) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22052,6 +22092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictiveengine_y6st_logic": {
+          try {
+            const { OpenPredictiveEngineService } = await import("../liberty/openpredictiveengine_y6st.service.js");
+            const res = await OpenPredictiveEngineService.execute(args.target || "system");
+            return { output: `### OpenPredictiveEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opendataoracle_ndir_logic": {
+          try {
+            const { OpenDataOracleService } = await import("../liberty/opendataoracle_ndir.service.js");
+            const res = await OpenDataOracleService.execute(args.target || "system");
+            return { output: `### OpenDataOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicring_owhv_logic": {
+          try {
+            const { OpenHomomorphicRingService } = await import("../liberty/openhomomorphicring_owhv.service.js");
+            const res = await OpenHomomorphicRingService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedswarm_zox1_logic": {
+          try {
+            const { OpenAdvancedSwarmService } = await import("../liberty/openadvancedswarm_zox1.service.js");
+            const res = await OpenAdvancedSwarmService.execute(args.target || "system");
+            return { output: `### OpenAdvancedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendgrid_es12_logic": {
+          try {
+            const { OpenMicroFrontendGridService } = await import("../liberty/openmicro-frontendgrid_es12.service.js");
+            const res = await OpenMicroFrontendGridService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativegraph_2gqo_logic": {
           try {
             const { OpenCloudNativeGraphService } = await import("../liberty/opencloud-nativegraph_2gqo.service.js");
