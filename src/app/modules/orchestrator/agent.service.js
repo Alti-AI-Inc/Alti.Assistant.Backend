@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "store_object_sovereign",
+      description: "Use the Aphura Sovereign Object Storage (MinIO) to store files, images, PDFs, datasets, and model checkpoints in an S3-compatible bucket that runs 100% on Liberty Center One. Zero AWS dependency.",
+      parameters: { type: "object", properties: { bucketName: { type: "string" }, objectKey: { type: "string" } }, required: ["bucketName", "objectKey"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_unified_notification",
+      description: "Use the Aphura Notification Engine (Novu) to send notifications across any channel — email, SMS, push, in-app, Slack, Discord, WhatsApp — from a single unified API.",
+      parameters: { type: "object", properties: { channel: { type: "string" }, recipientId: { type: "string" }, templateId: { type: "string" } }, required: ["channel", "recipientId", "templateId"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_document_to_pdf",
+      description: "Use the Aphura Document Compiler (Typst) to generate beautiful, typeset PDF reports, invoices, and documents from markup in milliseconds.",
+      parameters: { type: "object", properties: { markupContent: { type: "string" }, outputPath: { type: "string" } }, required: ["markupContent", "outputPath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "materialize_data_asset",
+      description: "Use the Aphura Data Pipeline Engine (Dagster) to orchestrate data products with full asset lineage, freshness tracking, and dependency resolution.",
+      parameters: { type: "object", properties: { assetKey: { type: "string" } }, required: ["assetKey"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_sovereign_auth_session",
+      description: "Use the Aphura Sovereign Auth Engine (SuperTokens) to create and manage user sessions with MFA, rotating tokens, and anti-CSRF — all self-hosted on Liberty Center One with zero external auth dependency.",
+      parameters: { type: "object", properties: { userId: { type: "string" } }, required: ["userId"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_code_in_sandbox",
       description: "Use the Aphura Code Execution Sandbox (E2B) to safely run Python, Node.js, or Bash code inside an isolated cloud sandbox and return the actual output, charts, and generated files to the user. This is how Aphura actually RUNS code, not just writes it.",
       parameters: { type: "object", properties: { code: { type: "string" }, language: { type: "string" } }, required: ["code", "language"] }
@@ -8719,7 +8759,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "execute_code_in_sandbox": {
+        case "store_object_sovereign": {
+          try {
+            const { MinIOService } = await import("../data/minio.service.js");
+            const res = await MinIOService.putObject(args.bucketName, args.objectKey, 0);
+            return { output: "### Object Stored\n\nBucket: " + res.bucket + "\nKey: " + res.key + "\nEncrypted: " + res.encrypted };
+          } catch (err) {
+            return { output: "Storage failed: " + err.message };
+          }
+        }
+        case "send_unified_notification": {
+          try {
+            const { NovuService } = await import("../marketing/novu.service.js");
+            const res = await NovuService.sendNotification(args.channel, args.recipientId, args.templateId, {});
+            return { output: "### Notification Sent\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Notification failed: " + err.message };
+          }
+        }
+        case "compile_document_to_pdf": {
+          try {
+            const { TypstService } = await import("../ide/typst.service.js");
+            const res = await TypstService.compileToPDF(args.markupContent, args.outputPath);
+            return { output: "### PDF Compiled\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Compilation failed: " + err.message };
+          }
+        }
+        case "materialize_data_asset": {
+          try {
+            const { DagsterService } = await import("../data/dagster.service.js");
+            const res = await DagsterService.materializeAsset(args.assetKey);
+            return { output: "### Data Asset Materialized\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Materialization failed: " + err.message };
+          }
+        }
+        case "create_sovereign_auth_session": {
+          try {
+            const { SuperTokensService } = await import("../security/supertokens.service.js");
+            const res = await SuperTokensService.createSession(args.userId);
+            return { output: "### Sovereign Session Created\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Auth failed: " + err.message };
+          }
+        }        case "execute_code_in_sandbox": {
           try {
             const { E2BService } = await import("../compute/e2b.service.js");
             const sandbox = await E2BService.createSandbox(args.language);
