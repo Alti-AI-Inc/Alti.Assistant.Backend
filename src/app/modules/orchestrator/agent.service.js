@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedstream_zkyc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedStream) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusteroracle_stot_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterOracle) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentrouter_6pxr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentRouter) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogstream_h4jv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogStream) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgefabric_o62w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeFabric) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisenet_hbvk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNet) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27892,6 +27932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedstream_zkyc_logic": {
+          try {
+            const { OpenFederatedStreamService } = await import("../liberty/openfederatedstream_zkyc.service.js");
+            const res = await OpenFederatedStreamService.execute(args.target || "system");
+            return { output: `### OpenFederatedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusteroracle_stot_logic": {
+          try {
+            const { OpenCrossClusterOracleService } = await import("../liberty/opencross-clusteroracle_stot.service.js");
+            const res = await OpenCrossClusterOracleService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentrouter_6pxr_logic": {
+          try {
+            const { OpenPersistentRouterService } = await import("../liberty/openpersistentrouter_6pxr.service.js");
+            const res = await OpenPersistentRouterService.execute(args.target || "system");
+            return { output: `### OpenPersistentRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogstream_h4jv_logic": {
+          try {
+            const { OpenLogStreamService } = await import("../liberty/openlogstream_h4jv.service.js");
+            const res = await OpenLogStreamService.execute(args.target || "system");
+            return { output: `### OpenLogStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgefabric_o62w_logic": {
+          try {
+            const { OpenEdgeFabricService } = await import("../liberty/openedgefabric_o62w.service.js");
+            const res = await OpenEdgeFabricService.execute(args.target || "system");
+            return { output: `### OpenEdgeFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisenet_hbvk_logic": {
           try {
             const { OpenEnterpriseNetService } = await import("../liberty/openenterprisenet_hbvk.service.js");
