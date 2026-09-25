@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectorfabric_nwpj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorFabric) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuswarm_577m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUSwarm) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecompiler_qlqw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCompiler) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryvortex_jmtm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryVortex) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorvortex_zwhd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorVortex) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partylayer_vqkd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyLayer) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23892,6 +23932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectorfabric_nwpj_logic": {
+          try {
+            const { OpenVectorFabricService } = await import("../liberty/openvectorfabric_nwpj.service.js");
+            const res = await OpenVectorFabricService.execute(args.target || "system");
+            return { output: `### OpenVectorFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuswarm_577m_logic": {
+          try {
+            const { OpenGPUSwarmService } = await import("../liberty/opengpuswarm_577m.service.js");
+            const res = await OpenGPUSwarmService.execute(args.target || "system");
+            return { output: `### OpenGPUSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecompiler_qlqw_logic": {
+          try {
+            const { OpenZeroKnowledgeCompilerService } = await import("../liberty/openzero-knowledgecompiler_qlqw.service.js");
+            const res = await OpenZeroKnowledgeCompilerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryvortex_jmtm_logic": {
+          try {
+            const { OpenInMemoryVortexService } = await import("../liberty/openin-memoryvortex_jmtm.service.js");
+            const res = await OpenInMemoryVortexService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorvortex_zwhd_logic": {
+          try {
+            const { OpenVectorVortexService } = await import("../liberty/openvectorvortex_zwhd.service.js");
+            const res = await OpenVectorVortexService.execute(args.target || "system");
+            return { output: `### OpenVectorVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partylayer_vqkd_logic": {
           try {
             const { OpenMultiPartyLayerService } = await import("../liberty/openmulti-partylayer_vqkd.service.js");
