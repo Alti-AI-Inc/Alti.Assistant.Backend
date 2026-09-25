@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativenexus_m0df_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNexus) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosnode_7tdq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNode) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatadaemon_jqk1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataDaemon) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgrid_wr44_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGrid) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisestream_7rd5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseStream) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentswarm_b9dk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentSwarm) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22412,6 +22452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativenexus_m0df_logic": {
+          try {
+            const { OpenCloudNativeNexusService } = await import("../liberty/opencloud-nativenexus_m0df.service.js");
+            const res = await OpenCloudNativeNexusService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosnode_7tdq_logic": {
+          try {
+            const { OpenChaosNodeService } = await import("../liberty/openchaosnode_7tdq.service.js");
+            const res = await OpenChaosNodeService.execute(args.target || "system");
+            return { output: `### OpenChaosNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatadaemon_jqk1_logic": {
+          try {
+            const { OpenDataDaemonService } = await import("../liberty/opendatadaemon_jqk1.service.js");
+            const res = await OpenDataDaemonService.execute(args.target || "system");
+            return { output: `### OpenDataDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgrid_wr44_logic": {
+          try {
+            const { OpenDecentralizedGridService } = await import("../liberty/opendecentralizedgrid_wr44.service.js");
+            const res = await OpenDecentralizedGridService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisestream_7rd5_logic": {
+          try {
+            const { OpenEnterpriseStreamService } = await import("../liberty/openenterprisestream_7rd5.service.js");
+            const res = await OpenEnterpriseStreamService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseStream failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentswarm_b9dk_logic": {
           try {
             const { OpenPersistentSwarmService } = await import("../liberty/openpersistentswarm_b9dk.service.js");
