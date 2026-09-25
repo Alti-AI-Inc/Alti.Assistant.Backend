@@ -101,6 +101,23 @@ router.get('/v1/videos/:id', async (req, res) => {
   await InferenceGateway.handleGetVideo(req, res);
 });
 
+// ── Code Interpreter (Official: https://docs.together.ai/reference/tci-execute & tci-sessions)
+router.post('/tci/execute', async (req, res) => {
+  await InferenceGateway.handleExecuteCode(req, res);
+});
+
+router.post('/v1/tci/execute', async (req, res) => {
+  await InferenceGateway.handleExecuteCode(req, res);
+});
+
+router.get('/tci/sessions', async (req, res) => {
+  await InferenceGateway.handleListCodeSessions(req, res);
+});
+
+router.get('/v1/tci/sessions', async (req, res) => {
+  await InferenceGateway.handleListCodeSessions(req, res);
+});
+
 // ── Models Discovery (OpenAI/Together SDK compatible format) ───────────────
 const modelsHandler = async (req, res) => {
   try {
