@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openlogmesh_tva1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogMesh) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednode_e2jj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNode) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecontroller_en6u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareController) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgematrix_pmkb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeMatrix) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiccontroller_e92n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicController) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativecore_ckda_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCore) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28052,6 +28092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openlogmesh_tva1_logic": {
+          try {
+            const { OpenLogMeshService } = await import("../liberty/openlogmesh_tva1.service.js");
+            const res = await OpenLogMeshService.execute(args.target || "system");
+            return { output: `### OpenLogMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednode_e2jj_logic": {
+          try {
+            const { OpenDecentralizedNodeService } = await import("../liberty/opendecentralizednode_e2jj.service.js");
+            const res = await OpenDecentralizedNodeService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecontroller_en6u_logic": {
+          try {
+            const { OpenHardwareControllerService } = await import("../liberty/openhardwarecontroller_en6u.service.js");
+            const res = await OpenHardwareControllerService.execute(args.target || "system");
+            return { output: `### OpenHardwareController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareController failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgematrix_pmkb_logic": {
+          try {
+            const { OpenEdgeMatrixService } = await import("../liberty/openedgematrix_pmkb.service.js");
+            const res = await OpenEdgeMatrixService.execute(args.target || "system");
+            return { output: `### OpenEdgeMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiccontroller_e92n_logic": {
+          try {
+            const { OpenNeuromorphicControllerService } = await import("../liberty/openneuromorphiccontroller_e92n.service.js");
+            const res = await OpenNeuromorphicControllerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicController failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativecore_ckda_logic": {
           try {
             const { OpenCloudNativeCoreService } = await import("../liberty/opencloud-nativecore_ckda.service.js");
