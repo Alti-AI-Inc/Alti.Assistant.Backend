@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedengine_lg0h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedEngine) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarygraph_wpa0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryGraph) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedstream_cj6p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedStream) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativechain_r2yo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeChain) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativebroker_ofll_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeBroker) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedswarm_h779_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSwarm) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29172,6 +29212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedengine_lg0h_logic": {
+          try {
+            const { OpenFederatedEngineService } = await import("../liberty/openfederatedengine_lg0h.service.js");
+            const res = await OpenFederatedEngineService.execute(args.target || "system");
+            return { output: `### OpenFederatedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarygraph_wpa0_logic": {
+          try {
+            const { OpenPlanetaryGraphService } = await import("../liberty/openplanetarygraph_wpa0.service.js");
+            const res = await OpenPlanetaryGraphService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedstream_cj6p_logic": {
+          try {
+            const { OpenDecentralizedStreamService } = await import("../liberty/opendecentralizedstream_cj6p.service.js");
+            const res = await OpenDecentralizedStreamService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativechain_r2yo_logic": {
+          try {
+            const { OpenCloudNativeChainService } = await import("../liberty/opencloud-nativechain_r2yo.service.js");
+            const res = await OpenCloudNativeChainService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativebroker_ofll_logic": {
+          try {
+            const { OpenCloudNativeBrokerService } = await import("../liberty/opencloud-nativebroker_ofll.service.js");
+            const res = await OpenCloudNativeBrokerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeBroker failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedswarm_h779_logic": {
           try {
             const { OpenDecentralizedSwarmService } = await import("../liberty/opendecentralizedswarm_h779.service.js");
