@@ -729,6 +729,61 @@ getRemediationRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Deployments (Official: https://docs.together.ai/reference/deployments)
+// 1. List deployments (GET /deployments & /v1/deployments)
+const listDeploymentRoutes = ['/deployments', '/v1/deployments'];
+listDeploymentRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleListDeployments(req, res);
+  });
+});
+
+// 2. Create deployment (POST /deployments & /v1/deployments)
+const createDeploymentRoutes = ['/deployments', '/v1/deployments'];
+createDeploymentRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleCreateDeployment(req, res);
+  });
+});
+
+// 3. Deployment logs (GET /deployments/:id/logs & /v1/deployments/:id/logs)
+const deploymentLogsRoutes = ['/deployments/:id/logs', '/v1/deployments/:id/logs'];
+deploymentLogsRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetDeploymentLogs(req, res);
+  });
+});
+
+// 4. Retrieve deployment (GET /deployments/:id & /v1/deployments/:id)
+const getDeploymentRoutes = ['/deployments/:id', '/v1/deployments/:id'];
+getDeploymentRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetDeployment(req, res);
+  });
+});
+
+// 5. Update deployment (PATCH /deployments/:id, PUT, POST & /v1/ aliases)
+const updateDeploymentRoutes = ['/deployments/:id', '/v1/deployments/:id'];
+updateDeploymentRoutes.forEach((path) => {
+  router.patch(path, async (req, res) => {
+    await InferenceGateway.handleUpdateDeployment(req, res);
+  });
+  router.put(path, async (req, res) => {
+    await InferenceGateway.handleUpdateDeployment(req, res);
+  });
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleUpdateDeployment(req, res);
+  });
+});
+
+// 6. Delete deployment (DELETE /deployments/:id & /v1/deployments/:id)
+const deleteDeploymentRoutes = ['/deployments/:id', '/v1/deployments/:id'];
+deleteDeploymentRoutes.forEach((path) => {
+  router.delete(path, async (req, res) => {
+    await InferenceGateway.handleDeleteDeployment(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

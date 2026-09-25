@@ -64,6 +64,12 @@ import {
   llmApproveRemediation,
   llmCancelRemediation,
   llmRejectRemediation,
+  llmListDeployments,
+  llmCreateDeployment,
+  llmGetDeployment,
+  llmUpdateDeployment,
+  llmDeleteDeployment,
+  llmGetDeploymentLogs,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -2143,6 +2149,154 @@ export const InferenceGateway = {
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists all deployments (GET /deployments & GET /v1/deployments)
+   * Official Reference: https://docs.together.ai/reference/deployments-list
+   */
+  async handleListDeployments(req, res) {
+    try {
+      const data = await llmListDeployments(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error listing deployments.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Creates a new deployment (POST /deployments & POST /v1/deployments)
+   * Official Reference: https://docs.together.ai/reference/deployments-create
+   */
+  async handleCreateDeployment(req, res) {
+    try {
+      const data = await llmCreateDeployment(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error creating deployment.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Retrieves deployment details (GET /deployments/:id & GET /v1/deployments/:id)
+   * Official Reference: https://docs.together.ai/reference/deployments-get
+   */
+  async handleGetDeployment(req, res) {
+    const deploymentId = req.params?.id || req.params?.deployment_id || req.params?.deploymentId;
+    if (!deploymentId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
+    try {
+      const data = await llmGetDeployment(deploymentId);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error retrieving deployment.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Updates deployment configuration (PATCH /deployments/:id & PUT/POST & /v1/)
+   * Official Reference: https://docs.together.ai/reference/deployments-update
+   */
+  async handleUpdateDeployment(req, res) {
+    const deploymentId = req.params?.id || req.params?.deployment_id || req.params?.deploymentId;
+    if (!deploymentId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
+    try {
+      const data = await llmUpdateDeployment(deploymentId, req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error updating deployment.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Deletes a deployment (DELETE /deployments/:id & DELETE /v1/deployments/:id)
+   * Official Reference: https://docs.together.ai/reference/deployments-delete
+   */
+  async handleDeleteDeployment(req, res) {
+    const deploymentId = req.params?.id || req.params?.deployment_id || req.params?.deploymentId;
+    if (!deploymentId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
+    try {
+      const data = await llmDeleteDeployment(deploymentId);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error deleting deployment.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Retrieves deployment logs (GET /deployments/:id/logs & GET /v1/deployments/:id/logs)
+   * Official Reference: https://docs.together.ai/reference/deployments-logs
+   */
+  async handleGetDeploymentLogs(req, res) {
+    const deploymentId = req.params?.id || req.params?.deployment_id || req.params?.deploymentId;
+    if (!deploymentId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
+    try {
+      const data = await llmGetDeploymentLogs(deploymentId, req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error retrieving deployment logs.',
+          type: 'api_error',
+        },
+      });
     }
   },
 };
