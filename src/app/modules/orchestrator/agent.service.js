@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "autofix_codebase_ruff", description: "Use the Aphura Rust Code Refactoring Engine (Ruff, 36k stars, MIT) to automatically format, lint, and repair codebases in milliseconds with AST safety. Beats Cursor and Copilot.", parameters: { type: "object", properties: { targetPath: { type: "string" } }, required: ["targetPath"] } } },
+  { type: "function", function: { name: "route_llm_gateway", description: "Use the Aphura Unified LLM Gateway (LiteLLM, 18k stars, MIT) to route inference requests with automatic fallback, load balancing, and spend caps on Together.ai.", parameters: { type: "object", properties: { tenantId: { type: "string" }, promptContext: { type: "string" } }, required: ["tenantId"] } } },
+  { type: "function", function: { name: "run_autonomous_tests", description: "Use the Aphura Multi-Threaded Test Engine (Vitest, 14k stars, MIT) to execute unit and integration test passes in milliseconds, powering self-correcting agent loops.", parameters: { type: "object", properties: { testSuitePath: { type: "string" } }, required: ["testSuitePath"] } } },
+  { type: "function", function: { name: "extract_dom_cheerio", description: "Use the Aphura Fast DOM Parser (Cheerio, 28k stars, MIT) to extract structured tables and articles from web pages 10x faster than headless browsers. Beats Perplexity.", parameters: { type: "object", properties: { htmlContent: { type: "string" } }, required: ["htmlContent"] } } },
+  { type: "function", function: { name: "execute_federated_sql", description: "Use the Aphura Federated Query Engine (Apache Calcite, Apache 2.0) to execute cost-optimized SQL queries joining data across PostgreSQL, ClickHouse, and Iceberg. Replaces Oracle Cost-Based Optimizer.", parameters: { type: "object", properties: { federatedQuery: { type: "string" } }, required: ["federatedQuery"] } } },
   { type: "function", function: { name: "parse_codebase_ast", description: "Use the Aphura Code Intelligence Engine (Tree-sitter, 18k stars, MIT) to build concrete syntax trees (CSTs) for 40+ programming languages with sub-millisecond semantic navigation. Beats Cursor and GitHub Copilot.", parameters: { type: "object", properties: { sourceCode: { type: "string" }, language: { type: "string" } }, required: ["sourceCode", "language"] } } },
   { type: "function", function: { name: "deep_crawl_research", description: "Use the Aphura Deep Web Crawling Engine (Crawlee, 17k stars, Apache 2.0) to scrape dynamic websites with anti-bot bypass, JavaScript SPA execution, and empirical citation extraction. Beats Perplexity Pro.", parameters: { type: "object", properties: { startUrl: { type: "string" }, crawlDepth: { type: "number" } }, required: ["startUrl"] } } },
   { type: "function", function: { name: "manage_cognitive_memory", description: "Use the Aphura Cognitive Memory Layer (Mem0, 25k stars, Apache 2.0) to store and recall long-term user preferences, decisions, and facts across all sessions and platforms. Beats ChatGPT Memory.", parameters: { type: "object", properties: { userId: { type: "string" }, sessionFact: { type: "string" } }, required: ["userId", "sessionFact"] } } },
@@ -8915,6 +8920,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "autofix_codebase_ruff": {
+          try {
+            const { RuffService } = await import("../ide/ruff.service.js");
+            const res = await RuffService.autoFixCodebase(args.targetPath);
+            return { output: "### Ruff Code Refactoring\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Ruff refactoring failed: " + err.message };
+          }
+        }
+        case "route_llm_gateway": {
+          try {
+            const { LiteLLMService } = await import("../ai/litellm.service.js");
+            const res = await LiteLLMService.routeInferenceRequest(args.tenantId, args.promptContext, 5.0);
+            return { output: "### LiteLLM Gateway Routing\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "LLM routing failed: " + err.message };
+          }
+        }
+        case "run_autonomous_tests": {
+          try {
+            const { VitestService } = await import("../testing/vitest.service.js");
+            const res = await VitestService.executeAutonomousTestPass(args.testSuitePath);
+            return { output: "### Vitest Autonomous Test Pass\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Vitest run failed: " + err.message };
+          }
+        }
+        case "extract_dom_cheerio": {
+          try {
+            const { CheerioService } = await import("../search/cheerio.service.js");
+            const res = await CheerioService.extractStructuredDOM(args.htmlContent, {});
+            return { output: "### Cheerio DOM Extraction\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "DOM extraction failed: " + err.message };
+          }
+        }
+        case "execute_federated_sql": {
+          try {
+            const { CalciteService } = await import("../data/calcite.service.js");
+            const res = await CalciteService.executeFederatedJoin(args.federatedQuery, "PostgreSQL + ClickHouse + Iceberg");
+            return { output: "### Calcite Federated Query\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Federated query failed: " + err.message };
+          }
+        }
         case "parse_codebase_ast": {
           try {
             const { TreeSitterService } = await import("../ide/treesitter.service.js");
