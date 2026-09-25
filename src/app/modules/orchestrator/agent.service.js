@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisesync_434v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseSync) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventsync_8c0x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventSync) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarenexus_pxw7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareNexus) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorstream_lx1y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorStream) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogcontroller_324h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogController) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablerouter_oky8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableRouter) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22332,6 +22372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisesync_434v_logic": {
+          try {
+            const { OpenEnterpriseSyncService } = await import("../liberty/openenterprisesync_434v.service.js");
+            const res = await OpenEnterpriseSyncService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventsync_8c0x_logic": {
+          try {
+            const { OpenEventSyncService } = await import("../liberty/openeventsync_8c0x.service.js");
+            const res = await OpenEventSyncService.execute(args.target || "system");
+            return { output: `### OpenEventSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarenexus_pxw7_logic": {
+          try {
+            const { OpenHardwareNexusService } = await import("../liberty/openhardwarenexus_pxw7.service.js");
+            const res = await OpenHardwareNexusService.execute(args.target || "system");
+            return { output: `### OpenHardwareNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorstream_lx1y_logic": {
+          try {
+            const { OpenVectorStreamService } = await import("../liberty/openvectorstream_lx1y.service.js");
+            const res = await OpenVectorStreamService.execute(args.target || "system");
+            return { output: `### OpenVectorStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogcontroller_324h_logic": {
+          try {
+            const { OpenLogControllerService } = await import("../liberty/openlogcontroller_324h.service.js");
+            const res = await OpenLogControllerService.execute(args.target || "system");
+            return { output: `### OpenLogController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogController failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablerouter_oky8_logic": {
           try {
             const { OpenImmutableRouterService } = await import("../liberty/openimmutablerouter_oky8.service.js");
