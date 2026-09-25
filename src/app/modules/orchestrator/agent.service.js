@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedbroker_x3ai_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedBroker) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessledger_lml6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessLedger) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventrouter_t07l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventRouter) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessmesh_z3ic_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessMesh) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partycluster_qtb7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyCluster) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosoracle_tusp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosOracle) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25772,6 +25812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedbroker_x3ai_logic": {
+          try {
+            const { OpenAutomatedBrokerService } = await import("../liberty/openautomatedbroker_x3ai.service.js");
+            const res = await OpenAutomatedBrokerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessledger_lml6_logic": {
+          try {
+            const { OpenHeadlessLedgerService } = await import("../liberty/openheadlessledger_lml6.service.js");
+            const res = await OpenHeadlessLedgerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventrouter_t07l_logic": {
+          try {
+            const { OpenEventRouterService } = await import("../liberty/openeventrouter_t07l.service.js");
+            const res = await OpenEventRouterService.execute(args.target || "system");
+            return { output: `### OpenEventRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessmesh_z3ic_logic": {
+          try {
+            const { OpenServerlessMeshService } = await import("../liberty/openserverlessmesh_z3ic.service.js");
+            const res = await OpenServerlessMeshService.execute(args.target || "system");
+            return { output: `### OpenServerlessMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partycluster_qtb7_logic": {
+          try {
+            const { OpenMultiPartyClusterService } = await import("../liberty/openmulti-partycluster_qtb7.service.js");
+            const res = await OpenMultiPartyClusterService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosoracle_tusp_logic": {
           try {
             const { OpenChaosOracleService } = await import("../liberty/openchaosoracle_tusp.service.js");
