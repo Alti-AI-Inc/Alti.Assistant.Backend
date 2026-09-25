@@ -78,6 +78,7 @@
     "nodemailer": "^6.10.1",
     "p-limit": "^7.3.3",
     "p-queue": "^9.3.3",
+    "paperclip": "github:paperclipai/paperclip",
     "passport": "^0.7.0",
     "passport-apple": "^2.0.2",
     "passport-discord": "^0.1.4",
