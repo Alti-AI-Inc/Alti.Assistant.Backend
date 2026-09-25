@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesengine_17q2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesEngine) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfring_7mxv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFRing) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativedaemon_5lze_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeDaemon) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticmesh_eqz7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticMesh) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfnexus_isvu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFNexus) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgeengine_6ih2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeEngine) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27492,6 +27532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesengine_17q2_logic": {
+          try {
+            const { OpenTimeSeriesEngineService } = await import("../liberty/opentime-seriesengine_17q2.service.js");
+            const res = await OpenTimeSeriesEngineService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfring_7mxv_logic": {
+          try {
+            const { OpeneBPFRingService } = await import("../liberty/openebpfring_7mxv.service.js");
+            const res = await OpeneBPFRingService.execute(args.target || "system");
+            return { output: `### OpeneBPFRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativedaemon_5lze_logic": {
+          try {
+            const { OpenCloudNativeDaemonService } = await import("../liberty/opencloud-nativedaemon_5lze.service.js");
+            const res = await OpenCloudNativeDaemonService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticmesh_eqz7_logic": {
+          try {
+            const { OpenStaticMeshService } = await import("../liberty/openstaticmesh_eqz7.service.js");
+            const res = await OpenStaticMeshService.execute(args.target || "system");
+            return { output: `### OpenStaticMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfnexus_isvu_logic": {
+          try {
+            const { OpeneBPFNexusService } = await import("../liberty/openebpfnexus_isvu.service.js");
+            const res = await OpeneBPFNexusService.execute(args.target || "system");
+            return { output: `### OpeneBPFNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgeengine_6ih2_logic": {
           try {
             const { OpenZeroKnowledgeEngineService } = await import("../liberty/openzero-knowledgeengine_6ih2.service.js");
