@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisegrid_rcbj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGrid) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorybroker_4jjq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryBroker) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partychain_z6sq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyChain) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativechain_p6gi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeChain) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarynode_c7vz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNode) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfederatedengine_lg0h_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFederatedEngine) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29212,6 +29252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisegrid_rcbj_logic": {
+          try {
+            const { OpenEnterpriseGridService } = await import("../liberty/openenterprisegrid_rcbj.service.js");
+            const res = await OpenEnterpriseGridService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorybroker_4jjq_logic": {
+          try {
+            const { OpenInMemoryBrokerService } = await import("../liberty/openin-memorybroker_4jjq.service.js");
+            const res = await OpenInMemoryBrokerService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partychain_z6sq_logic": {
+          try {
+            const { OpenMultiPartyChainService } = await import("../liberty/openmulti-partychain_z6sq.service.js");
+            const res = await OpenMultiPartyChainService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativechain_p6gi_logic": {
+          try {
+            const { OpenCloudNativeChainService } = await import("../liberty/opencloud-nativechain_p6gi.service.js");
+            const res = await OpenCloudNativeChainService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarynode_c7vz_logic": {
+          try {
+            const { OpenPlanetaryNodeService } = await import("../liberty/openplanetarynode_c7vz.service.js");
+            const res = await OpenPlanetaryNodeService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNode failed: ${err.message}` };
+          }
+        }
         case "execute_openfederatedengine_lg0h_logic": {
           try {
             const { OpenFederatedEngineService } = await import("../liberty/openfederatedengine_lg0h.service.js");
