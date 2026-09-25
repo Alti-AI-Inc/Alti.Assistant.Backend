@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustengine_erjb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustEngine) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendataproxy_77gp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataProxy) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedchain_55jf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedChain) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablestream_pe8d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableStream) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgenode_1v8z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeNode) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetaryswarm_4xmi_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetarySwarm) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24092,6 +24132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustengine_erjb_logic": {
+          try {
+            const { OpenZeroTrustEngineService } = await import("../liberty/openzero-trustengine_erjb.service.js");
+            const res = await OpenZeroTrustEngineService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opendataproxy_77gp_logic": {
+          try {
+            const { OpenDataProxyService } = await import("../liberty/opendataproxy_77gp.service.js");
+            const res = await OpenDataProxyService.execute(args.target || "system");
+            return { output: `### OpenDataProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedchain_55jf_logic": {
+          try {
+            const { OpenAdvancedChainService } = await import("../liberty/openadvancedchain_55jf.service.js");
+            const res = await OpenAdvancedChainService.execute(args.target || "system");
+            return { output: `### OpenAdvancedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablestream_pe8d_logic": {
+          try {
+            const { OpenImmutableStreamService } = await import("../liberty/openimmutablestream_pe8d.service.js");
+            const res = await OpenImmutableStreamService.execute(args.target || "system");
+            return { output: `### OpenImmutableStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgenode_1v8z_logic": {
+          try {
+            const { OpenZeroKnowledgeNodeService } = await import("../liberty/openzero-knowledgenode_1v8z.service.js");
+            const res = await OpenZeroKnowledgeNodeService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeNode failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetaryswarm_4xmi_logic": {
           try {
             const { OpenPlanetarySwarmService } = await import("../liberty/openplanetaryswarm_4xmi.service.js");
