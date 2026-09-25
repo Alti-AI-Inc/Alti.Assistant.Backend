@@ -34,7 +34,7 @@ import {
   createSubscriptionService,
   getCustomerSubscriptionsService,
   retrieveSubscriptionService,
-} from './subscription.service.js';
+} from './stripeSubscription.service.js';
 import webhookController from './webhook.controller.js';
 
 /**
