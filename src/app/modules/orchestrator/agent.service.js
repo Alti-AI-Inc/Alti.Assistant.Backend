@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "compile_webpack_bundle", description: "Use the Aphura Universal Asset Bundler (Webpack, 64k stars, MIT) to compile production code bundles with tree-shaking, code splitting, and asset optimization for web and desktop.", parameters: { type: "object", properties: { entryPoint: { type: "string" }, outputFormat: { type: "string" } }, required: ["entryPoint"] } } },
+  { type: "function", function: { name: "transform_ast_babel", description: "Use the Aphura Universal Compiler (Babel, 43k stars, MIT) to transform modern ECMAScript/TypeScript into cross-platform compatible JavaScript with automatic polyfills.", parameters: { type: "object", properties: { sourceCode: { type: "string" }, targetBrowsers: { type: "string" } }, required: ["sourceCode"] } } },
+  { type: "function", function: { name: "generate_hookform_controller", description: "Use the Aphura Form Architecture Engine (React Hook Form, 42k stars, MIT) to compile zero-lag, uncontrolled form state controllers with Zod schema validation across web and mobile.", parameters: { type: "object", properties: { formSchemaName: { type: "string" }, fieldCount: { type: "number" } }, required: ["formSchemaName"] } } },
+  { type: "function", function: { name: "optimize_hyperparameters_optuna", description: "Use the Aphura Automated Machine Learning Engine (Optuna, 11k stars, MIT) to run Bayesian hyperparameter searches and automated trial pruning for optimal model weights.", parameters: { type: "object", properties: { studyName: { type: "string" }, parameterSpace: { type: "string" } }, required: ["studyName"] } } },
+  { type: "function", function: { name: "register_shenyu_gateway", description: "Use the Aphura Asynchronous Protocol Gateway (Apache ShenYu, 7.5k stars, Apache 2.0) to route HTTP, Dubbo, and gRPC traffic with non-blocking Netty performance and Sentinel circuit breaking.", parameters: { type: "object", properties: { routeContext: { type: "string" }, upstreamProtocol: { type: "string" } }, required: ["routeContext"] } } },
   { type: "function", function: { name: "lint_code_eslint", description: "Use the Aphura Static Code Analysis Engine (ESLint, 25k stars, MIT) to analyze and auto-fix JavaScript/TypeScript ASTs for security vulnerabilities and type bugs before deployment.", parameters: { type: "object", properties: { codeString: { type: "string" }, ruleset: { type: "string" } }, required: ["codeString"] } } },
   { type: "function", function: { name: "generate_3d_deckgl", description: "Use the Aphura GPU-Accelerated Visualization Engine (Deck.gl by Uber, 12k stars, MIT) to compile interactive 3D WebGL geospatial maps, hex-bins, and flight arc flows rendering millions of coordinates at 60 FPS.", parameters: { type: "object", properties: { datasetName: { type: "string" }, layerType: { type: "string" } }, required: ["datasetName"] } } },
   { type: "function", function: { name: "render_network_cytoscape", description: "Use the Aphura Network Analysis Engine (Cytoscape.js, 9.5k stars, MIT) to render interactive graph theory topologies, fraud detection rings, and dependency graphs directly in the prompt box.", parameters: { type: "object", properties: { layoutAlgorithm: { type: "string" } }, required: [] } } },
@@ -8951,6 +8956,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "compile_webpack_bundle": {
+          try {
+            const { WebpackService } = await import("../ide/webpack.service.js");
+            const res = await WebpackService.compileProductionBundle(args.entryPoint, args.outputFormat);
+            return { output: "### Webpack Bundle Compiled\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Webpack compilation failed: " + err.message };
+          }
+        }
+        case "transform_ast_babel": {
+          try {
+            const { BabelService } = await import("../ide/babel.service.js");
+            const res = await BabelService.transformModernAST(args.sourceCode, args.targetBrowsers);
+            return { output: "### Babel Transformation\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Babel transformation failed: " + err.message };
+          }
+        }
+        case "generate_hookform_controller": {
+          try {
+            const { HookFormService } = await import("../ui/hookform.service.js");
+            const res = await HookFormService.generateFormController(args.formSchemaName, args.fieldCount);
+            return { output: "### React Hook Form Controller\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Form controller generation failed: " + err.message };
+          }
+        }
+        case "optimize_hyperparameters_optuna": {
+          try {
+            const { OptunaService } = await import("../ai/optuna.service.js");
+            const res = await OptunaService.optimizeHyperparameters(args.studyName, args.parameterSpace, "F1-Score");
+            return { output: "### Optuna Hyperparameter Study\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Optuna optimization failed: " + err.message };
+          }
+        }
+        case "register_shenyu_gateway": {
+          try {
+            const { ShenYuService } = await import("../enterprise/shenyu.service.js");
+            const res = await ShenYuService.registerGatewayRoute(args.routeContext, args.upstreamProtocol);
+            return { output: "### ShenYu Gateway Route\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Gateway registration failed: " + err.message };
+          }
+        }
         case "lint_code_eslint": {
           try {
             const { ESLintService } = await import("../ide/eslint.service.js");
