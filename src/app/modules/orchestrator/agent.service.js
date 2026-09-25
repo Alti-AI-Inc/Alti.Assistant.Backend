@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosmatrix_qeby_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosMatrix) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfchain_h5dr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFChain) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentmatrix_rcuh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentMatrix) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfstream_esb1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFStream) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicengine_0gfg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicEngine) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicmesh_xp9l_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMesh) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25492,6 +25532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosmatrix_qeby_logic": {
+          try {
+            const { OpenChaosMatrixService } = await import("../liberty/openchaosmatrix_qeby.service.js");
+            const res = await OpenChaosMatrixService.execute(args.target || "system");
+            return { output: `### OpenChaosMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfchain_h5dr_logic": {
+          try {
+            const { OpeneBPFChainService } = await import("../liberty/openebpfchain_h5dr.service.js");
+            const res = await OpeneBPFChainService.execute(args.target || "system");
+            return { output: `### OpeneBPFChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentmatrix_rcuh_logic": {
+          try {
+            const { OpenPersistentMatrixService } = await import("../liberty/openpersistentmatrix_rcuh.service.js");
+            const res = await OpenPersistentMatrixService.execute(args.target || "system");
+            return { output: `### OpenPersistentMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfstream_esb1_logic": {
+          try {
+            const { OpeneBPFStreamService } = await import("../liberty/openebpfstream_esb1.service.js");
+            const res = await OpeneBPFStreamService.execute(args.target || "system");
+            return { output: `### OpeneBPFStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicengine_0gfg_logic": {
+          try {
+            const { OpenHomomorphicEngineService } = await import("../liberty/openhomomorphicengine_0gfg.service.js");
+            const res = await OpenHomomorphicEngineService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicmesh_xp9l_logic": {
           try {
             const { OpenHomomorphicMeshService } = await import("../liberty/openhomomorphicmesh_xp9l.service.js");
