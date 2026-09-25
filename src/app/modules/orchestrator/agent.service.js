@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutableengine_a6po_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableEngine) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelnet_e7pf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNet) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpchain_53dp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPChain) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgeledger_ix6c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeLedger) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativelayer_jlu0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeLayer) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterpriseledger_jiq9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseLedger) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27412,6 +27452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutableengine_a6po_logic": {
+          try {
+            const { OpenImmutableEngineService } = await import("../liberty/openimmutableengine_a6po.service.js");
+            const res = await OpenImmutableEngineService.execute(args.target || "system");
+            return { output: `### OpenImmutableEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelnet_e7pf_logic": {
+          try {
+            const { OpenMicroKernelNetService } = await import("../liberty/openmicro-kernelnet_e7pf.service.js");
+            const res = await OpenMicroKernelNetService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpchain_53dp_logic": {
+          try {
+            const { OpenBGPChainService } = await import("../liberty/openbgpchain_53dp.service.js");
+            const res = await OpenBGPChainService.execute(args.target || "system");
+            return { output: `### OpenBGPChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgeledger_ix6c_logic": {
+          try {
+            const { OpenZeroKnowledgeLedgerService } = await import("../liberty/openzero-knowledgeledger_ix6c.service.js");
+            const res = await OpenZeroKnowledgeLedgerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativelayer_jlu0_logic": {
+          try {
+            const { OpenCloudNativeLayerService } = await import("../liberty/opencloud-nativelayer_jlu0.service.js");
+            const res = await OpenCloudNativeLayerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openenterpriseledger_jiq9_logic": {
           try {
             const { OpenEnterpriseLedgerService } = await import("../liberty/openenterpriseledger_jiq9.service.js");
