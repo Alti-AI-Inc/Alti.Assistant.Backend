@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "trace_data_lineage", description: "Use the Aphura Data Governance Engine (Apache Atlas, Apache 2.0) to trace end-to-end data lineage and inspect compliance classifications (GDPR, HIPAA, PII). Replaces Microsoft Purview and IBM InfoSphere Governance.", parameters: { type: "object", properties: { entityName: { type: "string" } }, required: ["entityName"] } } },
+  { type: "function", function: { name: "render_tiptap_canvas", description: "Use the Aphura Collaborative Canvas Engine (TipTap, 28k stars, MIT) to render real-time collaborative rich-text documents with multi-cursor sync and slash commands across web, mobile, and desktop. Replaces Microsoft Word Online.", parameters: { type: "object", properties: { documentJson: { type: "string" } }, required: ["documentJson"] } } },
+  { type: "function", function: { name: "sync_mobile_watermelon", description: "Use the Aphura Reactive Mobile Store (WatermelonDB, 10k stars, MIT) for high-performance offline-first local database sync across iOS, Android, and Desktop apps. Replaces Microsoft Azure Mobile Offline Sync.", parameters: { type: "object", properties: { userId: { type: "string" }, clientChanges: { type: "string" } }, required: ["userId"] } } },
+  { type: "function", function: { name: "calculate_spatial_gis", description: "Use the Aphura Geospatial Engine (Turf.js, 8.5k stars, MIT) for spatial analysis, polygon clustering, geofences, and drive-time calculations natively. Replaces Oracle Spatial and Azure Maps Spatial Engine.", parameters: { type: "object", properties: { clusterRadiusKm: { type: "number" } }, required: ["clusterRadiusKm"] } } },
+  { type: "function", function: { name: "evaluate_business_rule", description: "Use the Aphura Business Rules Engine (json-rules-engine, MIT) to evaluate deterministic underwriting, pricing, and fraud decisions without code deployments. Replaces IBM ODM and Oracle Business Rules.", parameters: { type: "object", properties: { ruleSet: { type: "string" }, facts: { type: "string" } }, required: ["ruleSet"] } } },
   { type: "function", function: { name: "start_bpmn_process", description: "Use the Aphura Business Process Engine (Activiti, Apache 2.0) to launch multi-tier human-in-the-loop workflows (approvals, reviews, compliance) with BPMN 2.0 audit trails. Replaces IBM BPM and Oracle BPM.", parameters: { type: "object", properties: { processKey: { type: "string" }, businessVariables: { type: "string" } }, required: ["processKey"] } } },
   { type: "function", function: { name: "sync_crdt_document", description: "Use the Aphura Collaborative Sync Engine (Automerge, 18k stars, MIT) for conflict-free, local-first document editing across web, mobile, and desktop without server locks. Replaces Microsoft Fluid Framework.", parameters: { type: "object", properties: { docId: { type: "string" }, changes: { type: "string" } }, required: ["docId"] } } },
   { type: "function", function: { name: "apply_db_migration", description: "Use the Aphura Database Migration Engine (Liquibase, Apache 2.0) to track, version, and apply schema migrations with automated rollbacks and zero downtime. Replaces Oracle Database Lifecycle Management.", parameters: { type: "object", properties: { changelogFile: { type: "string" }, targetDatabase: { type: "string" } }, required: ["changelogFile"] } } },
@@ -8890,6 +8895,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "trace_data_lineage": {
+          try {
+            const { AtlasService } = await import("../enterprise/atlas.service.js");
+            const res = await AtlasService.traceDataLineage(args.entityName);
+            return { output: "### Data Lineage & Governance\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Lineage trace failed: " + err.message };
+          }
+        }
+        case "render_tiptap_canvas": {
+          try {
+            const { TiptapService } = await import("../business/tiptap.service.js");
+            const res = await TiptapService.renderDocumentSchema(args.documentJson);
+            return { output: "### TipTap Collaborative Canvas\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Canvas render failed: " + err.message };
+          }
+        }
+        case "sync_mobile_watermelon": {
+          try {
+            const { WatermelonService } = await import("../data/watermelon.service.js");
+            const res = await WatermelonService.syncMobileLocalStore(args.userId, args.clientChanges);
+            return { output: "### WatermelonDB Mobile Sync\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Watermelon sync failed: " + err.message };
+          }
+        }
+        case "calculate_spatial_gis": {
+          try {
+            const { TurfService } = await import("../business/turf.service.js");
+            const res = await TurfService.calculateSpatialCluster({}, args.clusterRadiusKm);
+            return { output: "### Spatial GIS Analysis\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Spatial calculation failed: " + err.message };
+          }
+        }
+        case "evaluate_business_rule": {
+          try {
+            const { RulesEngineService } = await import("../business/rulesengine.service.js");
+            const res = await RulesEngineService.evaluateBusinessRule(args.ruleSet, { data: args.facts });
+            return { output: "### Business Rule Evaluation\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Rule evaluation failed: " + err.message };
+          }
+        }
         case "start_bpmn_process": {
           try {
             const { ActivitiService } = await import("../business/activiti.service.js");
