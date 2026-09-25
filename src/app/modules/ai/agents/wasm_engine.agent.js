@@ -1,5 +1,5 @@
 import { logger } from '../../../../shared/logger.js';
-import { IPFSService } from "../../../modules/devops/ipfs.service.js";
+import { S3StorageService } from "../../../modules/devops/minio_s3.service.js";
 
 export const WasmEngineAgent = {
   async executeSandboxedWasm(wasmBuffer, entryPoint = 'main') {
@@ -18,19 +18,19 @@ export const WasmEngineAgent = {
       await new Promise(r => setTimeout(r, 45));
       logger.info(`[Wasm Engine] Execution complete in 45ms. Zero-trust sandbox intact.`);
       
-      const ipfsResult = await IPFSService.pinBufferToIPFS(wasmBuffer, "agent-generated.wasm");
-      logger.info(`[Wasm Engine] Wasm binary permanently archived at ${ipfsResult.uri}`);
+      const s3Result = await S3StorageService.uploadArtifact(wasmBuffer, "agent-generated.wasm");
+      logger.info(`[Wasm Engine] Wasm binary archived to Sovereign S3 at ${s3Result.uri}`);
       return {
         success: true,
         engine: 'wasm',
         stdout: "Calculated Prime 1,000,000 flawlessly via Wasm.",
         executionTimeMs: 45
-        , ipfsUri: ipfsResult.uri
+        , s3Uri: s3Result.uri
       };
     } catch (err) {
       logger.error(`[Wasm Engine] Sandbox violation or trap: ${err.message}`);
-      const ipfsResult = await IPFSService.pinBufferToIPFS(wasmBuffer, "agent-generated.wasm");
-      logger.info(`[Wasm Engine] Wasm binary permanently archived at ${ipfsResult.uri}`);
+      const s3Result = await S3StorageService.uploadArtifact(wasmBuffer, "agent-generated.wasm");
+      logger.info(`[Wasm Engine] Wasm binary archived to Sovereign S3 at ${s3Result.uri}`);
       return { success: false, error: err.message };
     }
   }
