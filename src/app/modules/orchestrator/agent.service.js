@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectorplane_pwf6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorPlane) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencymatrix_z1mq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyMatrix) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partycontroller_406n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyController) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalchain_u9ub_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalChain) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openloglayer_usht_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogLayer) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedvault_g6lj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedVault) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29372,6 +29412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectorplane_pwf6_logic": {
+          try {
+            const { OpenVectorPlaneService } = await import("../liberty/openvectorplane_pwf6.service.js");
+            const res = await OpenVectorPlaneService.execute(args.target || "system");
+            return { output: `### OpenVectorPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencymatrix_z1mq_logic": {
+          try {
+            const { OpenHighFrequencyMatrixService } = await import("../liberty/openhigh-frequencymatrix_z1mq.service.js");
+            const res = await OpenHighFrequencyMatrixService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partycontroller_406n_logic": {
+          try {
+            const { OpenMultiPartyControllerService } = await import("../liberty/openmulti-partycontroller_406n.service.js");
+            const res = await OpenMultiPartyControllerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyController failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalchain_u9ub_logic": {
+          try {
+            const { OpenHyperDimensionalChainService } = await import("../liberty/openhyper-dimensionalchain_u9ub.service.js");
+            const res = await OpenHyperDimensionalChainService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openloglayer_usht_logic": {
+          try {
+            const { OpenLogLayerService } = await import("../liberty/openloglayer_usht.service.js");
+            const res = await OpenLogLayerService.execute(args.target || "system");
+            return { output: `### OpenLogLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedvault_g6lj_logic": {
           try {
             const { OpenAutomatedVaultService } = await import("../liberty/openautomatedvault_g6lj.service.js");
