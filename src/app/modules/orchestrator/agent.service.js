@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlesscontroller_cnv9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessController) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednode_j87g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNode) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondchain_vtas_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondChain) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedgrid_kv2c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedGrid) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpledger_lckj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPLedger) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusternexus_r7ke_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterNexus) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25212,6 +25252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlesscontroller_cnv9_logic": {
+          try {
+            const { OpenServerlessControllerService } = await import("../liberty/openserverlesscontroller_cnv9.service.js");
+            const res = await OpenServerlessControllerService.execute(args.target || "system");
+            return { output: `### OpenServerlessController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessController failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednode_j87g_logic": {
+          try {
+            const { OpenDecentralizedNodeService } = await import("../liberty/opendecentralizednode_j87g.service.js");
+            const res = await OpenDecentralizedNodeService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondchain_vtas_logic": {
+          try {
+            const { OpenSubMillisecondChainService } = await import("../liberty/opensub-millisecondchain_vtas.service.js");
+            const res = await OpenSubMillisecondChainService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedgrid_kv2c_logic": {
+          try {
+            const { OpenDistributedGridService } = await import("../liberty/opendistributedgrid_kv2c.service.js");
+            const res = await OpenDistributedGridService.execute(args.target || "system");
+            return { output: `### OpenDistributedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpledger_lckj_logic": {
+          try {
+            const { OpenBGPLedgerService } = await import("../liberty/openbgpledger_lckj.service.js");
+            const res = await OpenBGPLedgerService.execute(args.target || "system");
+            return { output: `### OpenBGPLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPLedger failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusternexus_r7ke_logic": {
           try {
             const { OpenCrossClusterNexusService } = await import("../liberty/opencross-clusternexus_r7ke.service.js");
