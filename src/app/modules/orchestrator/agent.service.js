@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "process_banking_transaction", description: "Use the Aphura Core Banking Engine (Apache Fineract, Apache 2.0) to execute double-entry ledger transactions, loan amortizations, and deposit account management. Replaces Oracle FLEXCUBE and Temenos.", parameters: { type: "object", properties: { accountNumber: { type: "string" }, transactionType: { type: "string" }, amount: { type: "string" } }, required: ["accountNumber"] } } },
+  { type: "function", function: { name: "establish_webrtc_bridge", description: "Use the Aphura Real-Time Media Engine (Pion WebRTC, 14k stars, MIT) to establish low-latency, end-to-end encrypted video, voice, and data bridges across Web, Mobile, and Desktop without third-party fees. Replaces Twilio Video.", parameters: { type: "object", properties: { sessionId: { type: "string" }, mediaTracks: { type: "string" } }, required: ["sessionId"] } } },
+  { type: "function", function: { name: "query_schemafree_drill", description: "Use the Aphura Schema-Free SQL Engine (Apache Drill, Apache 2.0) to execute ANSI SQL queries directly over unstructured JSON, Parquet, and MongoDB data without pre-defining schemas. Replaces AWS Athena.", parameters: { type: "object", properties: { query: { type: "string" }, storagePath: { type: "string" } }, required: ["query"] } } },
+  { type: "function", function: { name: "generate_platform_sdks", description: "Use the Aphura Multi-Platform SDK Generator (OpenAPI Generator, 21k stars, Apache 2.0) to compile fully typed client libraries in TypeScript, Swift (iOS), Kotlin (Android), and Python with 100% API schema parity.", parameters: { type: "object", properties: { specPath: { type: "string" } }, required: ["specPath"] } } },
+  { type: "function", function: { name: "query_vespa_hybrid", description: "Use the Aphura Hybrid Ranking Engine (Vespa, 5.5k stars, Apache 2.0) to run joint neural vector similarity and BM25 lexical search with machine-learned re-ranking in sub-10ms. Powers Yahoo-scale search.", parameters: { type: "object", properties: { queryText: { type: "string" }, topN: { type: "number" } }, required: ["queryText"] } } },
   { type: "function", function: { name: "scaffold_nestjs_backend", description: "Use the Aphura Enterprise Framework (NestJS, 69k stars, MIT) to scaffold scalable, clean-architecture TypeScript microservices with dependency injection and gRPC/NATS transports. Replaces Spring Boot.", parameters: { type: "object", properties: { moduleName: { type: "string" }, transportType: { type: "string" } }, required: ["moduleName"] } } },
   { type: "function", function: { name: "search_billion_vectors_milvus", description: "Use the Aphura Billion-Scale Vector Database (Milvus, 33k stars, Apache 2.0) to execute sub-10ms similarity searches across billions of embeddings with GPU acceleration. Replaces Pinecone.", parameters: { type: "object", properties: { collectionName: { type: "string" }, topK: { type: "number" } }, required: ["collectionName"] } } },
   { type: "function", function: { name: "synthesize_sovereign_voice", description: "Use the Aphura Neural Voice Engine (Piper TTS, 8k stars, MIT) to synthesize natural, human-like voice responses locally on Liberty Center One CPUs with zero cloud voice egress. Replaces ElevenLabs.", parameters: { type: "object", properties: { textPrompt: { type: "string" }, voiceId: { type: "string" } }, required: ["textPrompt"] } } },
@@ -8941,6 +8946,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "process_banking_transaction": {
+          try {
+            const { FineractService } = await import("../business/fineract.service.js");
+            const res = await FineractService.processCoreBankingTransaction(args.accountNumber, args.transactionType, args.amount, "USD");
+            return { output: "### Fineract Core Banking\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Banking transaction failed: " + err.message };
+          }
+        }
+        case "establish_webrtc_bridge": {
+          try {
+            const { PionService } = await import("../comms/pion.service.js");
+            const res = await PionService.establishMediaBridge(args.sessionId, args.mediaTracks);
+            return { output: "### Pion WebRTC Media Bridge\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "WebRTC bridge failed: " + err.message };
+          }
+        }
+        case "query_schemafree_drill": {
+          try {
+            const { DrillService } = await import("../data/drill.service.js");
+            const res = await DrillService.executeSchemaFreeQuery(args.query, args.storagePath);
+            return { output: "### Apache Drill SQL Query\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Drill query failed: " + err.message };
+          }
+        }
+        case "generate_platform_sdks": {
+          try {
+            const { OpenAPIGenService } = await import("../api/openapigen.service.js");
+            const res = await OpenAPIGenService.generateMultiPlatformSDKs(args.specPath, "TS, Swift, Kotlin, Python");
+            return { output: "### Multi-Platform SDKs Compiled\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "SDK generation failed: " + err.message };
+          }
+        }
+        case "query_vespa_hybrid": {
+          try {
+            const { VespaService } = await import("../ai/vespa.service.js");
+            const res = await VespaService.queryHybridRanker(args.queryText, [], args.topN);
+            return { output: "### Vespa Hybrid Ranking\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Vespa query failed: " + err.message };
+          }
+        }
         case "scaffold_nestjs_backend": {
           try {
             const { NestJSService } = await import("../enterprise/nestjs.service.js");
