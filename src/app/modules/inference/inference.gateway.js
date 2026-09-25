@@ -206,6 +206,15 @@ import {
   executeEmbeddings,
   executeRagPipeline,
 } from '../../services/together.rerank.js';
+import {
+  getEvaluationsOverview,
+  getRunEvaluationDocs,
+  getEvaluationsReferenceDocs,
+  getSupportedModelsDocs,
+  validateEvaluationParams,
+  validateDatasetColumns,
+} from '../../services/together.evaluations.js';
+
 
 
 // The full Together AI Serverless Library available to Aphura
@@ -4181,6 +4190,86 @@ export const InferenceGateway = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error executing RAG pipeline.' });
+    }
+  },
+
+  /**
+   * Retrieves Together AI Evaluations Overview
+   * (GET /together/ai-evaluations, GET /v1/together/ai-evaluations, GET /together/evaluations/overview)
+   */
+  async handleGetEvaluationsOverview(req, res) {
+    try {
+      const data = getEvaluationsOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving evaluations overview.' });
+    }
+  },
+
+  /**
+   * Retrieves Run an Evaluation Guide & Code Snippets
+   * (GET /together/run-an-evaluation, GET /v1/together/run-an-evaluation, GET /together/evaluations/run-guide)
+   */
+  async handleGetRunEvaluationDocs(req, res) {
+    try {
+      const data = getRunEvaluationDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving run evaluation docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Evaluations Parameters & Result Formats Reference
+   * (GET /together/evaluations-reference, GET /v1/together/evaluations-reference, GET /together/evaluations/reference)
+   */
+  async handleGetEvaluationsReferenceDocs(req, res) {
+    try {
+      const data = getEvaluationsReferenceDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving evaluations reference docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Evaluations Supported Models Catalog
+   * (GET /together/evaluations-supported-models, GET /v1/together/evaluations-supported-models, GET /together/evaluations/supported-models)
+   */
+  async handleGetSupportedModelsDocs(req, res) {
+    try {
+      const data = getSupportedModelsDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving evaluations supported models docs.' });
+    }
+  },
+
+  /**
+   * Validates Evaluation Parameters (type, judge, labels, scores, templates)
+   * (POST /together/evaluations/validate, POST /v1/together/evaluations/validate)
+   */
+  async handleValidateEvaluationParams(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = validateEvaluationParams(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating evaluation parameters.' });
+    }
+  },
+
+  /**
+   * Validates Dataset Columns Against Template Usage Rules
+   * (POST /together/evaluations/validate-dataset, POST /v1/together/evaluations/validate-dataset)
+   */
+  async handleValidateDatasetColumns(req, res) {
+    try {
+      const { columns = [], templates = [], named_columns = [] } = req.body || {};
+      const result = validateDatasetColumns(columns, templates, named_columns);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating dataset columns.' });
     }
   },
 };

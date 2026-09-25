@@ -247,6 +247,22 @@ import {
   executeEmbeddings,
   executeRagPipeline,
 } from './together.rerank.js';
+import {
+  EVALUATION_TYPES,
+  EVALUATION_SUPPORTED_MODELS,
+  DEFAULT_JUDGE_TEMPLATES,
+  getEvaluationsOverview,
+  getRunEvaluationDocs,
+  getEvaluationsReferenceDocs,
+  getSupportedModelsDocs,
+  validateEvaluationParams,
+  validateDatasetColumns,
+  createEvaluationJob,
+  getEvaluationJobStatus,
+  getEvaluationJobDetails,
+  listEvaluationJobs,
+  listSupportedEvaluationModels,
+} from './together.evaluations.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -906,63 +922,225 @@ async function handleFineTune(parsed) {
 async function handleEvals(parsed) {
   const action = parsed.subcommand || 'list';
 
-  if (action === 'create' || action === 'run') {
-    const model = parsed.flags.model;
-    if (!model) throw new Error('Missing required argument: --model');
+  if (action === 'overview' || action === 'docs') {
+    const ov = getEvaluationsOverview();
+    const text = `
+Together AI AI Evaluations Overview:
+URL: ${ov.docs_url}
+Recommended Judge: ${ov.recommended_judge}
+Agent Skill: ${ov.agent_skill}
+
+Evaluation Types:
+  - classify: Categorical labeling with pass percentage
+  - score: Numeric scale with mean, std dev, and pass threshold
+  - compare: A/B testing with position bias correction
+
+Dataset Rules:
+  - Format: ${ov.dataset_rules.format}
+  - Rule: ${ov.dataset_rules.columns}
+  - Unused Columns: ${ov.dataset_rules.unused_columns_behavior}
+  - Vision: ${ov.dataset_rules.vision_support}
+`.trim();
+    return { ...ov, text };
+  }
+
+  if (action === 'guide' || action === 'run-guide') {
+    const guide = getRunEvaluationDocs();
+    const text = `
+Together AI Run an Evaluation Guide:
+URL: ${guide.docs_url}
+
+Workflow Steps:
+${guide.workflow_steps.map(s => `  ${s.step}. ${s.action}: ${s.description}`).join('\n')}
+`.trim();
+    return { ...guide, text };
+  }
+
+  if (action === 'reference' || action === 'ref') {
+    const ref = getEvaluationsReferenceDocs();
+    const text = `
+Together AI Evaluations Reference:
+URL: ${ref.docs_url}
+Lifecycle: ${ref.lifecycle_states.join(' -> ')}
+
+Endpoints:
+${Object.entries(ref.endpoints).map(([k, v]) => `  - ${k}: ${v}`).join('\n')}
+
+Result Schemas:
+  - classify: ${ref.result_schemas.classify.fields.join(', ')}
+  - score: ${ref.result_schemas.score.fields.join(', ')}
+  - compare: ${ref.result_schemas.compare.fields.join(', ')}
+`.trim();
+    return { ...ref, text };
+  }
+
+  if (action === 'models') {
+    const source = parsed.flags['model-source'] || parsed.flags.source || 'all';
+    const modelsData = await listSupportedEvaluationModels({ model_source: source });
+    const docs = getSupportedModelsDocs();
+    const serverless = docs.models.serverless_allowlist;
+    const text = `
+Together AI Evaluations Supported Models:
+Serverless Allowlist (${serverless.length} models):
+${serverless.map(m => `  - ${m.id} (${m.name})${m.default_judge ? ' [DEFAULT JUDGE]' : ''}${m.vision ? ' [VISION]' : ''}`).join('\n')}
+
+External Shortcuts:
+  - Anthropic: ${docs.models.external_shortcuts.anthropic.slice(0, 3).join(', ')}...
+  - Google: ${docs.models.external_shortcuts.google.slice(0, 3).join(', ')}...
+  - OpenAI: ${docs.models.external_shortcuts.openai.slice(0, 3).join(', ')}...
+Dedicated Format: ${docs.models.dedicated_endpoint_format}
+`.trim();
+    return { ...modelsData, ...docs, text };
+  }
+
+  if (action === 'validate') {
+    const type = parsed.flags.type || 'classify';
+    const judgeModel = parsed.flags['judge-model'] || parsed.flags.judge || 'openai/gpt-oss-120b';
+    const judgeSource = parsed.flags['judge-model-source'] || parsed.flags.judge_source || 'serverless';
+    const judgeTemplate = parsed.flags['judge-system-template'] || DEFAULT_JUDGE_TEMPLATES.classify_harmful;
+    const fileId = parsed.flags['input-data-file-path'] || parsed.flags.file || 'file-eval-sample';
+
     const payload = {
-      model,
-      eval_data_file: parsed.flags['eval-data-file'] || parsed.flags.evalDataFile || 'file-eval-default',
-      type: parsed.flags.type || 'accuracy',
+      type,
+      parameters: {
+        input_data_file_path: fileId,
+        judge: {
+          model: judgeModel,
+          model_source: judgeSource,
+          system_template: judgeTemplate,
+        },
+      },
     };
-    const evalJob = await llmCreateEval(payload);
+
+    if (type === 'classify') {
+      const labels = parsed.flags.labels ? parsed.flags.labels.split(',').map(s => s.trim()) : ['Toxic', 'Non-toxic'];
+      const passLabels = parsed.flags['pass-labels'] ? parsed.flags['pass-labels'].split(',').map(s => s.trim()) : ['Non-toxic'];
+      payload.parameters.labels = labels;
+      payload.parameters.pass_labels = passLabels;
+      payload.parameters.model_to_evaluate = parsed.flags['model-to-evaluate'] || 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
+    } else if (type === 'score') {
+      payload.parameters.min_score = Number(parsed.flags['min-score'] || 1);
+      payload.parameters.max_score = Number(parsed.flags['max-score'] || 10);
+      payload.parameters.pass_threshold = Number(parsed.flags['pass-threshold'] || 7);
+      payload.parameters.model_to_evaluate = parsed.flags['model-to-evaluate'] || 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
+    } else if (type === 'compare') {
+      payload.parameters.model_a = parsed.flags['model-a-field'] || parsed.flags['model-a'] || 'response_a';
+      payload.parameters.model_b = parsed.flags['model-b-field'] || parsed.flags['model-b'] || 'response_b';
+      if (parsed.flags['disable-position-bias-correction']) {
+        payload.parameters.disable_position_bias_correction = true;
+      }
+    }
+
+    const validation = validateEvaluationParams(payload);
+    const text = `
+Together AI Evaluation Parameters Validation:
+Status: ${validation.valid ? 'VALID ✅' : 'INVALID ❌'}
+Type: ${validation.type}
+${validation.errors.length ? `Errors:\n${validation.errors.map(e => `  - ${e}`).join('\n')}` : ''}
+${validation.warnings.length ? `Warnings:\n${validation.warnings.map(w => `  - ${w}`).join('\n')}` : ''}
+`.trim();
+    return { ...validation, text };
+  }
+
+  if (action === 'validate-dataset') {
+    const rawColumns = parsed.flags.columns || 'prompt,id,category';
+    const rawTemplates = parsed.flags.template || 'Answer this: {{prompt}}';
+    const columns = rawColumns.split(',').map(s => s.trim());
+    const templates = [rawTemplates];
+    const validation = validateDatasetColumns(columns, templates);
+
+    const text = `
+Together AI Dataset Columns Validation:
+Status: ${validation.valid ? 'VALID ✅' : 'INVALID ❌'}
+Columns: [${validation.dataset_columns.join(', ')}]
+Used: [${validation.used_columns.join(', ')}]
+Unused: [${validation.unused_columns.join(', ')}]
+${validation.error ? `Error: ${validation.error}` : ''}
+`.trim();
+    return { ...validation, text };
+  }
+
+  if (action === 'create' || action === 'run') {
+    const type = parsed.flags.type || 'classify';
+    const fileId = parsed.flags['input-data-file-path'] || parsed.flags['eval-data-file'] || parsed.flags.file || 'file-eval-default';
+    const judgeModel = parsed.flags['judge-model'] || 'openai/gpt-oss-120b';
+    const judgeSource = parsed.flags['judge-model-source'] || 'serverless';
+    const judgeTemplate = parsed.flags['judge-system-template'] || DEFAULT_JUDGE_TEMPLATES.classify_harmful;
+
+    const payload = {
+      type,
+      parameters: {
+        input_data_file_path: fileId,
+        judge: {
+          model: judgeModel,
+          model_source: judgeSource,
+          system_template: judgeTemplate,
+        },
+      },
+    };
+
+    if (type === 'classify') {
+      payload.parameters.labels = parsed.flags.labels ? parsed.flags.labels.split(',').map(s => s.trim()) : ['Toxic', 'Non-toxic'];
+      payload.parameters.pass_labels = parsed.flags['pass-labels'] ? parsed.flags['pass-labels'].split(',').map(s => s.trim()) : ['Non-toxic'];
+      payload.parameters.model_to_evaluate = parsed.flags['model-to-evaluate'] || parsed.flags.model || 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
+    } else if (type === 'score') {
+      payload.parameters.min_score = Number(parsed.flags['min-score'] || 1);
+      payload.parameters.max_score = Number(parsed.flags['max-score'] || 10);
+      payload.parameters.pass_threshold = Number(parsed.flags['pass-threshold'] || 7);
+      payload.parameters.model_to_evaluate = parsed.flags['model-to-evaluate'] || parsed.flags.model || 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
+    } else if (type === 'compare') {
+      payload.parameters.model_a = parsed.flags['model-a-field'] || parsed.flags['model-a'] || 'response_a';
+      payload.parameters.model_b = parsed.flags['model-b-field'] || parsed.flags['model-b'] || 'response_b';
+      if (parsed.flags['disable-position-bias-correction']) {
+        payload.parameters.disable_position_bias_correction = true;
+      }
+    }
+
+    const evalJob = await createEvaluationJob(payload);
+    const id = evalJob.workflow_id || evalJob.id;
     return {
       eval: evalJob,
-      text: `Eval job created: ${evalJob.id} (Model: ${model}, Type: ${payload.type})`,
+      workflow_id: id,
+      status: evalJob.status || 'pending',
+      type,
+      text: `Evaluation job created successfully:\n  ID: ${id}\n  Type: ${type}\n  Status: ${evalJob.status || 'pending'}\n  Judge: ${judgeModel}`,
     };
   }
 
   if (action === 'list') {
-    const evals = await llmListEvals();
+    const evals = await listEvaluationJobs(parsed.flags);
     const list = Array.isArray(evals) ? evals : (evals.data || []);
     const rows = list.map(e => [
-      e.id,
-      e.model,
-      e.status || 'COMPLETED',
-      e.score !== undefined ? `${e.score}%` : '88.5%',
+      e.workflow_id || e.id,
+      e.type || 'classify',
+      e.status || 'completed',
       new Date(e.created_at || Date.now()).toISOString().slice(0, 10),
     ]);
-    const text = formatTable(['EVAL ID', 'MODEL', 'STATUS', 'SCORE', 'CREATED'], rows);
+    const text = formatTable(['WORKFLOW ID', 'TYPE', 'STATUS', 'CREATED'], rows);
     return { evals: list, count: list.length, text };
   }
 
   if (action === 'retrieve' || action === 'get') {
-    const id = parsed.subsubcommand || parsed.flags.id;
-    if (!id) throw new Error('Missing eval ID.');
-    const evalData = await llmGetEval(id);
+    const id = parsed.subsubcommand || parsed.flags.id || parsed.args[0];
+    if (!id) throw new Error('Missing eval workflow ID. Usage: tg evals retrieve <workflow_id>');
+    const evalData = await getEvaluationJobDetails(id);
     return {
       eval: evalData,
-      text: `Eval: ${evalData.id}\n  Model: ${evalData.model}\n  Status: ${evalData.status}\n  Score: ${evalData.score || '88.5%'}`,
+      text: `Evaluation Details (${id}):\n  Type: ${evalData.type || 'classify'}\n  Status: ${evalData.status}\n  Created: ${evalData.created_at || 'recent'}`,
     };
   }
 
   if (action === 'status') {
-    const id = parsed.subsubcommand || parsed.flags.id;
-    if (!id) throw new Error('Missing eval ID.');
-    const status = await llmGetEvalStatus(id);
+    const id = parsed.subsubcommand || parsed.flags.id || parsed.args[0];
+    if (!id) throw new Error('Missing eval workflow ID. Usage: tg evals status <workflow_id>');
+    const status = await getEvaluationJobStatus(id);
     return {
       status,
-      text: `Eval ${id} status: ${status.status || status.state || 'COMPLETED'}`,
+      text: `Evaluation Status (${id}):\n  Status: ${status.status || status.state || 'completed'}\n  Results: ${JSON.stringify(status.results || {})}`,
     };
   }
 
-  if (action === 'models') {
-    const models = await llmListEvalModels();
-    const list = Array.isArray(models) ? models : (models.data || []);
-    const rows = list.map(m => [m.id || m.name, m.eval_frameworks?.join(', ') || 'MMLU, HumanEval']);
-    return { models: list, text: formatTable(['MODEL ID', 'FRAMEWORKS'], rows) };
-  }
-
-  throw new Error(`Unknown evals command: ${action}`);
+  throw new Error(`Unknown evals command: ${action}. Use 'overview', 'guide', 'reference', 'models', 'validate', 'validate-dataset', 'create', 'list', 'retrieve', or 'status'.`);
 }
 
 // ── Domain 8: Batches ────────────────────────────────────────────────────────

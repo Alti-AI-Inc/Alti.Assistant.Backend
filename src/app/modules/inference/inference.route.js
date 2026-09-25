@@ -2179,6 +2179,82 @@ ragPipelineRoutes.forEach((path) => {
   });
 });
 
+// ── Together AI Evaluations Suite Documentation & Validation Routes ─────────
+
+// 1. Evaluations Overview
+const evalsOverviewRoutes = [
+  '/together/ai-evaluations',
+  '/v1/together/ai-evaluations',
+  '/together/evaluations/overview',
+  '/v1/together/evaluations/overview',
+];
+evalsOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetEvaluationsOverview(req, res);
+  });
+});
+
+// 2. Run an Evaluation Guide
+const evalsRunGuideRoutes = [
+  '/together/run-an-evaluation',
+  '/v1/together/run-an-evaluation',
+  '/together/evaluations/run-guide',
+  '/v1/together/evaluations/run-guide',
+];
+evalsRunGuideRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetRunEvaluationDocs(req, res);
+  });
+});
+
+// 3. Evaluations Reference
+const evalsReferenceRoutes = [
+  '/together/evaluations-reference',
+  '/v1/together/evaluations-reference',
+  '/together/evaluations/reference',
+  '/v1/together/evaluations/reference',
+];
+evalsReferenceRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetEvaluationsReferenceDocs(req, res);
+  });
+});
+
+// 4. Evaluations Supported Models
+const evalsSupportedModelsRoutes = [
+  '/together/evaluations-supported-models',
+  '/v1/together/evaluations-supported-models',
+  '/together/evaluations/supported-models',
+  '/v1/together/evaluations/supported-models',
+];
+evalsSupportedModelsRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetSupportedModelsDocs(req, res);
+  });
+});
+
+// 5. Validate Evaluation Parameters
+const evalsValidateRoutes = [
+  '/together/evaluations/validate',
+  '/v1/together/evaluations/validate',
+];
+evalsValidateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateEvaluationParams(req, res);
+  });
+});
+
+// 6. Validate Dataset Columns
+const evalsValidateDatasetRoutes = [
+  '/together/evaluations/validate-dataset',
+  '/v1/together/evaluations/validate-dataset',
+];
+evalsValidateDatasetRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateDatasetColumns(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

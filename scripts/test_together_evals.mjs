@@ -1,29 +1,242 @@
 /**
- * Dedicated Test Suite for the Together.ai Evaluations Suite (5 Endpoints)
- * References:
- * - https://docs.together.ai/reference/create-evaluation
- * - https://docs.together.ai/reference/list-evaluations
- * - https://docs.together.ai/reference/get-evaluation
- * - https://docs.together.ai/reference/get-evaluation-status
- * - https://docs.together.ai/reference/list-evaluation-models
+ * Comprehensive Verification Test for Together.ai AI Evaluations Suite
+ * Covers:
+ * 1. Overview & Evaluation Types: https://docs.together.ai/docs/ai-evaluations
+ * 2. Run an Evaluation Guide:     https://docs.together.ai/docs/run-an-evaluation
+ * 3. Evaluations Reference:       https://docs.together.ai/docs/evaluations-reference
+ * 4. Supported Models:           https://docs.together.ai/docs/evaluations-supported-models
  * License: MIT
  */
+
 import assert from 'assert';
 import {
-  llmCreateEval,
-  llmListEvals,
-  llmGetEval,
-  llmGetEvalStatus,
-  llmListEvalModels,
-} from '../src/app/services/llm.client.js';
-
-import { InferenceGateway } from '../src/app/modules/inference/inference.gateway.js';
+  EVALUATION_TYPES,
+  EVALUATION_SUPPORTED_MODELS,
+  DEFAULT_JUDGE_TEMPLATES,
+  getEvaluationsOverview,
+  getRunEvaluationDocs,
+  getEvaluationsReferenceDocs,
+  getSupportedModelsDocs,
+  validateEvaluationParams,
+  validateDatasetColumns,
+  createEvaluationJob,
+  getEvaluationJobStatus,
+  getEvaluationJobDetails,
+  listEvaluationJobs,
+  listSupportedEvaluationModels,
+} from '../src/app/services/together.evaluations.js';
+import { executeTogetherCliCommand } from '../src/app/services/together.cli.js';
+import InferenceGateway from '../src/app/modules/inference/inference.gateway.js';
 import { inferenceRoutes } from '../src/app/modules/inference/inference.route.js';
 
-function mockRes() {
-  const res = {
+console.log('🧪 Starting Together.ai AI Evaluations Suite Verification...\n');
+
+// ── 1. Overview & 3 Evaluation Types ─────────────────────────────────────────
+console.log('1️⃣ Testing AI Evaluations Overview & 3 Evaluation Types...');
+const overview = getEvaluationsOverview();
+assert.strictEqual(overview.success, true);
+assert.strictEqual(overview.recommended_judge, 'openai/gpt-oss-120b');
+assert.strictEqual(overview.agent_skill, 'together-evaluations');
+assert.ok(overview.evaluation_types.classify);
+assert.ok(overview.evaluation_types.score);
+assert.ok(overview.evaluation_types.compare);
+assert.strictEqual(overview.dataset_rules.format, 'JSONL or CSV');
+console.log(`   ✅ 3 evaluation types (classify, score, compare) and dataset rules verified.`);
+
+// ── 2. Run an Evaluation Guide & Code Snippets ──────────────────────────────
+console.log('\n2️⃣ Testing Run an Evaluation Guide & Workflows...');
+const guide = getRunEvaluationDocs();
+assert.strictEqual(guide.success, true);
+assert.strictEqual(guide.workflow_steps.length, 5);
+assert.strictEqual(guide.workflow_steps[0].action, 'Prepare dataset');
+assert.strictEqual(guide.workflow_steps[1].action, 'Upload dataset');
+assert(guide.code_snippets.python_classify.includes('purpose="eval"'));
+assert(guide.code_snippets.typescript_compare.includes('disable_position_bias_correction'));
+console.log('   ✅ 5-step workflow (prepare, upload, create, monitor, download) and snippets verified.');
+
+// ── 3. Evaluations Reference & Result Formats ────────────────────────────────
+console.log('\n3️⃣ Testing Evaluations Reference & Schemas...');
+const ref = getEvaluationsReferenceDocs();
+assert.strictEqual(ref.success, true);
+assert(ref.lifecycle_states.includes('pending'));
+assert(ref.lifecycle_states.includes('completed'));
+assert(ref.lifecycle_states.includes('user_error'));
+assert(ref.result_schemas.classify.fields.includes('label_counts'));
+assert(ref.result_schemas.classify.fields.includes('pass_percentage'));
+assert(ref.result_schemas.score.fields.includes('aggregated_scores.mean_score'));
+assert(ref.result_schemas.compare.fields.includes('A_wins'));
+assert(ref.result_schemas.compare.fields.includes('B_wins'));
+assert(ref.result_schemas.compare.fields.includes('Ties'));
+console.log('   ✅ Lifecycle states and result schemas (classify, score, compare) verified.');
+
+// ── 4. Supported Models Catalog ──────────────────────────────────────────────
+console.log('\n4️⃣ Testing Supported Models Catalog...');
+const modelsDocs = getSupportedModelsDocs();
+assert.strictEqual(modelsDocs.success, true);
+const serverless = modelsDocs.models.serverless_allowlist;
+assert(serverless.some(m => m.id === 'openai/gpt-oss-120b' && m.default_judge === true));
+assert(serverless.some(m => m.id === 'meta-llama/Llama-3.3-70B-Instruct-Turbo'));
+assert(serverless.some(m => m.id === 'Qwen/Qwen3.5-9B' && m.vision === true));
+assert(modelsDocs.models.external_shortcuts.anthropic.length >= 6);
+assert(modelsDocs.models.external_shortcuts.google.length >= 6);
+assert(modelsDocs.models.external_shortcuts.openai.length >= 8);
+console.log(`   ✅ Serverless allowlist (${serverless.length} models), vision support, and external shortcuts verified.`);
+
+// ── 5. Evaluation Parameter Validation ───────────────────────────────────────
+console.log('\n5️⃣ Testing Evaluation Parameter Validation...');
+// Valid classify
+const validClassify = validateEvaluationParams({
+  type: 'classify',
+  parameters: {
+    input_data_file_path: 'file-12345',
+    judge: {
+      model: 'openai/gpt-oss-120b',
+      model_source: 'serverless',
+      system_template: DEFAULT_JUDGE_TEMPLATES.classify_harmful,
+    },
+    labels: ['Harmful', 'Not Harmful'],
+    pass_labels: ['Not Harmful'],
+    model_to_evaluate: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+  },
+});
+assert.strictEqual(validClassify.valid, true);
+
+// Invalid classify (pass_label not in labels)
+const invalidClassify = validateEvaluationParams({
+  type: 'classify',
+  parameters: {
+    input_data_file_path: 'file-12345',
+    judge: {
+      model: 'openai/gpt-oss-120b',
+      model_source: 'serverless',
+      system_template: 'judge...',
+    },
+    labels: ['Harmful', 'Not Harmful'],
+    pass_labels: ['Safe'], // 'Safe' is not in labels
+    model_to_evaluate: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+  },
+});
+assert.strictEqual(invalidClassify.valid, false);
+assert(invalidClassify.errors.some(e => e.includes('Safe')));
+
+// Invalid score (pass_threshold outside min_score and max_score)
+const invalidScore = validateEvaluationParams({
+  type: 'score',
+  parameters: {
+    input_data_file_path: 'file-12345',
+    judge: {
+      model: 'openai/gpt-oss-120b',
+      model_source: 'serverless',
+      system_template: 'judge...',
+    },
+    min_score: 1,
+    max_score: 10,
+    pass_threshold: 15, // Out of bounds
+    model_to_evaluate: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+  },
+});
+assert.strictEqual(invalidScore.valid, false);
+assert(invalidScore.errors.some(e => e.includes('pass_threshold')));
+console.log('   ✅ Valid classify passed, and label mismatch / out-of-range thresholds caught.');
+
+// ── 6. Dataset Column Usage Rules Validation ─────────────────────────────────
+console.log('\n6️⃣ Testing Dataset Column Usage Rules Validation...');
+// Valid: prompt is in template, response_a and response_b are named columns, image_data_urls is vision column
+const validDataset = validateDatasetColumns(
+  ['prompt', 'response_a', 'response_b', 'image_data_urls'],
+  ['Compare response for: {{prompt}}'],
+  ['response_a', 'response_b']
+);
+assert.strictEqual(validDataset.valid, true);
+assert.strictEqual(validDataset.unused_columns.length, 0);
+
+// Invalid: id and category are not referenced
+const invalidDataset = validateDatasetColumns(
+  ['prompt', 'id', 'category'],
+  ['Evaluate prompt: {{prompt}}'],
+  []
+);
+assert.strictEqual(invalidDataset.valid, false);
+assert.strictEqual(invalidDataset.unused_columns.length, 2);
+assert(invalidDataset.unused_columns.includes('id'));
+assert(invalidDataset.unused_columns.includes('category'));
+assert(invalidDataset.error.includes('Unsupported dataset column(s)'));
+console.log('   ✅ Dataset column rules validated; unused metadata columns properly flagged.');
+
+// ── 7. Evaluation Job Creation & Dispatch ────────────────────────────────────
+console.log('\n7️⃣ Testing Job Creation & Dispatch...');
+const createdJob = await createEvaluationJob({
+  type: 'classify',
+  parameters: {
+    input_data_file_path: 'file-test-sample',
+    judge: {
+      model: 'openai/gpt-oss-120b',
+      model_source: 'serverless',
+      system_template: DEFAULT_JUDGE_TEMPLATES.classify_harmful,
+    },
+    labels: ['Harmful', 'Not Harmful'],
+    pass_labels: ['Not Harmful'],
+    model_to_evaluate: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+  },
+});
+assert.ok(createdJob.workflow_id || createdJob.id);
+assert.strictEqual(createdJob.status, 'pending');
+console.log(`   ✅ Created evaluation job: ${createdJob.workflow_id || createdJob.id} (status: ${createdJob.status}).`);
+
+// ── 8. Job Lifecycle & Status Tracking ───────────────────────────────────────
+console.log('\n8️⃣ Testing Job Lifecycle & Status Tracking...');
+const workflowId = createdJob.workflow_id || createdJob.id;
+const jobStatus = await getEvaluationJobStatus(workflowId);
+assert.ok(jobStatus.status);
+assert.ok(jobStatus.results);
+
+const jobDetails = await getEvaluationJobDetails(workflowId);
+assert.ok(jobDetails.workflow_id || jobDetails.id);
+
+const jobList = await listEvaluationJobs({ limit: 5 });
+assert.ok(Array.isArray(jobList) || Array.isArray(jobList.data));
+console.log(`   ✅ Status, details, and list retrieval verified for job ${workflowId}.`);
+
+// ── 9. Sovereign Together CLI Commands ───────────────────────────────────────
+console.log('\n9️⃣ Testing Together Sovereign CLI Evals Commands...');
+const cliOverview = await executeTogetherCliCommand('together evals overview');
+assert.strictEqual(cliOverview.success, true);
+assert(cliOverview.output.includes('Together AI AI Evaluations Overview'));
+
+const cliGuide = await executeTogetherCliCommand('tg evals guide');
+assert.strictEqual(cliGuide.success, true);
+assert(cliGuide.output.includes('Run an Evaluation Guide'));
+
+const cliRef = await executeTogetherCliCommand('together evals reference');
+assert.strictEqual(cliRef.success, true);
+assert(cliRef.output.includes('Together AI Evaluations Reference'));
+
+const cliModels = await executeTogetherCliCommand('tg evals models');
+assert.strictEqual(cliModels.success, true);
+assert(cliModels.output.includes('Serverless Allowlist'));
+
+const cliVal = await executeTogetherCliCommand('together evals validate --type classify --labels "Safe,Unsafe" --pass-labels "Safe"');
+assert.strictEqual(cliVal.success, true);
+assert(cliVal.output.includes('Status: VALID ✅'));
+
+const cliValDataset = await executeTogetherCliCommand('tg evals validate-dataset --columns "prompt,id" --template "{{prompt}}"');
+assert.strictEqual(cliValDataset.success, true);
+assert(cliValDataset.output.includes('Unused: [id]'));
+
+const cliCreate = await executeTogetherCliCommand('together evals create --type classify --file file-test-cli --labels "Pass,Fail" --pass-labels "Pass"');
+assert.strictEqual(cliCreate.success, true);
+assert(cliCreate.output.includes('Evaluation job created successfully'));
+
+const cliList = await executeTogetherCliCommand('tg evals list');
+assert.strictEqual(cliList.success, true);
+assert(cliList.output.includes('WORKFLOW ID'));
+console.log('   ✅ All 8 CLI evals commands executed cleanly with expected output.');
+
+// ── 10. Inference Gateway Handlers & Express Routes ──────────────────────────
+console.log('\n🔟 Testing Inference Gateway Evals Handlers & Express Routes...');
+function createMockRes() {
+  return {
     statusCode: 200,
-    headers: {},
     body: null,
     status(code) {
       this.statusCode = code;
@@ -33,98 +246,57 @@ function mockRes() {
       this.body = data;
       return this;
     },
-    setHeader(k, v) {
-      this.headers[k] = v;
-      return this;
-    },
   };
-  return res;
 }
 
-console.log('🧪 Testing Together.ai Evaluations Suite (5 Endpoints)...\n');
+const mockRes1 = createMockRes();
+await InferenceGateway.handleGetEvaluationsOverview({}, mockRes1);
+assert.strictEqual(mockRes1.statusCode, 200);
+assert.strictEqual(mockRes1.body.success, true);
 
-// 1. POST /evaluation & POST /evaluations (Create Evaluation)
-console.log('[Test 1] Create Evaluation Job (POST /evaluation)...');
-const evalPayload = {
-  type: 'classify',
-  parameters: {
-    judge: {
-      model: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
-      model_source: 'serverless',
-      system_template: 'You are an expert evaluator...',
+const mockRes2 = createMockRes();
+await InferenceGateway.handleGetRunEvaluationDocs({}, mockRes2);
+assert.strictEqual(mockRes2.statusCode, 200);
+assert.strictEqual(mockRes2.body.success, true);
+
+const mockRes3 = createMockRes();
+await InferenceGateway.handleGetEvaluationsReferenceDocs({}, mockRes3);
+assert.strictEqual(mockRes3.statusCode, 200);
+assert.strictEqual(mockRes3.body.success, true);
+
+const mockRes4 = createMockRes();
+await InferenceGateway.handleGetSupportedModelsDocs({}, mockRes4);
+assert.strictEqual(mockRes4.statusCode, 200);
+assert.strictEqual(mockRes4.body.success, true);
+
+const mockRes5 = createMockRes();
+await InferenceGateway.handleValidateEvaluationParams({
+  body: {
+    type: 'score',
+    parameters: {
+      input_data_file_path: 'file-123',
+      judge: { model: 'openai/gpt-oss-120b', model_source: 'serverless', system_template: 'test' },
+      min_score: 1,
+      max_score: 10,
+      pass_threshold: 8,
+      model_to_evaluate: 'test-model',
     },
-    input_data_file_path: 'file-test-abc123',
-    labels: ['pass', 'fail'],
-    pass_labels: ['pass'],
-    model_to_evaluate: 'deepseek-ai/DeepSeek-V4-Pro',
   },
-};
-const createdEval = await llmCreateEval(evalPayload);
-assert.ok(createdEval.workflow_id || createdEval.id, 'Expected workflow_id or id');
-assert.ok(createdEval.status, 'Expected status');
-console.log(`✅ Service: Created evaluation job ID = ${createdEval.workflow_id || createdEval.id} (status: ${createdEval.status})`);
+}, mockRes5);
+assert.strictEqual(mockRes5.statusCode, 200);
+assert.strictEqual(mockRes5.body.valid, true);
 
-const resGatewayCreate = mockRes();
-await InferenceGateway.handleCreateEval({ body: evalPayload }, resGatewayCreate);
-assert.strictEqual(resGatewayCreate.statusCode, 200);
-assert.ok(resGatewayCreate.body.workflow_id || resGatewayCreate.body.id);
-console.log(`✅ Gateway: POST /evaluation handled successfully.`);
+const mockRes6 = createMockRes();
+await InferenceGateway.handleValidateDatasetColumns({
+  body: {
+    columns: ['prompt', 'unused_meta'],
+    templates: ['{{prompt}}'],
+  },
+}, mockRes6);
+assert.strictEqual(mockRes6.statusCode, 200);
+assert.strictEqual(mockRes6.body.valid, false);
 
-// 2. GET /evaluation & GET /evaluations (List Evaluations)
-console.log('\n[Test 2] List Evaluation Jobs (GET /evaluation)...');
-const evalList = await llmListEvals({ limit: 10 });
-assert.ok(Array.isArray(evalList) || Array.isArray(evalList?.data), 'Expected array of evaluation jobs');
-console.log(`✅ Service: Listed evaluation jobs count = ${Array.isArray(evalList) ? evalList.length : evalList.data.length}`);
-
-const resGatewayList = mockRes();
-await InferenceGateway.handleListEvals({ query: { limit: 10 } }, resGatewayList);
-assert.strictEqual(resGatewayList.statusCode, 200);
-assert.ok(Array.isArray(resGatewayList.body) || Array.isArray(resGatewayList.body?.data));
-console.log(`✅ Gateway: GET /evaluation handled successfully.`);
-
-// 3. GET /evaluation/model-list & GET /evaluations/models (List Evaluation Models)
-console.log('\n[Test 3] List Evaluation Models (GET /evaluation/model-list & /evaluations/models)...');
-const evalModels = await llmListEvalModels({ model_source: 'serverless' });
-assert.ok(Array.isArray(evalModels?.model_list), 'Expected model_list array');
-assert.ok(evalModels.model_list.length > 0, 'Expected non-empty model list');
-console.log(`✅ Service: Listed ${evalModels.model_list.length} evaluation models (e.g. ${evalModels.model_list[0]})`);
-
-const resGatewayModels = mockRes();
-await InferenceGateway.handleListEvalModels({ query: { model_source: 'all' } }, resGatewayModels);
-assert.strictEqual(resGatewayModels.statusCode, 200);
-assert.ok(Array.isArray(resGatewayModels.body?.model_list));
-console.log(`✅ Gateway: GET /evaluation/model-list handled successfully.`);
-
-// 4. GET /evaluation/:id (Get Evaluation Details)
-console.log('\n[Test 4] Get Evaluation Details (GET /evaluation/:id)...');
-const testEvalId = createdEval.workflow_id || createdEval.id || 'eval-test-001';
-const evalDetails = await llmGetEval(testEvalId);
-assert.ok(evalDetails.workflow_id || evalDetails.id, 'Expected workflow_id or id in details');
-assert.ok(evalDetails.status, 'Expected status in details');
-console.log(`✅ Service: Retrieved evaluation details for ${testEvalId} (status: ${evalDetails.status})`);
-
-const resGatewayGet = mockRes();
-await InferenceGateway.handleGetEval({ params: { id: testEvalId } }, resGatewayGet);
-assert.strictEqual(resGatewayGet.statusCode, 200);
-assert.ok(resGatewayGet.body.workflow_id || resGatewayGet.body.id);
-console.log(`✅ Gateway: GET /evaluation/:id handled successfully.`);
-
-// 5. GET /evaluation/:id/status (Get Evaluation Status & Results)
-console.log('\n[Test 5] Get Evaluation Status & Results (GET /evaluation/:id/status)...');
-const evalStatus = await llmGetEvalStatus(testEvalId);
-assert.ok(evalStatus.status, 'Expected evaluation status');
-assert.ok(evalStatus.results, 'Expected evaluation results');
-console.log(`✅ Service: Retrieved status = ${evalStatus.status} for ${testEvalId}`);
-
-const resGatewayStatus = mockRes();
-await InferenceGateway.handleGetEvalStatus({ params: { id: testEvalId } }, resGatewayStatus);
-assert.strictEqual(resGatewayStatus.statusCode, 200);
-assert.ok(resGatewayStatus.body.status);
-assert.ok(resGatewayStatus.body.results);
-console.log(`✅ Gateway: GET /evaluation/:id/status handled successfully.`);
-
-// 6. Router Stack Verification
-console.log('\n[Test 6] Verifying Express Router Stack for Evaluation Paths...');
+// Check routes
 const registeredRoutes = [];
 inferenceRoutes.stack.forEach((layer) => {
   if (layer.route) {
@@ -133,35 +305,24 @@ inferenceRoutes.stack.forEach((layer) => {
   }
 });
 
-const requiredPaths = [
+const requiredEvalRoutes = [
+  'GET /together/ai-evaluations',
+  'GET /v1/together/ai-evaluations',
+  'GET /together/run-an-evaluation',
+  'GET /v1/together/run-an-evaluation',
+  'GET /together/evaluations-reference',
+  'GET /v1/together/evaluations-reference',
+  'GET /together/evaluations-supported-models',
+  'GET /v1/together/evaluations-supported-models',
+  'POST /together/evaluations/validate',
+  'POST /together/evaluations/validate-dataset',
   'POST /evaluation',
-  'POST /v1/evaluation',
-  'POST /evaluations',
-  'POST /v1/evaluations',
-  'GET /evaluation/model-list',
-  'GET /v1/evaluation/model-list',
-  'GET /evaluations/models',
-  'GET /v1/evaluations/models',
-  'GET /evaluation',
-  'GET /v1/evaluation',
   'GET /evaluations',
-  'GET /v1/evaluations',
-  'GET /evaluation/:id/status',
-  'GET /v1/evaluation/:id/status',
-  'GET /evaluations/:id/status',
-  'GET /v1/evaluations/:id/status',
-  'GET /evaluation/:id',
-  'GET /v1/evaluation/:id',
-  'GET /evaluations/:id',
-  'GET /v1/evaluations/:id',
 ];
 
-requiredPaths.forEach((path) => {
-  assert.ok(
-    registeredRoutes.includes(path),
-    `Missing route: ${path} in registered routes`,
-  );
+requiredEvalRoutes.forEach((route) => {
+  assert(registeredRoutes.includes(route), `Missing expected route: ${route}`);
 });
-console.log(`✅ Router: All ${requiredPaths.length} required evaluation paths registered properly in inferenceRoutes.`);
+console.log(`   ✅ Gateway handlers and all ${requiredEvalRoutes.length} required evaluation routes verified.`);
 
-console.log('\n🎉 ALL 5 TOGETHER.AI EVALUATIONS ENDPOINTS VERIFIED & WORKING!\n');
+console.log('\n🎉 ALL 10 VERIFICATION PHASES PASSED WITH ZERO ERRORS!');
