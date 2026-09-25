@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "generate_prisma_orm", description: "Use the Aphura Type-Safe Database Engine (Prisma, 39k stars, Apache 2.0) to generate end-to-end type-safe database queries and declarative migrations for PostgreSQL, MySQL, and SQLite.", parameters: { type: "object", properties: { schemaPath: { type: "string" }, databaseEngine: { type: "string" } }, required: ["schemaPath"] } } },
+  { type: "function", function: { name: "register_dubbo_rpc", description: "Use the Aphura Enterprise RPC Governance Framework (Apache Dubbo, 40k stars, Apache 2.0) to route microservices with dynamic discovery, load balancing, and multi-protocol Triple/gRPC transport. Replaces IBM WebSphere RPC.", parameters: { type: "object", properties: { serviceInterface: { type: "string" }, protocol: { type: "string" } }, required: ["serviceInterface"] } } },
+  { type: "function", function: { name: "explain_ai_decision_shap", description: "Use the Aphura Explainable AI Engine (SHAP, 24k stars, MIT) to compute exact game-theoretic Shapley feature attributions, explaining AI decisions for regulatory compliance in finance and healthcare.", parameters: { type: "object", properties: { modelOutput: { type: "string" }, featureValues: { type: "string" } }, required: ["modelOutput"] } } },
+  { type: "function", function: { name: "format_code_prettier", description: "Use the Aphura Universal Code Formatter (Prettier, 49k stars, MIT) to deterministically format JavaScript, TypeScript, HTML, CSS, and Markdown according to standard AST rules.", parameters: { type: "object", properties: { codeString: { type: "string" }, parser: { type: "string" } }, required: ["codeString"] } } },
+  { type: "function", function: { name: "broadcast_centrifugo_stream", description: "Use the Aphura 1M-Connection Real-Time Server (Centrifugo, 8k stars, Apache 2.0) to broadcast sub-2ms messages across millions of persistent WebSocket and WebTransport connections on web, mobile, and desktop.", parameters: { type: "object", properties: { channelName: { type: "string" }, messageData: { type: "string" } }, required: ["channelName"] } } },
   { type: "function", function: { name: "generate_fastapi_microservice", description: "Use the Aphura Python API Framework (FastAPI, 78k stars, MIT) to compile high-speed, type-safe Python microservices with automatic OpenAPI Swagger documentation. The global standard for Python APIs.", parameters: { type: "object", properties: { serviceName: { type: "string" }, routes: { type: "string" } }, required: ["serviceName"] } } },
   { type: "function", function: { name: "run_autogen_debate", description: "Use the Aphura Multi-Agent Debate Engine (Microsoft AutoGen, 36k stars, MIT) to launch collaborative cross-examining conversations between specialized AI agents. Beats ChatGPT and Claude on planning.", parameters: { type: "object", properties: { taskGoal: { type: "string" }, agentRoles: { type: "string" } }, required: ["taskGoal"] } } },
   { type: "function", function: { name: "optimize_multimodal_image", description: "Use the Aphura Multimodal Image Engine (Sharp, 28k stars, Apache 2.0) to resize, convert, and optimize images for vision LLMs 5x faster than ImageMagick.", parameters: { type: "object", properties: { inputImagePath: { type: "string" }, targetFormat: { type: "string" } }, required: ["inputImagePath"] } } },
@@ -8926,6 +8931,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "generate_prisma_orm": {
+          try {
+            const { PrismaService } = await import("../data/prisma.service.js");
+            const res = await PrismaService.introspectAndGenerate(args.schemaPath, args.databaseEngine);
+            return { output: "### Prisma Client Generated\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Prisma generation failed: " + err.message };
+          }
+        }
+        case "register_dubbo_rpc": {
+          try {
+            const { DubboService } = await import("../enterprise/dubbo.service.js");
+            const res = await DubboService.registerEnterpriseRPC(args.serviceInterface, args.protocol);
+            return { output: "### Dubbo RPC Registered\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Dubbo registration failed: " + err.message };
+          }
+        }
+        case "explain_ai_decision_shap": {
+          try {
+            const { SHAPService } = await import("../ai/shap.service.js");
+            const res = await SHAPService.explainDecision(args.modelOutput, args.featureValues);
+            return { output: "### SHAP Explainable AI Attribution\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "SHAP explanation failed: " + err.message };
+          }
+        }
+        case "format_code_prettier": {
+          try {
+            const { PrettierService } = await import("../ide/prettier.service.js");
+            const res = await PrettierService.formatSource(args.codeString, args.parser);
+            return { output: "### Prettier Formatting Complete\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Prettier formatting failed: " + err.message };
+          }
+        }
+        case "broadcast_centrifugo_stream": {
+          try {
+            const { CentrifugoService } = await import("../comms/centrifugo.service.js");
+            const res = await CentrifugoService.broadcastChannel(args.channelName, args.messageData);
+            return { output: "### Centrifugo Real-Time Broadcast\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Centrifugo broadcast failed: " + err.message };
+          }
+        }
         case "generate_fastapi_microservice": {
           try {
             const { FastAPIService } = await import("../api/fastapi.service.js");
