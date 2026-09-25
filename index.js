@@ -447,6 +447,7 @@ app.use(
 
 // API routes
 app.use('/api/v1', router);
+app.use('/v1', router);
 
 // ── Swagger API Documentation ────────────────────────────────────────────────
 import swaggerJsdoc from 'swagger-jsdoc';
