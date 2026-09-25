@@ -81,6 +81,11 @@ import {
   llmGetDeploymentVolume,
   llmUpdateDeploymentVolume,
   llmDeleteDeploymentVolume,
+  llmSubmitQueueJob,
+  llmGetQueueJobStatus,
+  llmCancelQueueJob,
+  llmClearQueue,
+  llmGetQueueMetrics,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -2593,6 +2598,143 @@ export const InferenceGateway = {
       return res.status(500).json({
         error: {
           message: error.message || 'Error deleting deployment volume.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Submits a job to the asynchronous execution queue (POST /queue/submit & /v1/queue/submit)
+   * Official Reference: https://docs.together.ai/reference/queue-submit
+   */
+  async handleSubmitQueueJob(req, res) {
+    if (!req.body?.model || !req.body?.payload) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameters: 'model' and 'payload' are required.",
+          type: 'invalid_request_error',
+        },
+      });
+    }
+    try {
+      const data = await llmSubmitQueueJob(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error submitting queue job.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Polls status of a queued job (GET /queue/status & /v1/queue/status)
+   * Official Reference: https://docs.together.ai/reference/queue-status
+   */
+  async handleGetQueueJobStatus(req, res) {
+    const requestId = req.query?.request_id || req.query?.requestId;
+    if (!requestId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required query parameter 'request_id'.",
+          type: 'invalid_request_error',
+          param: 'request_id',
+        },
+      });
+    }
+    try {
+      const data = await llmGetQueueJobStatus(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error retrieving queue job status.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Cancels a pending job in the queue (POST /queue/cancel & /v1/queue/cancel)
+   * Official Reference: https://docs.together.ai/reference/queue-cancel
+   */
+  async handleCancelQueueJob(req, res) {
+    const requestId = req.body?.request_id || req.body?.requestId;
+    if (!requestId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'request_id'.",
+          type: 'invalid_request_error',
+          param: 'request_id',
+        },
+      });
+    }
+    try {
+      const data = await llmCancelQueueJob(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error canceling queued job.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Clears all pending jobs for a model (POST /queue/clear & /v1/queue/clear)
+   * Official Reference: https://docs.together.ai/reference/queue-clear
+   */
+  async handleClearQueue(req, res) {
+    if (!req.body?.model) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'model'.",
+          type: 'invalid_request_error',
+          param: 'model',
+        },
+      });
+    }
+    try {
+      const data = await llmClearQueue(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error clearing model queue.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Retrieves queue metrics for a model (GET /queue/metrics & /v1/queue/metrics)
+   * Official Reference: https://docs.together.ai/reference/queue-metrics
+   */
+  async handleGetQueueMetrics(req, res) {
+    const model = req.query?.model;
+    if (!model) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required query parameter 'model'.",
+          type: 'invalid_request_error',
+          param: 'model',
+        },
+      });
+    }
+    try {
+      const data = await llmGetQueueMetrics(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error retrieving queue metrics.',
           type: 'api_error',
         },
       });

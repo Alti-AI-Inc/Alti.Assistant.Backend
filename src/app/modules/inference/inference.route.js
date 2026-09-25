@@ -886,6 +886,47 @@ deleteDeploymentRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Queue Suite (Official: https://docs.together.ai/reference/queue)
+// 1. Submit queued job (POST /queue/submit & /v1/queue/submit)
+const submitQueueRoutes = ['/queue/submit', '/v1/queue/submit'];
+submitQueueRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleSubmitQueueJob(req, res);
+  });
+});
+
+// 2. Poll job status (GET /queue/status & /v1/queue/status)
+const getQueueStatusRoutes = ['/queue/status', '/v1/queue/status'];
+getQueueStatusRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetQueueJobStatus(req, res);
+  });
+});
+
+// 3. Cancel queued job (POST /queue/cancel & /v1/queue/cancel)
+const cancelQueueRoutes = ['/queue/cancel', '/v1/queue/cancel'];
+cancelQueueRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleCancelQueueJob(req, res);
+  });
+});
+
+// 4. Clear model queue (POST /queue/clear & /v1/queue/clear)
+const clearQueueRoutes = ['/queue/clear', '/v1/queue/clear'];
+clearQueueRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleClearQueue(req, res);
+  });
+});
+
+// 5. Get queue metrics (GET /queue/metrics & /v1/queue/metrics)
+const getQueueMetricsRoutes = ['/queue/metrics', '/v1/queue/metrics'];
+getQueueMetricsRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetQueueMetrics(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');
