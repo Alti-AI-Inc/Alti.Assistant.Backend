@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalsync_o80u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalSync) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepcore_3oac_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepCore) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendring_8xuw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRing) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarynode_l4sd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNode) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventproxy_kwtc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventProxy) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectorplane_pwf6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorPlane) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29412,6 +29452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalsync_o80u_logic": {
+          try {
+            const { OpenHyperDimensionalSyncService } = await import("../liberty/openhyper-dimensionalsync_o80u.service.js");
+            const res = await OpenHyperDimensionalSyncService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalSync failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepcore_3oac_logic": {
+          try {
+            const { OpenDeepCoreService } = await import("../liberty/opendeepcore_3oac.service.js");
+            const res = await OpenDeepCoreService.execute(args.target || "system");
+            return { output: `### OpenDeepCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendring_8xuw_logic": {
+          try {
+            const { OpenMicroFrontendRingService } = await import("../liberty/openmicro-frontendring_8xuw.service.js");
+            const res = await OpenMicroFrontendRingService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarynode_l4sd_logic": {
+          try {
+            const { OpenPlanetaryNodeService } = await import("../liberty/openplanetarynode_l4sd.service.js");
+            const res = await OpenPlanetaryNodeService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventproxy_kwtc_logic": {
+          try {
+            const { OpenEventProxyService } = await import("../liberty/openeventproxy_kwtc.service.js");
+            const res = await OpenEventProxyService.execute(args.target || "system");
+            return { output: `### OpenEventProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openvectorplane_pwf6_logic": {
           try {
             const { OpenVectorPlaneService } = await import("../liberty/openvectorplane_pwf6.service.js");
