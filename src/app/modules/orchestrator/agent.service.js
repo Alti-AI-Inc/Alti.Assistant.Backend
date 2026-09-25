@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlesscluster_qpu0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessCluster) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedbroker_afw6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedBroker) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedplane_i83k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedPlane) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativepipeline_4iuw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativePipeline) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesoracle_og61_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesOracle) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengraphengine_cbq9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGraphEngine) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24412,6 +24452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlesscluster_qpu0_logic": {
+          try {
+            const { OpenServerlessClusterService } = await import("../liberty/openserverlesscluster_qpu0.service.js");
+            const res = await OpenServerlessClusterService.execute(args.target || "system");
+            return { output: `### OpenServerlessCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedbroker_afw6_logic": {
+          try {
+            const { OpenDecentralizedBrokerService } = await import("../liberty/opendecentralizedbroker_afw6.service.js");
+            const res = await OpenDecentralizedBrokerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedplane_i83k_logic": {
+          try {
+            const { OpenAdvancedPlaneService } = await import("../liberty/openadvancedplane_i83k.service.js");
+            const res = await OpenAdvancedPlaneService.execute(args.target || "system");
+            return { output: `### OpenAdvancedPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativepipeline_4iuw_logic": {
+          try {
+            const { OpenCloudNativePipelineService } = await import("../liberty/opencloud-nativepipeline_4iuw.service.js");
+            const res = await OpenCloudNativePipelineService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesoracle_og61_logic": {
+          try {
+            const { OpenTimeSeriesOracleService } = await import("../liberty/opentime-seriesoracle_og61.service.js");
+            const res = await OpenTimeSeriesOracleService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesOracle failed: ${err.message}` };
+          }
+        }
         case "execute_opengraphengine_cbq9_logic": {
           try {
             const { OpenGraphEngineService } = await import("../liberty/opengraphengine_cbq9.service.js");
