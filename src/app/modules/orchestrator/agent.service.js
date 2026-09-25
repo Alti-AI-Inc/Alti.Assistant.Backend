@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "start_bpmn_process", description: "Use the Aphura Business Process Engine (Activiti, Apache 2.0) to launch multi-tier human-in-the-loop workflows (approvals, reviews, compliance) with BPMN 2.0 audit trails. Replaces IBM BPM and Oracle BPM.", parameters: { type: "object", properties: { processKey: { type: "string" }, businessVariables: { type: "string" } }, required: ["processKey"] } } },
+  { type: "function", function: { name: "sync_crdt_document", description: "Use the Aphura Collaborative Sync Engine (Automerge, 18k stars, MIT) for conflict-free, local-first document editing across web, mobile, and desktop without server locks. Replaces Microsoft Fluid Framework.", parameters: { type: "object", properties: { docId: { type: "string" }, changes: { type: "string" } }, required: ["docId"] } } },
+  { type: "function", function: { name: "apply_db_migration", description: "Use the Aphura Database Migration Engine (Liquibase, Apache 2.0) to track, version, and apply schema migrations with automated rollbacks and zero downtime. Replaces Oracle Database Lifecycle Management.", parameters: { type: "object", properties: { changelogFile: { type: "string" }, targetDatabase: { type: "string" } }, required: ["changelogFile"] } } },
+  { type: "function", function: { name: "run_locust_load_test", description: "Use the Aphura Load Testing Engine (Locust, 24k stars, MIT) to simulate thousands of concurrent users against APIs, measuring P99 latency and verifying system resilience. Replaces IBM Rational Performance Tester.", parameters: { type: "object", properties: { targetHost: { type: "string" }, userCount: { type: "number" } }, required: ["targetHost"] } } },
+  { type: "function", function: { name: "execute_faceted_search", description: "Use the Aphura Enterprise Faceted Search Engine (Apache Solr, Apache 2.0) for faceted navigation, hit highlighting, and distributed indexing across millions of corporate documents. Replaces Oracle Endeca.", parameters: { type: "object", properties: { collection: { type: "string" }, query: { type: "string" } }, required: ["collection", "query"] } } },
   { type: "function", function: { name: "query_semantic_layer", description: "Use the Aphura Universal Semantic Engine (Cube.js, 17k stars, Apache 2.0) to query governed business metrics (MRR, CAC, Gross Margin) with zero hallucination and mathematical consistency across multi-table databases. Replaces Microsoft Power BI Semantic Models.", parameters: { type: "object", properties: { metricName: { type: "string" }, dimensions: { type: "string" } }, required: ["metricName"] } } },
   { type: "function", function: { name: "publish_tenant_stream", description: "Use the Aphura Multi-Tenant Messaging Engine (Apache Pulsar, 14k stars, Apache 2.0) to route isolated tenant streams with automated tiered offloading to MinIO. Replaces IBM MQ and AWS Kinesis.", parameters: { type: "object", properties: { tenantId: { type: "string" }, topic: { type: "string" }, message: { type: "string" } }, required: ["tenantId", "topic"] } } },
   { type: "function", function: { name: "execute_inmemory_grid", description: "Use the Aphura In-Memory Data Grid (Apache Ignite, Apache 2.0) to run distributed calculations and table joins in microsecond RAM speeds across cluster nodes. Replaces Oracle Coherence.", parameters: { type: "object", properties: { cacheName: { type: "string" }, computeTask: { type: "string" } }, required: ["cacheName"] } } },
@@ -8885,6 +8890,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "start_bpmn_process": {
+          try {
+            const { ActivitiService } = await import("../business/activiti.service.js");
+            const res = await ActivitiService.startProcessInstance(args.processKey, args.businessVariables);
+            return { output: "### BPMN Process Started\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "BPMN process failed: " + err.message };
+          }
+        }
+        case "sync_crdt_document": {
+          try {
+            const { AutomergeService } = await import("../comms/automerge.service.js");
+            const res = await AutomergeService.mergeCollaborativeDoc(args.docId, args.changes, "");
+            return { output: "### CRDT Document Synced\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "CRDT sync failed: " + err.message };
+          }
+        }
+        case "apply_db_migration": {
+          try {
+            const { LiquibaseService } = await import("../data/liquibase.service.js");
+            const res = await LiquibaseService.applyDatabaseMigration(args.changelogFile, args.targetDatabase);
+            return { output: "### Database Migration Complete\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "DB migration failed: " + err.message };
+          }
+        }
+        case "run_locust_load_test": {
+          try {
+            const { LocustService } = await import("../devops/locust.service.js");
+            const res = await LocustService.runLoadTest(args.targetHost, args.userCount, 500);
+            return { output: "### Load Test Results\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Load test failed: " + err.message };
+          }
+        }
+        case "execute_faceted_search": {
+          try {
+            const { SolrService } = await import("../search/solr.service.js");
+            const res = await SolrService.executeFacetedSearch(args.collection, args.query, "department, year");
+            return { output: "### Faceted Search Results\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Faceted search failed: " + err.message };
+          }
+        }
         case "query_semantic_layer": {
           try {
             const { CubeService } = await import("../data/cube.service.js");
