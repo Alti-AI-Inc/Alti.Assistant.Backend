@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarypipeline_xolh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryPipeline) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumplane_7q4n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumPlane) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisenexus_3bav_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNexus) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterproxy_a45m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterProxy) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumplane_001o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumPlane) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpuvortex_j3zc_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUVortex) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23452,6 +23492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarypipeline_xolh_logic": {
+          try {
+            const { OpenPlanetaryPipelineService } = await import("../liberty/openplanetarypipeline_xolh.service.js");
+            const res = await OpenPlanetaryPipelineService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumplane_7q4n_logic": {
+          try {
+            const { OpenQuantumPlaneService } = await import("../liberty/openquantumplane_7q4n.service.js");
+            const res = await OpenQuantumPlaneService.execute(args.target || "system");
+            return { output: `### OpenQuantumPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisenexus_3bav_logic": {
+          try {
+            const { OpenEnterpriseNexusService } = await import("../liberty/openenterprisenexus_3bav.service.js");
+            const res = await OpenEnterpriseNexusService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterproxy_a45m_logic": {
+          try {
+            const { OpenCrossClusterProxyService } = await import("../liberty/opencross-clusterproxy_a45m.service.js");
+            const res = await OpenCrossClusterProxyService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumplane_001o_logic": {
+          try {
+            const { OpenQuantumPlaneService } = await import("../liberty/openquantumplane_001o.service.js");
+            const res = await OpenQuantumPlaneService.execute(args.target || "system");
+            return { output: `### OpenQuantumPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumPlane failed: ${err.message}` };
+          }
+        }
         case "execute_opengpuvortex_j3zc_logic": {
           try {
             const { OpenGPUVortexService } = await import("../liberty/opengpuvortex_j3zc.service.js");
