@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondpipeline_8pkm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondPipeline) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendbroker_48ew_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendBroker) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventplane_nymu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventPlane) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgraph_cb3d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatapipeline_lyv1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataPipeline) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-frontendrouter_uc0s_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRouter) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25092,6 +25132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondpipeline_8pkm_logic": {
+          try {
+            const { OpenSubMillisecondPipelineService } = await import("../liberty/opensub-millisecondpipeline_8pkm.service.js");
+            const res = await OpenSubMillisecondPipelineService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendbroker_48ew_logic": {
+          try {
+            const { OpenMicroFrontendBrokerService } = await import("../liberty/openmicro-frontendbroker_48ew.service.js");
+            const res = await OpenMicroFrontendBrokerService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventplane_nymu_logic": {
+          try {
+            const { OpenEventPlaneService } = await import("../liberty/openeventplane_nymu.service.js");
+            const res = await OpenEventPlaneService.execute(args.target || "system");
+            return { output: `### OpenEventPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgraph_cb3d_logic": {
+          try {
+            const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_cb3d.service.js");
+            const res = await OpenDecentralizedGraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatapipeline_lyv1_logic": {
+          try {
+            const { OpenDataPipelineService } = await import("../liberty/opendatapipeline_lyv1.service.js");
+            const res = await OpenDataPipelineService.execute(args.target || "system");
+            return { output: `### OpenDataPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-frontendrouter_uc0s_logic": {
           try {
             const { OpenMicroFrontendRouterService } = await import("../liberty/openmicro-frontendrouter_uc0s.service.js");
