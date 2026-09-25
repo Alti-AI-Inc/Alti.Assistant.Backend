@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendatanexus_5icd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataNexus) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecore_0g1m_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareCore) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partylayer_jt03_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyLayer) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedrouter_ildw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedRouter) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicvortex_8w0p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicVortex) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgprouter_7rbc_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPRouter) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23692,6 +23732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendatanexus_5icd_logic": {
+          try {
+            const { OpenDataNexusService } = await import("../liberty/opendatanexus_5icd.service.js");
+            const res = await OpenDataNexusService.execute(args.target || "system");
+            return { output: `### OpenDataNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecore_0g1m_logic": {
+          try {
+            const { OpenHardwareCoreService } = await import("../liberty/openhardwarecore_0g1m.service.js");
+            const res = await OpenHardwareCoreService.execute(args.target || "system");
+            return { output: `### OpenHardwareCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partylayer_jt03_logic": {
+          try {
+            const { OpenMultiPartyLayerService } = await import("../liberty/openmulti-partylayer_jt03.service.js");
+            const res = await OpenMultiPartyLayerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedrouter_ildw_logic": {
+          try {
+            const { OpenDistributedRouterService } = await import("../liberty/opendistributedrouter_ildw.service.js");
+            const res = await OpenDistributedRouterService.execute(args.target || "system");
+            return { output: `### OpenDistributedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicvortex_8w0p_logic": {
+          try {
+            const { OpenHomomorphicVortexService } = await import("../liberty/openhomomorphicvortex_8w0p.service.js");
+            const res = await OpenHomomorphicVortexService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openbgprouter_7rbc_logic": {
           try {
             const { OpenBGPRouterService } = await import("../liberty/openbgprouter_7rbc.service.js");
