@@ -1656,6 +1656,95 @@ imageGenerationsRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Videos Inference Suite (Overview, Keyframes, Audio, Parameters, Validate, Jobs)
+const videoOverviewRoutes = [
+  '/together/inference/videos/overview',
+  '/v1/together/inference/videos/overview',
+  '/inference/videos/overview',
+  '/v1/inference/videos/overview',
+];
+videoOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetVideosOverview(req, res);
+  });
+});
+
+const videoKeyframesRoutes = [
+  '/together/inference/videos/reference-and-keyframes',
+  '/v1/together/inference/videos/reference-and-keyframes',
+  '/inference/videos/reference-and-keyframes',
+  '/v1/inference/videos/reference-and-keyframes',
+];
+videoKeyframesRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetReferenceAndKeyframesDocs(req, res);
+  });
+});
+
+const videoAudioRoutes = [
+  '/together/inference/videos/audio-input',
+  '/v1/together/inference/videos/audio-input',
+  '/inference/videos/audio-input',
+  '/v1/inference/videos/audio-input',
+];
+videoAudioRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetAudioInputDocs(req, res);
+  });
+});
+
+const videoParametersRoutes = [
+  '/together/inference/videos/parameters',
+  '/v1/together/inference/videos/parameters',
+  '/inference/videos/parameters',
+  '/v1/inference/videos/parameters',
+];
+videoParametersRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetVideoParametersDocs(req, res);
+  });
+});
+
+const videoValidateRoutes = [
+  '/together/inference/videos/validate',
+  '/v1/together/inference/videos/validate',
+  '/inference/videos/validate',
+  '/v1/inference/videos/validate',
+];
+videoValidateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateVideoParameters(req, res);
+  });
+});
+
+const videoJobsCreateRoutes = [
+  '/together/inference/videos/jobs',
+  '/v1/together/inference/videos/jobs',
+  '/inference/videos/jobs',
+  '/v1/inference/videos/jobs',
+  '/together/videos',
+  '/v1/videos',
+];
+videoJobsCreateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleCreateVideoJob(req, res);
+  });
+});
+
+const videoJobsRetrieveRoutes = [
+  '/together/inference/videos/jobs/:jobId',
+  '/v1/together/inference/videos/jobs/:jobId',
+  '/inference/videos/jobs/:jobId',
+  '/v1/inference/videos/jobs/:jobId',
+  '/together/videos/:jobId',
+  '/v1/videos/:jobId',
+];
+videoJobsRetrieveRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleRetrieveVideoJob(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

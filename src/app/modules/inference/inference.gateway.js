@@ -161,6 +161,15 @@ import {
   validateImageParameters,
   executeImageGeneration,
 } from '../../services/together.images.js';
+import {
+  getVideosOverview,
+  getReferenceAndKeyframesDocs,
+  getAudioInputDocs,
+  getVideoParametersDocs,
+  validateVideoParameters,
+  createVideoJob,
+  retrieveVideoJob,
+} from '../../services/together.videos.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -3661,6 +3670,101 @@ export const InferenceGateway = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error generating image.' });
+    }
+  },
+
+  /**
+   * Retrieves Together AI Video Generation Overview and Asynchronous Job Lifecycle Reference
+   * (GET /together/inference/videos/overview, GET /v1/together/inference/videos/overview, GET /inference/videos/overview)
+   */
+  async handleGetVideosOverview(req, res) {
+    try {
+      const data = getVideosOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving videos overview.' });
+    }
+  },
+
+  /**
+   * Retrieves Video Reference Images and Keyframe Control Reference (frame = seconds * fps)
+   * (GET /together/inference/videos/reference-and-keyframes, GET /v1/together/inference/videos/reference-and-keyframes, GET /inference/videos/reference-and-keyframes)
+   */
+  async handleGetReferenceAndKeyframesDocs(req, res) {
+    try {
+      const data = getReferenceAndKeyframesDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving reference and keyframes docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Audio Input for Video Generation Reference (lip sync, beat match, audio constraints)
+   * (GET /together/inference/videos/audio-input, GET /v1/together/inference/videos/audio-input, GET /inference/videos/audio-input)
+   */
+  async handleGetAudioInputDocs(req, res) {
+    try {
+      const data = getAudioInputDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving audio input docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Video Generation Parameters and Unified Media Schema Reference
+   * (GET /together/inference/videos/parameters, GET /v1/together/inference/videos/parameters, GET /inference/videos/parameters)
+   */
+  async handleGetVideoParametersDocs(req, res) {
+    try {
+      const data = getVideoParametersDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving video parameters docs.' });
+    }
+  },
+
+  /**
+   * Validates video generation parameters against limits (seconds 1-10, fps 15-60, steps 10-50, audio constraints)
+   * (POST /together/inference/videos/validate, POST /v1/together/inference/videos/validate, POST /inference/videos/validate)
+   */
+  async handleValidateVideoParameters(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = validateVideoParameters(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating video parameters.' });
+    }
+  },
+
+  /**
+   * Creates an asynchronous video generation job
+   * (POST /together/inference/videos/jobs, POST /v1/together/inference/videos/jobs, POST /inference/videos/jobs)
+   */
+  async handleCreateVideoJob(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await createVideoJob(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error creating video job.' });
+    }
+  },
+
+  /**
+   * Retrieves the current status and output of a video generation job
+   * (GET /together/inference/videos/jobs/:jobId, GET /v1/together/inference/videos/jobs/:jobId, GET /inference/videos/jobs/:jobId)
+   */
+  async handleRetrieveVideoJob(req, res) {
+    try {
+      const jobId = req.params?.jobId || req.query?.jobId || req.body?.jobId;
+      const dryRun = Boolean(req.query?.dry_run || req.body?.dry_run);
+      const result = await retrieveVideoJob(jobId, { dry_run: dryRun });
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving video job status.' });
     }
   },
 };

@@ -188,6 +188,20 @@ import {
   validateImageParameters,
   executeImageGeneration,
 } from './together.images.js';
+import {
+  VIDEO_MODELS_CATALOG,
+  JOB_STATUSES,
+  MEDIA_OBJECT_SCHEMA,
+  VIDEO_PARAMETERS_SCHEMA,
+  getVideosOverview,
+  getReferenceAndKeyframesDocs,
+  getAudioInputDocs,
+  getVideoParametersDocs,
+  calculateKeyframeNumber,
+  validateVideoParameters,
+  createVideoJob,
+  retrieveVideoJob,
+} from './together.videos.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -427,6 +441,7 @@ Standard Commands:
   chat         Chat completions, parameters, structured outputs, reasoning, caching, logprobs
   fc, tools    Function calling, single/parallel calls, agentic loops, validation, best practices
   images, img  Text-to-image, reference images, parameters, validation, and generation
+  videos, vid  Video generation, reference images, keyframes, audio sync, and job polling
 
 Beta Commands (tg beta ...):
   models       DMI 2.0 custom models, weight uploads, and configs
@@ -440,7 +455,7 @@ Global Flags:
   --json           Format output as JSON
   --api-key <key>  Pass API key explicitly
 `.trim();
-    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'images', 'image', 'img', 'beta'] };
+    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'images', 'image', 'img', 'videos', 'video', 'vid', 'beta'] };
   }
 
   if (command === 'login' || command === 'init' || command === 'auth') {
@@ -2194,6 +2209,162 @@ ${imageOutputs}
   throw new Error(`Unknown image command: ${action}. Use 'overview', 'reference', 'parameters', 'validate', or 'generate'.`);
 }
 
+// ── Domain 21: Videos Inference (Video Generation, Reference/Keyframes, Audio Input, Parameters, Jobs) ──
+async function handleVideos(parsed) {
+  const action = parsed.subcommand || 'overview';
+
+  if (action === 'overview' || action === 'models') {
+    const overview = getVideosOverview();
+    const modelRows = overview.models.map(m => [m.name, m.id, m.resolution_support, m.notes.slice(0, 35) + '...']);
+    const statusRows = overview.job_lifecycle.map(s => [s.status, s.description]);
+    const text = `
+Together AI Video Generation Overview & Async Lifecycle:
+${overview.title} (${overview.docs_url})
+Recommended Production Model: ${overview.recommended_model}
+
+Supported Video Models:
+${formatTable(['NAME', 'MODEL ID', 'RESOLUTION', 'NOTES'], modelRows)}
+
+Job Lifecycle Statuses:
+${formatTable(['STATUS', 'DESCRIPTION'], statusRows)}
+
+Rules:
+• ${overview.polling_rule}
+• ${overview.download_rule}
+
+Python Job Creation Snippet:
+${overview.code_snippets.python}
+`.trim();
+    return { ...overview, text };
+  }
+
+  if (action === 'keyframes' || action === 'reference' || action === 'kf') {
+    const kfDocs = getReferenceAndKeyframesDocs();
+    const typeRows = kfDocs.capabilities.keyframe_control.types.map(t => [t.type, t.rule]);
+    const text = `
+Video Reference Images & Keyframe Control:
+${kfDocs.title} (${kfDocs.docs_url})
+Core Formula: ${kfDocs.formula}
+
+Keyframe Types:
+${formatTable(['KEYFRAME TYPE', 'RULE SPECIFICATION'], typeRows)}
+
+Deprecation Notice:
+${kfDocs.deprecation_notice}
+
+Python Keyframe Snippet:
+${kfDocs.code_snippets.keyframes_python}
+`.trim();
+    return { ...kfDocs, text };
+  }
+
+  if (action === 'audio' || action === 'audio-input' || action === 'sound') {
+    const audioDocs = getAudioInputDocs();
+    const text = `
+Audio Input for Video Generation:
+${audioDocs.title} (${audioDocs.docs_url})
+Field: ${audioDocs.field}
+Supported Models: ${audioDocs.supported_models.join(', ')}
+
+Audio Constraints:
+• Formats: ${audioDocs.audio_constraints.formats.join(', ')}
+• Duration: ${audioDocs.audio_constraints.duration_range_seconds[0]}-${audioDocs.audio_constraints.duration_range_seconds[1]} seconds
+• Max File Size: ${audioDocs.audio_constraints.max_file_size_mb} MB
+• ${audioDocs.audio_constraints.truncation_rule}
+• ${audioDocs.audio_constraints.silence_rule}
+• ${audioDocs.audio_constraints.auto_audio_fallback}
+
+Python Audio Input Snippet:
+${audioDocs.code_snippets.python}
+`.trim();
+    return { ...audioDocs, text };
+  }
+
+  if (action === 'parameters' || action === 'params' || action === 'troubleshooting') {
+    const paramsDocs = getVideoParametersDocs();
+    const schemaRows = Object.entries(paramsDocs.schema).map(([k, v]) => [
+      k,
+      v.type,
+      String(v.default ?? (v.required ? 'REQUIRED' : 'unset')),
+      v.description.slice(0, 45) + '...',
+    ]);
+    const text = `
+Video Generation Parameters & Media Schema:
+${paramsDocs.title} (${paramsDocs.docs_url})
+
+Parameter Schema:
+${formatTable(['PARAMETER', 'TYPE', 'DEFAULT', 'DESCRIPTION'], schemaRows)}
+
+Quick Troubleshooting:
+${paramsDocs.quick_troubleshooting.map(q => `• ${q.problem} -> ${q.solution}`).join('\n')}
+`.trim();
+    return { ...paramsDocs, text };
+  }
+
+  if (action === 'validate' || action === 'check') {
+    const payload = {
+      prompt: parsed.flags.prompt || parsed.positionals[2] || 'A serene mountain sunrise',
+      seconds: parsed.flags.seconds ? String(parsed.flags.seconds) : undefined,
+      fps: parsed.flags.fps ? parseInt(parsed.flags.fps, 10) : undefined,
+      steps: parsed.flags.steps ? parseInt(parsed.flags.steps, 10) : undefined,
+      guidance_scale: parsed.flags.guidance_scale ? parseFloat(parsed.flags.guidance_scale) : undefined,
+      output_format: parsed.flags.output_format || parsed.flags['output-format'],
+    };
+    const valResult = validateVideoParameters(payload);
+    const text = `
+Video Parameters Validation:
+Status: ${valResult.valid ? 'VALID ✅' : 'INVALID ❌'}
+${valResult.errors?.length ? `Errors:\n${valResult.errors.map(e => `  • ${e}`).join('\n')}` : 'Errors: None'}
+${valResult.warnings?.length ? `Warnings:\n${valResult.warnings.map(w => `  • ${w}`).join('\n')}` : 'Warnings: None'}
+`.trim();
+    return { ...valResult, text };
+  }
+
+  if (action === 'create' || action === 'generate' || action === 'run') {
+    const payload = {
+      model: parsed.flags.model || 'minimax/video-01-director',
+      prompt: parsed.flags.prompt || parsed.positionals.slice(2).join(' ') || 'A serene sunset over the ocean with gentle waves',
+      width: parsed.flags.width ? parseInt(parsed.flags.width, 10) : 1366,
+      height: parsed.flags.height ? parseInt(parsed.flags.height, 10) : 768,
+      seconds: String(parsed.flags.seconds || '6'),
+      fps: parsed.flags.fps ? parseInt(parsed.flags.fps, 10) : 24,
+      steps: parsed.flags.steps ? parseInt(parsed.flags.steps, 10) : 20,
+      guidance_scale: parsed.flags.guidance_scale ? parseFloat(parsed.flags.guidance_scale) : 8.0,
+      output_format: parsed.flags.output_format || 'MP4',
+      dry_run: Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run || true),
+      ...parsed.flags,
+    };
+    const jobResult = await createVideoJob(payload);
+    const text = `
+Video Generation Job Created (${jobResult.duration_ms}ms):
+Job ID: ${jobResult.id}
+Model: ${jobResult.model}
+Status: ${jobResult.status}
+Prompt: "${payload.prompt}"
+Next: Retrieve status with 'together videos retrieve ${jobResult.id}'
+`.trim();
+    return { ...jobResult, text };
+  }
+
+  if (action === 'retrieve' || action === 'status' || action === 'get') {
+    const jobId = parsed.positionals[2] || parsed.flags.id || parsed.flags.job_id;
+    if (!jobId) {
+      throw new Error("Job ID required. Usage: 'together videos retrieve <job_id>'");
+    }
+    const statusResult = await retrieveVideoJob(jobId, { dry_run: true });
+    const text = `
+Video Generation Job Status:
+Job ID: ${statusResult.id}
+Status: ${statusResult.status}
+${statusResult.outputs?.video_url ? `Video URL: ${statusResult.outputs.video_url}` : 'Outputs: In progress / not ready'}
+${statusResult.outputs?.cost ? `Cost: $${statusResult.outputs.cost}` : ''}
+`.trim();
+    return { ...statusResult, text };
+  }
+
+  throw new Error(`Unknown video command: ${action}. Use 'overview', 'keyframes', 'audio', 'parameters', 'validate', 'create', or 'retrieve'.`);
+}
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -2317,6 +2488,12 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
         case 'img':
           resultData = await handleImages(parsed);
           domain = 'images';
+          break;
+        case 'videos':
+        case 'video':
+        case 'vid':
+          resultData = await handleVideos(parsed);
+          domain = 'videos';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);
