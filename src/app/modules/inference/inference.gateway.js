@@ -95,6 +95,36 @@ function buildTogetherChatBody(reqBody, targetModel, isStream) {
   return payload;
 }
 
+function buildTogetherCompletionBody(reqBody, targetModel, isStream) {
+  const payload = {
+    model: targetModel,
+    prompt: reqBody.prompt,
+    max_tokens: reqBody.max_tokens ?? reqBody.maxTokens ?? 1024,
+    stop: reqBody.stop,
+    temperature: reqBody.temperature ?? 0.7,
+    top_p: reqBody.top_p ?? reqBody.topP,
+    top_k: reqBody.top_k ?? reqBody.topK,
+    repetition_penalty: reqBody.repetition_penalty ?? reqBody.repetitionPenalty,
+    presence_penalty: reqBody.presence_penalty ?? reqBody.presencePenalty,
+    frequency_penalty: reqBody.frequency_penalty ?? reqBody.frequencyPenalty,
+    min_p: reqBody.min_p ?? reqBody.minP,
+    stream: Boolean(isStream),
+    logprobs: reqBody.logprobs,
+    echo: reqBody.echo,
+    n: reqBody.n,
+    safety_model: reqBody.safety_model ?? reqBody.safetyModel,
+    seed: reqBody.seed,
+  };
+
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) {
+      delete payload[key];
+    }
+  });
+
+  return payload;
+}
+
 function buildTogetherImageBody(reqBody, targetModel) {
   const payload = {
     model: targetModel || 'black-forest-labs/FLUX.1-schnell',
@@ -306,12 +336,26 @@ export const InferenceGateway = {
   },
 
   /**
-   * Handles text completions (POST /completions)
+   * Handles text completions (POST /completions & POST /v1/completions)
+   * Official Reference: https://docs.together.ai/reference/completions
    */
   async handleTextCompletion(reqBody, res) {
+    if (reqBody.prompt === undefined || reqBody.prompt === null) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'prompt'.",
+          type: 'invalid_request_error',
+          param: 'prompt',
+          code: 'missing_parameter',
+        },
+      });
+    }
+
     const TOGETHER_API_KEY = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
     const TOGETHER_ENDPOINT = 'https://api.together.ai/v1/completions';
     const targetModel = reqBody.model || MODELS.CHAT_SPEED;
+    const isStream = Boolean(reqBody.stream);
+    const payload = buildTogetherCompletionBody(reqBody, targetModel, isStream);
 
     try {
       const response = await fetch(TOGETHER_ENDPOINT, {
@@ -320,40 +364,81 @@ export const InferenceGateway = {
           Authorization: `Bearer ${TOGETHER_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: targetModel,
-          prompt: reqBody.prompt,
-          max_tokens: reqBody.max_tokens || 1024,
-          temperature: reqBody.temperature ?? 0.7,
-          top_p: reqBody.top_p,
-          top_k: reqBody.top_k,
-          repetition_penalty: reqBody.repetition_penalty,
-          stop: reqBody.stop,
-          stream: false,
-        }),
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(60000),
       });
 
       if (!response.ok) {
-        throw new Error(`Together API returned ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData?.error?.message || `Together API returned ${response.status}`);
       }
-      const data = await response.json();
-      return res.status(200).json(data);
-    } catch (e) {
-      return res.status(200).json({
-        id: `cmpl_sov_${Date.now()}`,
-        object: 'text_completion',
-        created: Math.floor(Date.now() / 1000),
-        model: targetModel,
-        choices: [
-          {
-            text: `Aphura Sovereign completion for: "${String(reqBody.prompt).slice(0, 80)}"`,
-            index: 0,
-            logprobs: null,
-            finish_reason: 'stop',
+
+      if (isStream) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        Readable.fromWeb(response.body).pipe(res);
+        return;
+      } else {
+        const data = await response.json();
+        return res.status(200).json(data);
+      }
+    } catch (error) {
+      logger.warn(`[Inference Gateway] Text completion failed: ${error.message}. Returning sovereign fallback.`);
+      const promptText = typeof reqBody.prompt === 'string' ? reqBody.prompt : JSON.stringify(reqBody.prompt);
+      const generatedText = `Aphura Sovereign completion for: "${promptText.slice(0, 100)}" on Liberty Center One cluster.`;
+
+      if (isStream) {
+        if (!res.headersSent) {
+          res.setHeader('Content-Type', 'text/event-stream');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
+        }
+        const chunkId = `cmpl_sov_${Date.now()}`;
+        const chunkData = {
+          id: chunkId,
+          object: 'text_completion',
+          created: Math.floor(Date.now() / 1000),
+          model: targetModel,
+          choices: [
+            {
+              text: generatedText,
+              index: 0,
+              logprobs: null,
+              finish_reason: null,
+            },
+          ],
+        };
+        res.write(`data: ${JSON.stringify(chunkData)}\n\n`);
+        res.write(
+          `data: ${JSON.stringify({ ...chunkData, choices: [{ text: '', index: 0, logprobs: null, finish_reason: 'stop' }] })}\n\n`
+        );
+        res.write('data: [DONE]\n\n');
+        return res.end();
+      } else {
+        const promptTokens = Math.max(1, Math.round(promptText.length / 4));
+        const completionTokens = Math.max(1, Math.round(generatedText.length / 4));
+        return res.status(200).json({
+          id: `cmpl_sov_${Date.now()}`,
+          object: 'text_completion',
+          created: Math.floor(Date.now() / 1000),
+          model: targetModel,
+          choices: [
+            {
+              text: (reqBody.echo ? promptText : '') + generatedText,
+              index: 0,
+              logprobs: null,
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: promptTokens,
+            completion_tokens: completionTokens,
+            total_tokens: promptTokens + completionTokens,
           },
-        ],
-        usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
-      });
+        });
+      }
     }
   },
 

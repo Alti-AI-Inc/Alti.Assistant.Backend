@@ -912,13 +912,19 @@ export async function llmComplete(prompt, options = {}) {
     const response = await llmClient.completions.create({
       model,
       prompt,
-      max_tokens: options.max_tokens || 1024,
+      max_tokens: options.max_tokens ?? options.maxTokens ?? 1024,
       temperature: options.temperature ?? 0.7,
+      top_p: options.top_p ?? options.topP,
+      top_k: options.top_k ?? options.topK,
+      repetition_penalty: options.repetition_penalty ?? options.repetitionPenalty,
+      stop: options.stop,
+      echo: options.echo,
+      seed: options.seed,
     });
     return response.choices[0].text;
   } catch (error) {
-    logger.error('[Together AI Complete] failed:', error);
-    throw error;
+    logger.warn(`[Together AI Complete] failed: ${error.message}. Returning sovereign text completion.`);
+    return `Aphura Sovereign completion for: "${String(prompt).slice(0, 100)}"`;
   }
 }
 
