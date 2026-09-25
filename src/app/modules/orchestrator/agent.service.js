@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwareproxy_36uk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareProxy) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumcore_6i53_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumCore) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeeplayer_41zj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepLayer) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialnode_benc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialNode) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorylayer_r3yd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryLayer) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondvault_wo99_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondVault) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22852,6 +22892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwareproxy_36uk_logic": {
+          try {
+            const { OpenHardwareProxyService } = await import("../liberty/openhardwareproxy_36uk.service.js");
+            const res = await OpenHardwareProxyService.execute(args.target || "system");
+            return { output: `### OpenHardwareProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumcore_6i53_logic": {
+          try {
+            const { OpenQuantumCoreService } = await import("../liberty/openquantumcore_6i53.service.js");
+            const res = await OpenQuantumCoreService.execute(args.target || "system");
+            return { output: `### OpenQuantumCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeeplayer_41zj_logic": {
+          try {
+            const { OpenDeepLayerService } = await import("../liberty/opendeeplayer_41zj.service.js");
+            const res = await OpenDeepLayerService.execute(args.target || "system");
+            return { output: `### OpenDeepLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialnode_benc_logic": {
+          try {
+            const { OpenFinancialNodeService } = await import("../liberty/openfinancialnode_benc.service.js");
+            const res = await OpenFinancialNodeService.execute(args.target || "system");
+            return { output: `### OpenFinancialNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorylayer_r3yd_logic": {
+          try {
+            const { OpenInMemoryLayerService } = await import("../liberty/openin-memorylayer_r3yd.service.js");
+            const res = await OpenInMemoryLayerService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryLayer failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondvault_wo99_logic": {
           try {
             const { OpenSubMillisecondVaultService } = await import("../liberty/opensub-millisecondvault_wo99.service.js");
