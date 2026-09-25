@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwaredaemon_939a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareDaemon) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfproxy_gtjx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFProxy) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractlayer_b506_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractLayer) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumrouter_qlvz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumRouter) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendfabric_9e7q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendFabric) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kerneloracle_05we_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelOracle) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26652,6 +26692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwaredaemon_939a_logic": {
+          try {
+            const { OpenHardwareDaemonService } = await import("../liberty/openhardwaredaemon_939a.service.js");
+            const res = await OpenHardwareDaemonService.execute(args.target || "system");
+            return { output: `### OpenHardwareDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfproxy_gtjx_logic": {
+          try {
+            const { OpeneBPFProxyService } = await import("../liberty/openebpfproxy_gtjx.service.js");
+            const res = await OpeneBPFProxyService.execute(args.target || "system");
+            return { output: `### OpeneBPFProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractlayer_b506_logic": {
+          try {
+            const { OpenAbstractLayerService } = await import("../liberty/openabstractlayer_b506.service.js");
+            const res = await OpenAbstractLayerService.execute(args.target || "system");
+            return { output: `### OpenAbstractLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumrouter_qlvz_logic": {
+          try {
+            const { OpenQuantumRouterService } = await import("../liberty/openquantumrouter_qlvz.service.js");
+            const res = await OpenQuantumRouterService.execute(args.target || "system");
+            return { output: `### OpenQuantumRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendfabric_9e7q_logic": {
+          try {
+            const { OpenMicroFrontendFabricService } = await import("../liberty/openmicro-frontendfabric_9e7q.service.js");
+            const res = await OpenMicroFrontendFabricService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kerneloracle_05we_logic": {
           try {
             const { OpenMicroKernelOracleService } = await import("../liberty/openmicro-kerneloracle_05we.service.js");
