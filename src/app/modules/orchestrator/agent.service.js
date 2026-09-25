@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openin-memorysync_m566_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemorySync) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvanceddaemon_bts0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedDaemon) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgeledger_r58v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeLedger) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosnode_9e7i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosNode) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedengine_souv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedEngine) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openneuromorphicring_3id7_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicRing) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29492,6 +29532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openin-memorysync_m566_logic": {
+          try {
+            const { OpenInMemorySyncService } = await import("../liberty/openin-memorysync_m566.service.js");
+            const res = await OpenInMemorySyncService.execute(args.target || "system");
+            return { output: `### OpenIn-MemorySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemorySync failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvanceddaemon_bts0_logic": {
+          try {
+            const { OpenAdvancedDaemonService } = await import("../liberty/openadvanceddaemon_bts0.service.js");
+            const res = await OpenAdvancedDaemonService.execute(args.target || "system");
+            return { output: `### OpenAdvancedDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgeledger_r58v_logic": {
+          try {
+            const { OpenZeroKnowledgeLedgerService } = await import("../liberty/openzero-knowledgeledger_r58v.service.js");
+            const res = await OpenZeroKnowledgeLedgerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosnode_9e7i_logic": {
+          try {
+            const { OpenChaosNodeService } = await import("../liberty/openchaosnode_9e7i.service.js");
+            const res = await OpenChaosNodeService.execute(args.target || "system");
+            return { output: `### OpenChaosNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedengine_souv_logic": {
+          try {
+            const { OpenDecentralizedEngineService } = await import("../liberty/opendecentralizedengine_souv.service.js");
+            const res = await OpenDecentralizedEngineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openneuromorphicring_3id7_logic": {
           try {
             const { OpenNeuromorphicRingService } = await import("../liberty/openneuromorphicring_3id7.service.js");
