@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedcompiler_aq88_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedCompiler) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustsync_i60e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustSync) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustring_qqc5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustRing) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphplane_vssv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphPlane) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarynet_t9h8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNet) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelvault_9uby_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelVault) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26732,6 +26772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedcompiler_aq88_logic": {
+          try {
+            const { OpenDistributedCompilerService } = await import("../liberty/opendistributedcompiler_aq88.service.js");
+            const res = await OpenDistributedCompilerService.execute(args.target || "system");
+            return { output: `### OpenDistributedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustsync_i60e_logic": {
+          try {
+            const { OpenZeroTrustSyncService } = await import("../liberty/openzero-trustsync_i60e.service.js");
+            const res = await OpenZeroTrustSyncService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustring_qqc5_logic": {
+          try {
+            const { OpenZeroTrustRingService } = await import("../liberty/openzero-trustring_qqc5.service.js");
+            const res = await OpenZeroTrustRingService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphplane_vssv_logic": {
+          try {
+            const { OpenGraphPlaneService } = await import("../liberty/opengraphplane_vssv.service.js");
+            const res = await OpenGraphPlaneService.execute(args.target || "system");
+            return { output: `### OpenGraphPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarynet_t9h8_logic": {
+          try {
+            const { OpenPlanetaryNetService } = await import("../liberty/openplanetarynet_t9h8.service.js");
+            const res = await OpenPlanetaryNetService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNet failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelvault_9uby_logic": {
           try {
             const { OpenMicroKernelVaultService } = await import("../liberty/openmicro-kernelvault_9uby.service.js");
