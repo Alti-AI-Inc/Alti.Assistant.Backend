@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativegraph_2gqo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeGraph) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalvortex_h2hz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalVortex) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kerneloracle_9a4x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelOracle) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriescontroller_zg30_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesController) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgelayer_t55y_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeLayer) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgeplane_iixp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgePlane) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22012,6 +22052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativegraph_2gqo_logic": {
+          try {
+            const { OpenCloudNativeGraphService } = await import("../liberty/opencloud-nativegraph_2gqo.service.js");
+            const res = await OpenCloudNativeGraphService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalvortex_h2hz_logic": {
+          try {
+            const { OpenHyperDimensionalVortexService } = await import("../liberty/openhyper-dimensionalvortex_h2hz.service.js");
+            const res = await OpenHyperDimensionalVortexService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kerneloracle_9a4x_logic": {
+          try {
+            const { OpenMicroKernelOracleService } = await import("../liberty/openmicro-kerneloracle_9a4x.service.js");
+            const res = await OpenMicroKernelOracleService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriescontroller_zg30_logic": {
+          try {
+            const { OpenTimeSeriesControllerService } = await import("../liberty/opentime-seriescontroller_zg30.service.js");
+            const res = await OpenTimeSeriesControllerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesController failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgelayer_t55y_logic": {
+          try {
+            const { OpenEdgeLayerService } = await import("../liberty/openedgelayer_t55y.service.js");
+            const res = await OpenEdgeLayerService.execute(args.target || "system");
+            return { output: `### OpenEdgeLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgeplane_iixp_logic": {
           try {
             const { OpenZeroKnowledgePlaneService } = await import("../liberty/openzero-knowledgeplane_iixp.service.js");
