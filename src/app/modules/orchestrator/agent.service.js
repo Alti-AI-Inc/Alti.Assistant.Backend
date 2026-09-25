@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgpcompiler_x8cg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPCompiler) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecompiler_flg4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareCompiler) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticengine_jhhn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticEngine) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgelayer_6546_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeLayer) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedswarm_chsb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSwarm) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticswarm_wbdd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticSwarm) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29892,6 +29932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgpcompiler_x8cg_logic": {
+          try {
+            const { OpenBGPCompilerService } = await import("../liberty/openbgpcompiler_x8cg.service.js");
+            const res = await OpenBGPCompilerService.execute(args.target || "system");
+            return { output: `### OpenBGPCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecompiler_flg4_logic": {
+          try {
+            const { OpenHardwareCompilerService } = await import("../liberty/openhardwarecompiler_flg4.service.js");
+            const res = await OpenHardwareCompilerService.execute(args.target || "system");
+            return { output: `### OpenHardwareCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticengine_jhhn_logic": {
+          try {
+            const { OpenStaticEngineService } = await import("../liberty/openstaticengine_jhhn.service.js");
+            const res = await OpenStaticEngineService.execute(args.target || "system");
+            return { output: `### OpenStaticEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgelayer_6546_logic": {
+          try {
+            const { OpenZeroKnowledgeLayerService } = await import("../liberty/openzero-knowledgelayer_6546.service.js");
+            const res = await OpenZeroKnowledgeLayerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedswarm_chsb_logic": {
+          try {
+            const { OpenDecentralizedSwarmService } = await import("../liberty/opendecentralizedswarm_chsb.service.js");
+            const res = await OpenDecentralizedSwarmService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticswarm_wbdd_logic": {
           try {
             const { OpenSemanticSwarmService } = await import("../liberty/opensemanticswarm_wbdd.service.js");
