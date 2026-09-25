@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfledger_vi9h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFLedger) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfengine_qy1h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFEngine) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumstream_yw7n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumStream) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictiveplane_axhi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictivePlane) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustswarm_pr6i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustSwarm) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgedaemon_zs4p_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeDaemon) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29052,6 +29092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfledger_vi9h_logic": {
+          try {
+            const { OpeneBPFLedgerService } = await import("../liberty/openebpfledger_vi9h.service.js");
+            const res = await OpeneBPFLedgerService.execute(args.target || "system");
+            return { output: `### OpeneBPFLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfengine_qy1h_logic": {
+          try {
+            const { OpeneBPFEngineService } = await import("../liberty/openebpfengine_qy1h.service.js");
+            const res = await OpeneBPFEngineService.execute(args.target || "system");
+            return { output: `### OpeneBPFEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumstream_yw7n_logic": {
+          try {
+            const { OpenQuantumStreamService } = await import("../liberty/openquantumstream_yw7n.service.js");
+            const res = await OpenQuantumStreamService.execute(args.target || "system");
+            return { output: `### OpenQuantumStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictiveplane_axhi_logic": {
+          try {
+            const { OpenPredictivePlaneService } = await import("../liberty/openpredictiveplane_axhi.service.js");
+            const res = await OpenPredictivePlaneService.execute(args.target || "system");
+            return { output: `### OpenPredictivePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictivePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustswarm_pr6i_logic": {
+          try {
+            const { OpenZeroTrustSwarmService } = await import("../liberty/openzero-trustswarm_pr6i.service.js");
+            const res = await OpenZeroTrustSwarmService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openedgedaemon_zs4p_logic": {
           try {
             const { OpenEdgeDaemonService } = await import("../liberty/openedgedaemon_zs4p.service.js");
