@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepgrid_wypm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepGrid) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativemesh_qazq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeMesh) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorcompiler_cmmi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorCompiler) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatavortex_5ifl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataVortex) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecore_ipfl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareCore) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelmesh_soo6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMesh) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25372,6 +25412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepgrid_wypm_logic": {
+          try {
+            const { OpenDeepGridService } = await import("../liberty/opendeepgrid_wypm.service.js");
+            const res = await OpenDeepGridService.execute(args.target || "system");
+            return { output: `### OpenDeepGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativemesh_qazq_logic": {
+          try {
+            const { OpenCloudNativeMeshService } = await import("../liberty/opencloud-nativemesh_qazq.service.js");
+            const res = await OpenCloudNativeMeshService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorcompiler_cmmi_logic": {
+          try {
+            const { OpenVectorCompilerService } = await import("../liberty/openvectorcompiler_cmmi.service.js");
+            const res = await OpenVectorCompilerService.execute(args.target || "system");
+            return { output: `### OpenVectorCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatavortex_5ifl_logic": {
+          try {
+            const { OpenDataVortexService } = await import("../liberty/opendatavortex_5ifl.service.js");
+            const res = await OpenDataVortexService.execute(args.target || "system");
+            return { output: `### OpenDataVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecore_ipfl_logic": {
+          try {
+            const { OpenHardwareCoreService } = await import("../liberty/openhardwarecore_ipfl.service.js");
+            const res = await OpenHardwareCoreService.execute(args.target || "system");
+            return { output: `### OpenHardwareCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareCore failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelmesh_soo6_logic": {
           try {
             const { OpenMicroKernelMeshService } = await import("../liberty/openmicro-kernelmesh_soo6.service.js");
