@@ -40,6 +40,9 @@ import {
   llmGetEndpoint,
   llmUpdateEndpoint,
   llmDeleteEndpoint,
+  llmListEndpointEvents,
+  llmGetEndpointAnalytics,
+  llmListOrgEndpoints,
   llmListEndpointHardware,
   llmListEndpointAvzones,
   llmCreateEval,
@@ -1658,11 +1661,11 @@ export const InferenceGateway = {
 
   /**
    * Creates dedicated endpoint (POST /endpoints & POST /v1/endpoints)
-   * Official Reference: https://docs.together.ai/reference/endpoints
+   * Official Reference: https://docs.together.ai/reference/dmi/endpoints-create
    */
   async handleCreateEndpoint(req, res) {
     try {
-      const data = await llmCreateEndpoint(req.body);
+      const data = await llmCreateEndpoint(req.body, { ...req.query, ...req.params });
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -1671,10 +1674,11 @@ export const InferenceGateway = {
 
   /**
    * Lists dedicated endpoints (GET /endpoints & GET /v1/endpoints)
+   * Official Reference: https://docs.together.ai/reference/dmi/endpoints-list
    */
   async handleListEndpoints(req, res) {
     try {
-      const data = await llmListEndpoints();
+      const data = await llmListEndpoints({ ...req.query, ...req.params });
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -1683,10 +1687,11 @@ export const InferenceGateway = {
 
   /**
    * Retrieves dedicated endpoint details (GET /endpoints/:id & GET /v1/endpoints/:id)
+   * Official Reference: https://docs.together.ai/reference/dmi/endpoints-get
    */
   async handleGetEndpoint(req, res) {
     try {
-      const data = await llmGetEndpoint(req.params.id);
+      const data = await llmGetEndpoint(req.params.id, { ...req.query, ...req.params });
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -1695,10 +1700,11 @@ export const InferenceGateway = {
 
   /**
    * Updates dedicated endpoint (PUT /endpoints/:id & PATCH /endpoints/:id)
+   * Official Reference: https://docs.together.ai/reference/dmi/endpoints-update
    */
   async handleUpdateEndpoint(req, res) {
     try {
-      const data = await llmUpdateEndpoint(req.params.id, req.body);
+      const data = await llmUpdateEndpoint(req.params.id, req.body, { ...req.query, ...req.params });
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -1707,10 +1713,51 @@ export const InferenceGateway = {
 
   /**
    * Deletes dedicated endpoint (DELETE /endpoints/:id & DELETE /v1/endpoints/:id)
+   * Official Reference: https://docs.together.ai/reference/dmi/endpoints-delete
    */
   async handleDeleteEndpoint(req, res) {
     try {
-      const data = await llmDeleteEndpoint(req.params.id);
+      const data = await llmDeleteEndpoint(req.params.id, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists dedicated endpoint audit and lifecycle events (GET /endpoints/:id/events & GET /v1/endpoints/:id/events)
+   * Official Reference: https://docs.together.ai/reference/dmi/endpoints-list-events
+   */
+  async handleListEndpointEvents(req, res) {
+    try {
+      const data = await llmListEndpointEvents(req.params.id, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves dedicated endpoint analytics and metrics (GET /endpoints/:id/analytics & GET /v1/endpoints/:id/analytics)
+   * Official Reference: https://docs.together.ai/reference/dmi/endpoints-analytics
+   */
+  async handleGetEndpointAnalytics(req, res) {
+    try {
+      const data = await llmGetEndpointAnalytics(req.params.id, { ...req.query, ...req.params });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists endpoints shared across the organization (GET /endpoints/organization, GET /endpoints/org, GET /organizations/:organizationId/endpoints)
+   * Official Reference: https://docs.together.ai/reference/dmi/endpoints-list-organization
+   */
+  async handleListOrgEndpoints(req, res) {
+    try {
+      const orgId = req.params?.organizationId || req.query?.organizationId || req.query?.orgId;
+      const data = await llmListOrgEndpoints(orgId, { ...req.query, ...req.params });
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });

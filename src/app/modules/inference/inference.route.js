@@ -369,69 +369,134 @@ router.get('/v1/batches/:id', async (req, res) => {
   await InferenceGateway.handleGetBatch(req, res);
 });
 
-// ── Dedicated Endpoints (Official: https://docs.together.ai/reference/endpoints)
-router.post('/endpoints', async (req, res) => {
-  await InferenceGateway.handleCreateEndpoint(req, res);
+// ── Dedicated Model Inference (DMI) (Official: https://docs.together.ai/reference/dmi/endpoints-list)
+const createEndpointRoutes = [
+  '/endpoints',
+  '/v1/endpoints',
+  '/projects/:projectId/endpoints',
+  '/v1/projects/:projectId/endpoints',
+];
+createEndpointRoutes.forEach((p) => {
+  router.post(p, async (req, res) => {
+    await InferenceGateway.handleCreateEndpoint(req, res);
+  });
 });
 
-router.post('/v1/endpoints', async (req, res) => {
-  await InferenceGateway.handleCreateEndpoint(req, res);
+const listEndpointRoutes = [
+  '/endpoints',
+  '/v1/endpoints',
+  '/projects/:projectId/endpoints',
+  '/v1/projects/:projectId/endpoints',
+];
+listEndpointRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListEndpoints(req, res);
+  });
 });
 
-router.get('/endpoints', async (req, res) => {
-  await InferenceGateway.handleListEndpoints(req, res);
+const hardwareRoutes = [
+  '/endpoints/hardware',
+  '/v1/endpoints/hardware',
+];
+hardwareRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListHardware(req, res);
+  });
 });
 
-router.get('/v1/endpoints', async (req, res) => {
-  await InferenceGateway.handleListEndpoints(req, res);
+const avzonesRoutes = [
+  '/endpoints/avzones',
+  '/v1/endpoints/avzones',
+];
+avzonesRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListAvzones(req, res);
+  });
 });
 
-router.get('/endpoints/hardware', async (req, res) => {
-  await InferenceGateway.handleListHardware(req, res);
+// Organization scoped endpoints (Mounted BEFORE /endpoints/:id to avoid parameter swallowing)
+const orgEndpointRoutes = [
+  '/endpoints/organization',
+  '/v1/endpoints/organization',
+  '/endpoints/org',
+  '/v1/endpoints/org',
+  '/endpoints/organization/:organizationId',
+  '/v1/endpoints/organization/:organizationId',
+  '/organizations/:organizationId/endpoints',
+  '/v1/organizations/:organizationId/endpoints',
+];
+orgEndpointRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListOrgEndpoints(req, res);
+  });
 });
 
-router.get('/v1/endpoints/hardware', async (req, res) => {
-  await InferenceGateway.handleListHardware(req, res);
+// Endpoint events
+const endpointEventsRoutes = [
+  '/endpoints/:id/events',
+  '/v1/endpoints/:id/events',
+  '/projects/:projectId/endpoints/:id/events',
+  '/v1/projects/:projectId/endpoints/:id/events',
+];
+endpointEventsRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleListEndpointEvents(req, res);
+  });
 });
 
-router.get('/endpoints/avzones', async (req, res) => {
-  await InferenceGateway.handleListAvzones(req, res);
+// Endpoint analytics
+const endpointAnalyticsRoutes = [
+  '/endpoints/:id/analytics',
+  '/v1/endpoints/:id/analytics',
+  '/projects/:projectId/endpoints/:id/analytics',
+  '/v1/projects/:projectId/endpoints/:id/analytics',
+];
+endpointAnalyticsRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleGetEndpointAnalytics(req, res);
+  });
 });
 
-router.get('/v1/endpoints/avzones', async (req, res) => {
-  await InferenceGateway.handleListAvzones(req, res);
+// Endpoint retrieve
+const getEndpointRoutes = [
+  '/endpoints/:id',
+  '/v1/endpoints/:id',
+  '/projects/:projectId/endpoints/:id',
+  '/v1/projects/:projectId/endpoints/:id',
+];
+getEndpointRoutes.forEach((p) => {
+  router.get(p, async (req, res) => {
+    await InferenceGateway.handleGetEndpoint(req, res);
+  });
 });
 
-router.get('/endpoints/:id', async (req, res) => {
-  await InferenceGateway.handleGetEndpoint(req, res);
+// Endpoint update (PUT and PATCH)
+const updateEndpointRoutes = [
+  '/endpoints/:id',
+  '/v1/endpoints/:id',
+  '/projects/:projectId/endpoints/:id',
+  '/v1/projects/:projectId/endpoints/:id',
+];
+updateEndpointRoutes.forEach((p) => {
+  router.put(p, async (req, res) => {
+    await InferenceGateway.handleUpdateEndpoint(req, res);
+  });
+  router.patch(p, async (req, res) => {
+    await InferenceGateway.handleUpdateEndpoint(req, res);
+  });
 });
 
-router.get('/v1/endpoints/:id', async (req, res) => {
-  await InferenceGateway.handleGetEndpoint(req, res);
-});
-
-router.put('/endpoints/:id', async (req, res) => {
-  await InferenceGateway.handleUpdateEndpoint(req, res);
-});
-
-router.put('/v1/endpoints/:id', async (req, res) => {
-  await InferenceGateway.handleUpdateEndpoint(req, res);
-});
-
-router.patch('/endpoints/:id', async (req, res) => {
-  await InferenceGateway.handleUpdateEndpoint(req, res);
-});
-
-router.patch('/v1/endpoints/:id', async (req, res) => {
-  await InferenceGateway.handleUpdateEndpoint(req, res);
-});
-
-router.delete('/endpoints/:id', async (req, res) => {
-  await InferenceGateway.handleDeleteEndpoint(req, res);
-});
-
-router.delete('/v1/endpoints/:id', async (req, res) => {
-  await InferenceGateway.handleDeleteEndpoint(req, res);
+// Endpoint delete
+const deleteEndpointRoutes = [
+  '/endpoints/:id',
+  '/v1/endpoints/:id',
+  '/projects/:projectId/endpoints/:id',
+  '/v1/projects/:projectId/endpoints/:id',
+];
+deleteEndpointRoutes.forEach((p) => {
+  router.delete(p, async (req, res) => {
+    await InferenceGateway.handleDeleteEndpoint(req, res);
+  });
 });
 
 // ── Evaluations (Official: https://docs.together.ai/reference/evals) ────────
