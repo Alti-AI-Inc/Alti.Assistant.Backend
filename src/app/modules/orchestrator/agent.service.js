@@ -36,6 +36,46 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  {
+    type: "function",
+    function: {
+      name: "execute_code_in_sandbox",
+      description: "Use the Aphura Code Execution Sandbox (E2B) to safely run Python, Node.js, or Bash code inside an isolated cloud sandbox and return the actual output, charts, and generated files to the user. This is how Aphura actually RUNS code, not just writes it.",
+      parameters: { type: "object", properties: { code: { type: "string" }, language: { type: "string" } }, required: ["code", "language"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compile_autonomous_agent_graph",
+      description: "Use the Aphura Autonomous Agent Graph Engine (LangGraph) to compile a stateful, cyclical multi-agent execution graph where multiple AI agents (Planner, Researcher, Coder, Reviewer, Deployer) collaborate, loop, self-correct, and complete complex tasks autonomously.",
+      parameters: { type: "object", properties: { graphDefinition: { type: "string" } }, required: ["graphDefinition"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "parse_any_document",
+      description: "Use the Aphura Document Intelligence Engine (Unstructured) to parse ANY document format (PDF, DOCX, PPTX, HTML, XLSX, scanned images) and extract perfectly structured text elements for RAG ingestion.",
+      parameters: { type: "object", properties: { filePath: { type: "string" } }, required: ["filePath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "transcribe_speech_to_text",
+      description: "Use the Aphura Speech Recognition Engine (Whisper.cpp) to transcribe audio into text with 98%+ accuracy. Runs entirely on Liberty Center One - no audio data leaves the sovereign network.",
+      parameters: { type: "object", properties: { audioPath: { type: "string" } }, required: ["audioPath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "queue_background_job",
+      description: "Use the Aphura Distributed Job Queue (BullMQ) to queue, schedule, and parallelize background tasks across 16 concurrent workers with automatic retry, rate limiting, and priority ordering.",
+      parameters: { type: "object", properties: { queueName: { type: "string" }, jobName: { type: "string" }, payload: { type: "string" } }, required: ["queueName", "jobName"] }
+    }
+  },
   { type: "function", function: { name: "boot_sovereign_system", description: "Initialize the entire Aphura Sovereign System, registering all 20 domains and 3,664 engines into a single unified organism powered by Liberty Center One.", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "run_system_health_sweep", description: "Execute a comprehensive health sweep across all 20 sovereign domains, verifying Docker isolation, Calico eBPF networking, license compliance, and egress blocking.", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "get_sovereign_system_report", description: "Generate a full architectural report of the entire Aphura Sovereign Backend including engine count, network topology, security posture, and infrastructure status.", parameters: { type: "object", properties: {} } } },
@@ -8679,7 +8719,52 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "boot_sovereign_system": {
+        case "execute_code_in_sandbox": {
+          try {
+            const { E2BService } = await import("../compute/e2b.service.js");
+            const sandbox = await E2BService.createSandbox(args.language);
+            const res = await E2BService.executeCode(sandbox.sandboxId, args.code, args.language);
+            return { output: "### Code Execution Complete\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Sandbox execution failed: " + err.message };
+          }
+        }
+        case "compile_autonomous_agent_graph": {
+          try {
+            const { LangGraphService } = await import("../ai/langgraph.service.js");
+            const res = await LangGraphService.compileAgentGraph(args.graphDefinition);
+            return { output: "### Agent Graph Compiled\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Graph compilation failed: " + err.message };
+          }
+        }
+        case "parse_any_document": {
+          try {
+            const { UnstructuredService } = await import("../rag/unstructured.service.js");
+            const res = await UnstructuredService.parseDocument(args.filePath);
+            return { output: "### Document Parsed\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Document parsing failed: " + err.message };
+          }
+        }
+        case "transcribe_speech_to_text": {
+          try {
+            const { WhisperService } = await import("../voice/whisper.service.js");
+            const res = await WhisperService.transcribeAudio(args.audioPath);
+            return { output: "### Speech Transcribed\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Transcription failed: " + err.message };
+          }
+        }
+        case "queue_background_job": {
+          try {
+            const { BullMQService } = await import("../devops/bullmq.service.js");
+            const res = await BullMQService.addJob(args.queueName, args.jobName, args.payload);
+            return { output: "### Job Queued\n\nJob ID: " + res.jobId + "\nQueue: " + args.queueName };
+          } catch (err) {
+            return { output: "Job queue failed: " + err.message };
+          }
+        }        case "boot_sovereign_system": {
           try {
             const { SovereignCore } = await import("../core/sovereign_core.js");
             const res = await SovereignCore.initialize();
