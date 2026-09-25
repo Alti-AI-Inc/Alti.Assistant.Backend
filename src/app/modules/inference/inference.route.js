@@ -241,6 +241,30 @@ router.get('/v1/fine-tuning', async (req, res) => {
   await InferenceGateway.handleListFineTunes(req, res);
 });
 
+router.post('/fine-tunes/estimate-price', async (req, res) => {
+  await InferenceGateway.handleEstimateFineTunePrice(req, res);
+});
+
+router.post('/v1/fine-tunes/estimate-price', async (req, res) => {
+  await InferenceGateway.handleEstimateFineTunePrice(req, res);
+});
+
+router.get('/fine-tunes/models/limits', async (req, res) => {
+  await InferenceGateway.handleGetFineTuneModelLimits(req, res);
+});
+
+router.get('/v1/fine-tunes/models/limits', async (req, res) => {
+  await InferenceGateway.handleGetFineTuneModelLimits(req, res);
+});
+
+router.get('/fine-tunes/models/:model/limits', async (req, res) => {
+  await InferenceGateway.handleGetFineTuneModelLimits(req, res);
+});
+
+router.get('/v1/fine-tunes/models/:model/limits', async (req, res) => {
+  await InferenceGateway.handleGetFineTuneModelLimits(req, res);
+});
+
 router.get('/fine-tunes/:id/events', async (req, res) => {
   await InferenceGateway.handleListFineTuneEvents(req, res);
 });
@@ -257,6 +281,38 @@ router.get('/v1/fine-tunes/:id/checkpoints', async (req, res) => {
   await InferenceGateway.handleListFineTuneCheckpoints(req, res);
 });
 
+router.get('/fine-tunes/:id/checkpoint', async (req, res) => {
+  await InferenceGateway.handleListFineTuneCheckpoints(req, res);
+});
+
+router.get('/v1/fine-tunes/:id/checkpoint', async (req, res) => {
+  await InferenceGateway.handleListFineTuneCheckpoints(req, res);
+});
+
+router.get('/fine-tunes/:id/metrics', async (req, res) => {
+  await InferenceGateway.handleGetFineTuneMetrics(req, res);
+});
+
+router.get('/v1/fine-tunes/:id/metrics', async (req, res) => {
+  await InferenceGateway.handleGetFineTuneMetrics(req, res);
+});
+
+router.get('/fine-tunes/:id/download', async (req, res) => {
+  await InferenceGateway.handleDownloadFineTune(req, res);
+});
+
+router.get('/v1/fine-tunes/:id/download', async (req, res) => {
+  await InferenceGateway.handleDownloadFineTune(req, res);
+});
+
+router.get('/fine-tunes/:id/download-tokenized-dataset', async (req, res) => {
+  await InferenceGateway.handleDownloadTokenizedDataset(req, res);
+});
+
+router.get('/v1/fine-tunes/:id/download-tokenized-dataset', async (req, res) => {
+  await InferenceGateway.handleDownloadTokenizedDataset(req, res);
+});
+
 router.post('/fine-tunes/:id/cancel', async (req, res) => {
   await InferenceGateway.handleCancelFineTune(req, res);
 });
@@ -271,6 +327,14 @@ router.get('/fine-tunes/:id', async (req, res) => {
 
 router.get('/v1/fine-tunes/:id', async (req, res) => {
   await InferenceGateway.handleGetFineTune(req, res);
+});
+
+router.delete('/fine-tunes/:id', async (req, res) => {
+  await InferenceGateway.handleDeleteFineTune(req, res);
+});
+
+router.delete('/v1/fine-tunes/:id', async (req, res) => {
+  await InferenceGateway.handleDeleteFineTune(req, res);
 });
 
 // ── Batches (Official: https://docs.together.ai/reference/batches) ──────────

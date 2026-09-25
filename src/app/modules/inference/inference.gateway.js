@@ -23,6 +23,12 @@ import {
   llmListFineTunes,
   llmGetFineTune,
   llmCancelFineTune,
+  llmEstimateFineTunePrice,
+  llmGetFineTuneMetrics,
+  llmDeleteFineTune,
+  llmDownloadFineTune,
+  llmDownloadTokenizedDataset,
+  llmGetModelLimits,
   llmListFineTuneEvents,
   llmListFineTuneCheckpoints,
   llmCreateBatch,
@@ -1358,10 +1364,90 @@ export const InferenceGateway = {
 
   /**
    * Lists fine-tuning checkpoints (GET /fine-tunes/:id/checkpoints & GET /v1/fine-tunes/:id/checkpoints)
+   * Official Reference: https://docs.together.ai/reference/get-fine-tunes-id-checkpoint
    */
   async handleListFineTuneCheckpoints(req, res) {
     try {
       const data = await llmListFineTuneCheckpoints(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Estimates fine-tuning job price (POST /fine-tunes/estimate-price & POST /v1/fine-tunes/estimate-price)
+   * Official Reference: https://docs.together.ai/reference/post-fine-tunes-estimate-price
+   */
+  async handleEstimateFineTunePrice(req, res) {
+    try {
+      const data = await llmEstimateFineTunePrice(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves fine-tuning job metrics (GET /fine-tunes/:id/metrics & GET /v1/fine-tunes/:id/metrics)
+   * Official Reference: https://docs.together.ai/reference/get-fine-tunes-id-metrics
+   */
+  async handleGetFineTuneMetrics(req, res) {
+    try {
+      const data = await llmGetFineTuneMetrics(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Downloads fine-tuned model checkpoint (GET /fine-tunes/:id/download & GET /v1/fine-tunes/:id/download)
+   * Official Reference: https://docs.together.ai/reference/get-finetune-download
+   */
+  async handleDownloadFineTune(req, res) {
+    try {
+      const data = await llmDownloadFineTune(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Downloads tokenized dataset (GET /fine-tunes/:id/download-tokenized-dataset & GET /v1/fine-tunes/:id/download-tokenized-dataset)
+   * Official Reference: https://docs.together.ai/reference/get-fine-tunes-id-download-tokenized-dataset
+   */
+  async handleDownloadTokenizedDataset(req, res) {
+    try {
+      const data = await llmDownloadTokenizedDataset(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Deletes fine-tuning job (DELETE /fine-tunes/:id & DELETE /v1/fine-tunes/:id)
+   * Official Reference: https://docs.together.ai/reference/delete-fine-tunes-id
+   */
+  async handleDeleteFineTune(req, res) {
+    try {
+      const data = await llmDeleteFineTune(req.params.id);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves fine-tuning model limits (GET /fine-tunes/models/limits & GET /fine-tunes/models/:model/limits)
+   * Official Reference: https://docs.together.ai/reference/get-fine-tunes-models-limits
+   */
+  async handleGetFineTuneModelLimits(req, res) {
+    const targetModel = req.params?.model || req.query?.model || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
+    try {
+      const data = await llmGetModelLimits(targetModel);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
