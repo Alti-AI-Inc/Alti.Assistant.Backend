@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfmatrix_0ny6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFMatrix) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendataoracle_50zk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataOracle) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednet_y2yj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNet) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedsync_poqv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedSync) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedpipeline_1rlp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedPipeline) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentgraph_ikf9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentGraph) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22772,6 +22812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfmatrix_0ny6_logic": {
+          try {
+            const { OpeneBPFMatrixService } = await import("../liberty/openebpfmatrix_0ny6.service.js");
+            const res = await OpeneBPFMatrixService.execute(args.target || "system");
+            return { output: `### OpeneBPFMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opendataoracle_50zk_logic": {
+          try {
+            const { OpenDataOracleService } = await import("../liberty/opendataoracle_50zk.service.js");
+            const res = await OpenDataOracleService.execute(args.target || "system");
+            return { output: `### OpenDataOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednet_y2yj_logic": {
+          try {
+            const { OpenDecentralizedNetService } = await import("../liberty/opendecentralizednet_y2yj.service.js");
+            const res = await OpenDecentralizedNetService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedsync_poqv_logic": {
+          try {
+            const { OpenAutomatedSyncService } = await import("../liberty/openautomatedsync_poqv.service.js");
+            const res = await OpenAutomatedSyncService.execute(args.target || "system");
+            return { output: `### OpenAutomatedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedpipeline_1rlp_logic": {
+          try {
+            const { OpenAdvancedPipelineService } = await import("../liberty/openadvancedpipeline_1rlp.service.js");
+            const res = await OpenAdvancedPipelineService.execute(args.target || "system");
+            return { output: `### OpenAdvancedPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentgraph_ikf9_logic": {
           try {
             const { OpenPersistentGraphService } = await import("../liberty/openpersistentgraph_ikf9.service.js");
