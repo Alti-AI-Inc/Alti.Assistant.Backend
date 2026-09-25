@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhigh-frequencylayer_f06u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyLayer) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativerouter_w1t4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeRouter) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarystream_xxnt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryStream) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgprouter_39mw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPRouter) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedrouter_zsae_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedRouter) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicplane_zgj4_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicPlane) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24292,6 +24332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhigh-frequencylayer_f06u_logic": {
+          try {
+            const { OpenHighFrequencyLayerService } = await import("../liberty/openhigh-frequencylayer_f06u.service.js");
+            const res = await OpenHighFrequencyLayerService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativerouter_w1t4_logic": {
+          try {
+            const { OpenCloudNativeRouterService } = await import("../liberty/opencloud-nativerouter_w1t4.service.js");
+            const res = await OpenCloudNativeRouterService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarystream_xxnt_logic": {
+          try {
+            const { OpenPlanetaryStreamService } = await import("../liberty/openplanetarystream_xxnt.service.js");
+            const res = await OpenPlanetaryStreamService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgprouter_39mw_logic": {
+          try {
+            const { OpenBGPRouterService } = await import("../liberty/openbgprouter_39mw.service.js");
+            const res = await OpenBGPRouterService.execute(args.target || "system");
+            return { output: `### OpenBGPRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedrouter_zsae_logic": {
+          try {
+            const { OpenAutomatedRouterService } = await import("../liberty/openautomatedrouter_zsae.service.js");
+            const res = await OpenAutomatedRouterService.execute(args.target || "system");
+            return { output: `### OpenAutomatedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicplane_zgj4_logic": {
           try {
             const { OpenHomomorphicPlaneService } = await import("../liberty/openhomomorphicplane_zgj4.service.js");
