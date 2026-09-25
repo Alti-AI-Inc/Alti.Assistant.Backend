@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwarelayer_3l5p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareLayer) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphmatrix_srgt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphMatrix) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalcluster_ikmp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalCluster) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedfabric_3iv6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedFabric) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernellayer_duc1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelLayer) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhyper-dimensionalring_aplb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalRing) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29692,6 +29732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwarelayer_3l5p_logic": {
+          try {
+            const { OpenHardwareLayerService } = await import("../liberty/openhardwarelayer_3l5p.service.js");
+            const res = await OpenHardwareLayerService.execute(args.target || "system");
+            return { output: `### OpenHardwareLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphmatrix_srgt_logic": {
+          try {
+            const { OpenGraphMatrixService } = await import("../liberty/opengraphmatrix_srgt.service.js");
+            const res = await OpenGraphMatrixService.execute(args.target || "system");
+            return { output: `### OpenGraphMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalcluster_ikmp_logic": {
+          try {
+            const { OpenHyperDimensionalClusterService } = await import("../liberty/openhyper-dimensionalcluster_ikmp.service.js");
+            const res = await OpenHyperDimensionalClusterService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedfabric_3iv6_logic": {
+          try {
+            const { OpenFederatedFabricService } = await import("../liberty/openfederatedfabric_3iv6.service.js");
+            const res = await OpenFederatedFabricService.execute(args.target || "system");
+            return { output: `### OpenFederatedFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernellayer_duc1_logic": {
+          try {
+            const { OpenMicroKernelLayerService } = await import("../liberty/openmicro-kernellayer_duc1.service.js");
+            const res = await OpenMicroKernelLayerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openhyper-dimensionalring_aplb_logic": {
           try {
             const { OpenHyperDimensionalRingService } = await import("../liberty/openhyper-dimensionalring_aplb.service.js");
