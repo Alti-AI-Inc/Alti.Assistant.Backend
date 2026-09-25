@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpudaemon_kbcp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUDaemon) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepdaemon_q1j9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepDaemon) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencychain_x9l4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyChain) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpstream_j5xt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPStream) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatednode_usr4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedNode) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openneuromorphicoracle_fjrv_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicOracle) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28332,6 +28372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpudaemon_kbcp_logic": {
+          try {
+            const { OpenGPUDaemonService } = await import("../liberty/opengpudaemon_kbcp.service.js");
+            const res = await OpenGPUDaemonService.execute(args.target || "system");
+            return { output: `### OpenGPUDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepdaemon_q1j9_logic": {
+          try {
+            const { OpenDeepDaemonService } = await import("../liberty/opendeepdaemon_q1j9.service.js");
+            const res = await OpenDeepDaemonService.execute(args.target || "system");
+            return { output: `### OpenDeepDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencychain_x9l4_logic": {
+          try {
+            const { OpenHighFrequencyChainService } = await import("../liberty/openhigh-frequencychain_x9l4.service.js");
+            const res = await OpenHighFrequencyChainService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpstream_j5xt_logic": {
+          try {
+            const { OpenBGPStreamService } = await import("../liberty/openbgpstream_j5xt.service.js");
+            const res = await OpenBGPStreamService.execute(args.target || "system");
+            return { output: `### OpenBGPStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatednode_usr4_logic": {
+          try {
+            const { OpenAutomatedNodeService } = await import("../liberty/openautomatednode_usr4.service.js");
+            const res = await OpenAutomatedNodeService.execute(args.target || "system");
+            return { output: `### OpenAutomatedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedNode failed: ${err.message}` };
+          }
+        }
         case "execute_openneuromorphicoracle_fjrv_logic": {
           try {
             const { OpenNeuromorphicOracleService } = await import("../liberty/openneuromorphicoracle_fjrv.service.js");
