@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "scale_ray_compute", description: "Use the Aphura Distributed Cluster Engine (Ray, 34k stars, Apache 2.0) to distribute heavy Python tasks, simulations, and parallel processing across Liberty Center One bare-metal nodes. Replaces Azure Batch.", parameters: { type: "object", properties: { taskName: { type: "string" }, taskCount: { type: "number" } }, required: ["taskName"] } } },
+  { type: "function", function: { name: "invoke_dapr_service", description: "Use the Aphura Microservice Runtime (Microsoft Dapr, 25k stars, Apache 2.0) for resilient service-to-service gRPC invocation, distributed state, and virtual actors. Replaces Microsoft Service Fabric.", parameters: { type: "object", properties: { appId: { type: "string" }, methodName: { type: "string" } }, required: ["appId", "methodName"] } } },
+  { type: "function", function: { name: "write_cassandra_batch", description: "Use the Aphura Masterless NoSQL Database (Apache Cassandra, 9.5k stars, Apache 2.0) to execute high-velocity, multi-rack distributed writes with zero single point of failure. Replaces Oracle NoSQL and Azure Cosmos DB.", parameters: { type: "object", properties: { keyspace: { type: "string" }, table: { type: "string" } }, required: ["keyspace", "table"] } } },
+  { type: "function", function: { name: "stream_arrow_flight", description: "Use the Aphura Columnar RPC Protocol (Apache Arrow Flight, 15k stars, Apache 2.0) to stream millions of rows over gRPC at 10-100x ODBC speeds with zero serialization overhead. Replaces Oracle Net and Microsoft TDS.", parameters: { type: "object", properties: { datasetId: { type: "string" } }, required: ["datasetId"] } } },
+  { type: "function", function: { name: "query_mpp_doris", description: "Use the Aphura MPP Analytical Engine (Apache Doris, 13k stars, Apache 2.0) to execute sub-second vectorized analytical SQL across billions of rows on NVMe bare-metal storage. Replaces Oracle Exadata and Snowflake.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
   { type: "function", function: { name: "generate_echarts_config", description: "Use the Aphura Interactive Visualization Engine (Apache ECharts, 61k stars, Apache 2.0) to compile hardware-accelerated 2D/3D charts, sunbursts, and financial candlestick graphs. Replaces Microsoft Power BI Custom Visuals.", parameters: { type: "object", properties: { chartType: { type: "string" } }, required: ["chartType"] } } },
   { type: "function", function: { name: "evaluate_feature_toggle", description: "Use the Aphura Feature Flag Engine (Unleash, 11k stars, Apache 2.0) to execute live feature rollouts, canary tests, and tenant-targeted toggles without code deployment. Replaces LaunchDarkly.", parameters: { type: "object", properties: { flagName: { type: "string" } }, required: ["flagName"] } } },
   { type: "function", function: { name: "create_virtual_api_stub", description: "Use the Aphura API Virtualization Engine (WireMock, 6k stars, Apache 2.0) to mock external banking and ERP endpoints with custom latency and fault injection. Replaces IBM Rational Test Virtualization.", parameters: { type: "object", properties: { endpoint: { type: "string" }, responseStatus: { type: "number" } }, required: ["endpoint"] } } },
@@ -8905,6 +8910,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "scale_ray_compute": {
+          try {
+            const { RayService } = await import("../compute/ray.service.js");
+            const res = await RayService.scaleParallelCompute(args.taskName, args.taskCount, 2);
+            return { output: "### Ray Distributed Compute\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Ray compute failed: " + err.message };
+          }
+        }
+        case "invoke_dapr_service": {
+          try {
+            const { DaprService } = await import("../enterprise/dapr.service.js");
+            const res = await DaprService.invokeServiceMethod(args.appId, args.methodName, {});
+            return { output: "### Dapr Invocation\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Dapr invocation failed: " + err.message };
+          }
+        }
+        case "write_cassandra_batch": {
+          try {
+            const { CassandraService } = await import("../data/cassandra.service.js");
+            const res = await CassandraService.executePartitionedWrite(args.keyspace, args.table, []);
+            return { output: "### Cassandra Partitioned Write\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Cassandra write failed: " + err.message };
+          }
+        }
+        case "stream_arrow_flight": {
+          try {
+            const { ArrowFlightService } = await import("../data/arrowflight.service.js");
+            const res = await ArrowFlightService.streamColumnarDataset(args.datasetId, 500000);
+            return { output: "### Arrow Flight Stream\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Arrow Flight stream failed: " + err.message };
+          }
+        }
+        case "query_mpp_doris": {
+          try {
+            const { DorisService } = await import("../data/doris.service.js");
+            const res = await DorisService.executeMPPAnalytics(args.query, "Large");
+            return { output: "### Doris MPP Analytics\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Doris query failed: " + err.message };
+          }
+        }
         case "generate_echarts_config": {
           try {
             const { EChartsService } = await import("../ui/echarts.service.js");
