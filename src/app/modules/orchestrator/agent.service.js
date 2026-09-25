@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "query_sovereign_erp", description: "Use the Aphura ERP Engine (Apache OFBiz, Apache 2.0) to query financials, create purchase orders, manage HR, inventory, and CRM — a complete sovereign ERP that replaces Oracle ERP, SAP, and NetSuite at zero license cost.", parameters: { type: "object", properties: { reportType: { type: "string" }, dateRange: { type: "string" } }, required: ["reportType"] } } },
+  { type: "function", function: { name: "generate_internal_tool", description: "Use the Aphura Internal Tool Builder (Appsmith, 34k stars, Apache 2.0) to generate admin panels, customer dashboards, approval workflows, and data entry forms from a single prompt. Replaces Microsoft Power Apps and Retool.", parameters: { type: "object", properties: { toolDescription: { type: "string" }, dataSources: { type: "string" } }, required: ["toolDescription"] } } },
+  { type: "function", function: { name: "create_enterprise_integration", description: "Use the Aphura Enterprise Integration Engine (Apache Camel, 300+ connectors) to connect any system to any system — SAP, Salesforce, Oracle, JDBC, FTP, SOAP, Kafka. Replaces IBM Integration Bus and MuleSoft.", parameters: { type: "object", properties: { source: { type: "string" }, destination: { type: "string" }, transformations: { type: "string" } }, required: ["source", "destination"] } } },
+  { type: "function", function: { name: "enterprise_search", description: "Use the Aphura Enterprise Search Engine (OpenSearch, Apache 2.0) for full-text search, log analytics, security analytics, and anomaly detection across millions of documents. Replaces Elasticsearch and Splunk.", parameters: { type: "object", properties: { indexName: { type: "string" }, query: { type: "string" } }, required: ["indexName", "query"] } } },
+  { type: "function", function: { name: "execute_ml_pipeline", description: "Use the Aphura ML Pipeline Engine (Metaflow by Netflix, Apache 2.0) to train, version, and deploy ML models at enterprise scale with automatic experiment tracking, hyperparameter tuning, and production serving. Replaces Azure ML, SageMaker.", parameters: { type: "object", properties: { flowName: { type: "string" }, parameters: { type: "string" } }, required: ["flowName"] } } },
   {
     type: "function",
     function: {
@@ -8855,6 +8860,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "query_sovereign_erp": {
+          try {
+            const { OFBizService } = await import("../business/ofbiz.service.js");
+            const res = await OFBizService.queryFinancials(args.reportType, args.dateRange || "YTD");
+            return { output: "### ERP Report\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "ERP query failed: " + err.message };
+          }
+        }
+        case "generate_internal_tool": {
+          try {
+            const { AppsmithService } = await import("../business/appsmith.service.js");
+            const res = await AppsmithService.generateInternalTool(args.toolDescription, args.dataSources);
+            return { output: "### Internal Tool Generated\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Tool generation failed: " + err.message };
+          }
+        }
+        case "create_enterprise_integration": {
+          try {
+            const { CamelService } = await import("../api/camel.service.js");
+            const res = await CamelService.createIntegrationRoute(args.source, args.destination, args.transformations);
+            return { output: "### Integration Route Created\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Integration failed: " + err.message };
+          }
+        }
+        case "enterprise_search": {
+          try {
+            const { OpenSearchService } = await import("../data/opensearch.service.js");
+            const res = await OpenSearchService.search(args.indexName, args.query);
+            return { output: "### Search Results\n\nIndex: " + res.index + "\nResults: " + res.results + "\nLatency: " + res.latency };
+          } catch (err) {
+            return { output: "Search failed: " + err.message };
+          }
+        }
+        case "execute_ml_pipeline": {
+          try {
+            const { MetaflowService } = await import("../ai/metaflow.service.js");
+            const res = await MetaflowService.executeFlow(args.flowName, args.parameters);
+            return { output: "### ML Pipeline Complete\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "ML pipeline failed: " + err.message };
+          }
+        }
         case "analyze_spreadsheet": {
           try {
             const { SheetJSService } = await import("../data/sheetjs.service.js");
