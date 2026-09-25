@@ -5193,3 +5193,19 @@ export const storeCognitiveMemory = async (userId, message) => {
   const { CognitiveGraphService } = await import('../ai/memgraph.service.js');
   return await CognitiveGraphService.extractAndStoreEntities(userId, message);
 };
+
+// Appended: Platform Dominance (Composio, Compiler, Supervisor)
+export const routePromptIntent = async (prompt) => {
+  const { SupervisorService } = await import('./supervisor.service.js');
+  return await SupervisorService.routePrompt(prompt);
+};
+
+export const executeComposioAction = async (userId, intent, parameters) => {
+  const { ComposioService } = await import('../actions/composio.service.js');
+  return await ComposioService.executeAction(userId, intent, parameters);
+};
+
+export const deployArtifactToLiveUrl = async (artifactCode, projectId) => {
+  const { PromptCompilerService } = await import('../devops/compiler.service.js');
+  return await PromptCompilerService.deployReactArtifact(artifactCode, projectId);
+};
