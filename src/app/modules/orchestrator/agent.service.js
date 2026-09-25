@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openloglayer_od6k_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogLayer) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelpipeline_5u8j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelPipeline) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractring_tv0r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractRing) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepfabric_doyu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepFabric) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorypipeline_p03c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryPipeline) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgematrix_o4jy_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeMatrix) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25892,6 +25932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openloglayer_od6k_logic": {
+          try {
+            const { OpenLogLayerService } = await import("../liberty/openloglayer_od6k.service.js");
+            const res = await OpenLogLayerService.execute(args.target || "system");
+            return { output: `### OpenLogLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelpipeline_5u8j_logic": {
+          try {
+            const { OpenMicroKernelPipelineService } = await import("../liberty/openmicro-kernelpipeline_5u8j.service.js");
+            const res = await OpenMicroKernelPipelineService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractring_tv0r_logic": {
+          try {
+            const { OpenAbstractRingService } = await import("../liberty/openabstractring_tv0r.service.js");
+            const res = await OpenAbstractRingService.execute(args.target || "system");
+            return { output: `### OpenAbstractRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepfabric_doyu_logic": {
+          try {
+            const { OpenDeepFabricService } = await import("../liberty/opendeepfabric_doyu.service.js");
+            const res = await OpenDeepFabricService.execute(args.target || "system");
+            return { output: `### OpenDeepFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorypipeline_p03c_logic": {
+          try {
+            const { OpenInMemoryPipelineService } = await import("../liberty/openin-memorypipeline_p03c.service.js");
+            const res = await OpenInMemoryPipelineService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openedgematrix_o4jy_logic": {
           try {
             const { OpenEdgeMatrixService } = await import("../liberty/openedgematrix_o4jy.service.js");
