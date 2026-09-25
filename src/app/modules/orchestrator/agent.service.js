@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhigh-frequencyplane_mgje_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyPlane) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorysync_mfib_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemorySync) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesscore_fcuf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessCore) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventoracle_gkq3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventOracle) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelengine_qz2a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelEngine) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openedgesync_taty_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEdgeSync) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22492,6 +22532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhigh-frequencyplane_mgje_logic": {
+          try {
+            const { OpenHighFrequencyPlaneService } = await import("../liberty/openhigh-frequencyplane_mgje.service.js");
+            const res = await OpenHighFrequencyPlaneService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorysync_mfib_logic": {
+          try {
+            const { OpenInMemorySyncService } = await import("../liberty/openin-memorysync_mfib.service.js");
+            const res = await OpenInMemorySyncService.execute(args.target || "system");
+            return { output: `### OpenIn-MemorySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemorySync failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesscore_fcuf_logic": {
+          try {
+            const { OpenServerlessCoreService } = await import("../liberty/openserverlesscore_fcuf.service.js");
+            const res = await OpenServerlessCoreService.execute(args.target || "system");
+            return { output: `### OpenServerlessCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventoracle_gkq3_logic": {
+          try {
+            const { OpenEventOracleService } = await import("../liberty/openeventoracle_gkq3.service.js");
+            const res = await OpenEventOracleService.execute(args.target || "system");
+            return { output: `### OpenEventOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelengine_qz2a_logic": {
+          try {
+            const { OpenMicroKernelEngineService } = await import("../liberty/openmicro-kernelengine_qz2a.service.js");
+            const res = await OpenMicroKernelEngineService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openedgesync_taty_logic": {
           try {
             const { OpenEdgeSyncService } = await import("../liberty/openedgesync_taty.service.js");
