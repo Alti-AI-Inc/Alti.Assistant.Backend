@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgplayer_aaua_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPLayer) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpgraph_ptf2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPGraph) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuring_ohoo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPURing) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendataproxy_mqya_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataProxy) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscluster_raao_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCluster) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwareproxy_36uk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareProxy) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22892,6 +22932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgplayer_aaua_logic": {
+          try {
+            const { OpenBGPLayerService } = await import("../liberty/openbgplayer_aaua.service.js");
+            const res = await OpenBGPLayerService.execute(args.target || "system");
+            return { output: `### OpenBGPLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpgraph_ptf2_logic": {
+          try {
+            const { OpenBGPGraphService } = await import("../liberty/openbgpgraph_ptf2.service.js");
+            const res = await OpenBGPGraphService.execute(args.target || "system");
+            return { output: `### OpenBGPGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuring_ohoo_logic": {
+          try {
+            const { OpenGPURingService } = await import("../liberty/opengpuring_ohoo.service.js");
+            const res = await OpenGPURingService.execute(args.target || "system");
+            return { output: `### OpenGPURing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPURing failed: ${err.message}` };
+          }
+        }
+        case "execute_opendataproxy_mqya_logic": {
+          try {
+            const { OpenDataProxyService } = await import("../liberty/opendataproxy_mqya.service.js");
+            const res = await OpenDataProxyService.execute(args.target || "system");
+            return { output: `### OpenDataProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscluster_raao_logic": {
+          try {
+            const { OpenChaosClusterService } = await import("../liberty/openchaoscluster_raao.service.js");
+            const res = await OpenChaosClusterService.execute(args.target || "system");
+            return { output: `### OpenChaosCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwareproxy_36uk_logic": {
           try {
             const { OpenHardwareProxyService } = await import("../liberty/openhardwareproxy_36uk.service.js");
