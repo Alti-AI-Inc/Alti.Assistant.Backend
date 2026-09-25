@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticbroker_uaid_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticBroker) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaossync_8p4f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosSync) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventcluster_ytu4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventCluster) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentswarm_e0t0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentSwarm) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryvault_2fa9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryVault) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendatanexus_5icd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataNexus) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23732,6 +23772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticbroker_uaid_logic": {
+          try {
+            const { OpenStaticBrokerService } = await import("../liberty/openstaticbroker_uaid.service.js");
+            const res = await OpenStaticBrokerService.execute(args.target || "system");
+            return { output: `### OpenStaticBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaossync_8p4f_logic": {
+          try {
+            const { OpenChaosSyncService } = await import("../liberty/openchaossync_8p4f.service.js");
+            const res = await OpenChaosSyncService.execute(args.target || "system");
+            return { output: `### OpenChaosSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventcluster_ytu4_logic": {
+          try {
+            const { OpenEventClusterService } = await import("../liberty/openeventcluster_ytu4.service.js");
+            const res = await OpenEventClusterService.execute(args.target || "system");
+            return { output: `### OpenEventCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentswarm_e0t0_logic": {
+          try {
+            const { OpenPersistentSwarmService } = await import("../liberty/openpersistentswarm_e0t0.service.js");
+            const res = await OpenPersistentSwarmService.execute(args.target || "system");
+            return { output: `### OpenPersistentSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryvault_2fa9_logic": {
+          try {
+            const { OpenPlanetaryVaultService } = await import("../liberty/openplanetaryvault_2fa9.service.js");
+            const res = await OpenPlanetaryVaultService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryVault failed: ${err.message}` };
+          }
+        }
         case "execute_opendatanexus_5icd_logic": {
           try {
             const { OpenDataNexusService } = await import("../liberty/opendatanexus_5icd.service.js");
