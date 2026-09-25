@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivevortex_ps66_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveVortex) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpsync_hdsx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPSync) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialring_1dob_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialRing) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryledger_h4un_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryLedger) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialdaemon_yv9c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialDaemon) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmicro-kernelring_2klf_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelRing) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26572,6 +26612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivevortex_ps66_logic": {
+          try {
+            const { OpenPredictiveVortexService } = await import("../liberty/openpredictivevortex_ps66.service.js");
+            const res = await OpenPredictiveVortexService.execute(args.target || "system");
+            return { output: `### OpenPredictiveVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpsync_hdsx_logic": {
+          try {
+            const { OpenBGPSyncService } = await import("../liberty/openbgpsync_hdsx.service.js");
+            const res = await OpenBGPSyncService.execute(args.target || "system");
+            return { output: `### OpenBGPSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialring_1dob_logic": {
+          try {
+            const { OpenFinancialRingService } = await import("../liberty/openfinancialring_1dob.service.js");
+            const res = await OpenFinancialRingService.execute(args.target || "system");
+            return { output: `### OpenFinancialRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryledger_h4un_logic": {
+          try {
+            const { OpenInMemoryLedgerService } = await import("../liberty/openin-memoryledger_h4un.service.js");
+            const res = await OpenInMemoryLedgerService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialdaemon_yv9c_logic": {
+          try {
+            const { OpenFinancialDaemonService } = await import("../liberty/openfinancialdaemon_yv9c.service.js");
+            const res = await OpenFinancialDaemonService.execute(args.target || "system");
+            return { output: `### OpenFinancialDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialDaemon failed: ${err.message}` };
+          }
+        }
         case "execute_openmicro-kernelring_2klf_logic": {
           try {
             const { OpenMicroKernelRingService } = await import("../liberty/openmicro-kernelring_2klf.service.js");
