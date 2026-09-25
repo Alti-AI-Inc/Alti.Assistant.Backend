@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedring_gdmv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedRing) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisepipeline_brbs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterprisePipeline) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelcontroller_sg4o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelController) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticoracle_q0c9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticOracle) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustercore_0auv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterCore) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumplane_79km_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumPlane) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27772,6 +27812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedring_gdmv_logic": {
+          try {
+            const { OpenAutomatedRingService } = await import("../liberty/openautomatedring_gdmv.service.js");
+            const res = await OpenAutomatedRingService.execute(args.target || "system");
+            return { output: `### OpenAutomatedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisepipeline_brbs_logic": {
+          try {
+            const { OpenEnterprisePipelineService } = await import("../liberty/openenterprisepipeline_brbs.service.js");
+            const res = await OpenEnterprisePipelineService.execute(args.target || "system");
+            return { output: `### OpenEnterprisePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterprisePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelcontroller_sg4o_logic": {
+          try {
+            const { OpenMicroKernelControllerService } = await import("../liberty/openmicro-kernelcontroller_sg4o.service.js");
+            const res = await OpenMicroKernelControllerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelController failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticoracle_q0c9_logic": {
+          try {
+            const { OpenStaticOracleService } = await import("../liberty/openstaticoracle_q0c9.service.js");
+            const res = await OpenStaticOracleService.execute(args.target || "system");
+            return { output: `### OpenStaticOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustercore_0auv_logic": {
+          try {
+            const { OpenCrossClusterCoreService } = await import("../liberty/opencross-clustercore_0auv.service.js");
+            const res = await OpenCrossClusterCoreService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterCore failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumplane_79km_logic": {
           try {
             const { OpenQuantumPlaneService } = await import("../liberty/openquantumplane_79km.service.js");
