@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedvortex_diiz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedVortex) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumproxy_zhwv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumProxy) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorvault_zuqo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorVault) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterlayer_j29e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLayer) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelnet_3302_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNet) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlesssync_a76k_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessSync) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23132,6 +23172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedvortex_diiz_logic": {
+          try {
+            const { OpenAdvancedVortexService } = await import("../liberty/openadvancedvortex_diiz.service.js");
+            const res = await OpenAdvancedVortexService.execute(args.target || "system");
+            return { output: `### OpenAdvancedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumproxy_zhwv_logic": {
+          try {
+            const { OpenQuantumProxyService } = await import("../liberty/openquantumproxy_zhwv.service.js");
+            const res = await OpenQuantumProxyService.execute(args.target || "system");
+            return { output: `### OpenQuantumProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorvault_zuqo_logic": {
+          try {
+            const { OpenVectorVaultService } = await import("../liberty/openvectorvault_zuqo.service.js");
+            const res = await OpenVectorVaultService.execute(args.target || "system");
+            return { output: `### OpenVectorVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterlayer_j29e_logic": {
+          try {
+            const { OpenCrossClusterLayerService } = await import("../liberty/opencross-clusterlayer_j29e.service.js");
+            const res = await OpenCrossClusterLayerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelnet_3302_logic": {
+          try {
+            const { OpenMicroKernelNetService } = await import("../liberty/openmicro-kernelnet_3302.service.js");
+            const res = await OpenMicroKernelNetService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelNet failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlesssync_a76k_logic": {
           try {
             const { OpenServerlessSyncService } = await import("../liberty/openserverlesssync_a76k.service.js");
