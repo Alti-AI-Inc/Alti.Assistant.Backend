@@ -25,3 +25,5 @@ scripts/*-local*
 uploads/
 
 !src/app/modules/data
+
+/src/generated/prisma

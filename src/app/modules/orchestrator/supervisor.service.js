@@ -11,6 +11,12 @@ export const SupervisorService = {
     if (promptLower.includes('research') || promptLower.includes('find out') || promptLower.includes('search')) {
       route = 'deep_research';
       logger.info(`[LangChain Supervisor] ➡️ Routing to Exa.ai Deep Research Swarm`);
+    } else if (promptLower.includes('weather') || promptLower.includes('flight') || promptLower.includes('crypto') || promptLower.includes('news')) {
+      route = 'omnidata_agent';
+      logger.info(`[LangChain Supervisor] ➡️ Routing to OmniData Aggregator Agent`);
+    } else if (promptLower.includes('rust') || promptLower.includes('wasm') || promptLower.includes('c++')) {
+      route = 'wasm_engine';
+      logger.info(`[LangChain Supervisor] ➡️ Routing to WebAssembly V8 Sandbox`);
     } else if (promptLower.includes('deploy') || promptLower.includes('build app')) {
       route = 'deploy';
       logger.info(`[LangChain Supervisor] ➡️ Routing to Liberty Prompt-to-URL Compiler`);
