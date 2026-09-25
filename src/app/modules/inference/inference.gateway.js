@@ -75,6 +75,12 @@ import {
   llmGetSecret,
   llmUpdateSecret,
   llmDeleteSecret,
+  llmGetDeploymentStorageFile,
+  llmListDeploymentVolumes,
+  llmCreateDeploymentVolume,
+  llmGetDeploymentVolume,
+  llmUpdateDeploymentVolume,
+  llmDeleteDeploymentVolume,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -2427,6 +2433,166 @@ export const InferenceGateway = {
       return res.status(500).json({
         error: {
           message: error.message || 'Error deleting secret.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Downloads deployment storage file / returns signed URL (GET /deployments/storage/:filename & /v1/)
+   * Official Reference: https://docs.together.ai/reference/deployments-storage-get
+   */
+  async handleGetDeploymentStorageFile(req, res) {
+    const filename = req.params?.filename;
+    if (!filename) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'filename'.",
+          type: 'invalid_request_error',
+          param: 'filename',
+        },
+      });
+    }
+    try {
+      const data = await llmGetDeploymentStorageFile(filename);
+      if (data?.url && typeof data.url === 'string' && (req.query?.redirect === 'true' || req.headers?.accept?.includes('text/html'))) {
+        return res.redirect(307, data.url);
+      }
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error retrieving storage file.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Lists all project deployment storage volumes (GET /deployments/storage/volumes & /v1/)
+   * Official Reference: https://docs.together.ai/reference/deployments-storage-volumes-list
+   */
+  async handleListDeploymentVolumes(req, res) {
+    try {
+      const data = await llmListDeploymentVolumes(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error listing deployment volumes.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Creates a new deployment storage volume (POST /deployments/storage/volumes & /v1/)
+   * Official Reference: https://docs.together.ai/reference/deployments-storage-volumes-create
+   */
+  async handleCreateDeploymentVolume(req, res) {
+    if (!req.body?.name) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'name'.",
+          type: 'invalid_request_error',
+          param: 'name',
+        },
+      });
+    }
+    try {
+      const data = await llmCreateDeploymentVolume(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error creating deployment volume.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Retrieves deployment storage volume details (GET /deployments/storage/volumes/:id & /v1/)
+   * Official Reference: https://docs.together.ai/reference/deployments-storage-volumes-get
+   */
+  async handleGetDeploymentVolume(req, res) {
+    const volumeId = req.params?.id || req.params?.volume_id;
+    if (!volumeId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
+    try {
+      const data = await llmGetDeploymentVolume(volumeId, req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error retrieving deployment volume.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Updates deployment storage volume (PATCH /deployments/storage/volumes/:id, PUT/POST & /v1/)
+   * Official Reference: https://docs.together.ai/reference/deployments-storage-volumes-update
+   */
+  async handleUpdateDeploymentVolume(req, res) {
+    const volumeId = req.params?.id || req.params?.volume_id;
+    if (!volumeId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
+    try {
+      const data = await llmUpdateDeploymentVolume(volumeId, req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error updating deployment volume.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Deletes deployment storage volume (DELETE /deployments/storage/volumes/:id & /v1/)
+   * Official Reference: https://docs.together.ai/reference/deployments-storage-volumes-delete
+   */
+  async handleDeleteDeploymentVolume(req, res) {
+    const volumeId = req.params?.id || req.params?.volume_id;
+    if (!volumeId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
+    try {
+      const data = await llmDeleteDeploymentVolume(volumeId);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error deleting deployment volume.',
           type: 'api_error',
         },
       });

@@ -801,6 +801,61 @@ deleteSecretRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Deployments Storage & Volumes (Official: https://docs.together.ai/reference/deployments-storage)
+// 1. List volumes (GET /deployments/storage/volumes & /v1/deployments/storage/volumes)
+const listDeploymentVolumeRoutes = ['/deployments/storage/volumes', '/v1/deployments/storage/volumes'];
+listDeploymentVolumeRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleListDeploymentVolumes(req, res);
+  });
+});
+
+// 2. Create volume (POST /deployments/storage/volumes & /v1/deployments/storage/volumes)
+const createDeploymentVolumeRoutes = ['/deployments/storage/volumes', '/v1/deployments/storage/volumes'];
+createDeploymentVolumeRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleCreateDeploymentVolume(req, res);
+  });
+});
+
+// 3. Retrieve volume (GET /deployments/storage/volumes/:id & /v1/deployments/storage/volumes/:id)
+const getDeploymentVolumeRoutes = ['/deployments/storage/volumes/:id', '/v1/deployments/storage/volumes/:id'];
+getDeploymentVolumeRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetDeploymentVolume(req, res);
+  });
+});
+
+// 4. Update volume (PATCH /deployments/storage/volumes/:id, PUT, POST & /v1/ aliases)
+const updateDeploymentVolumeRoutes = ['/deployments/storage/volumes/:id', '/v1/deployments/storage/volumes/:id'];
+updateDeploymentVolumeRoutes.forEach((path) => {
+  router.patch(path, async (req, res) => {
+    await InferenceGateway.handleUpdateDeploymentVolume(req, res);
+  });
+  router.put(path, async (req, res) => {
+    await InferenceGateway.handleUpdateDeploymentVolume(req, res);
+  });
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleUpdateDeploymentVolume(req, res);
+  });
+});
+
+// 5. Delete volume (DELETE /deployments/storage/volumes/:id & /v1/deployments/storage/volumes/:id)
+const deleteDeploymentVolumeRoutes = ['/deployments/storage/volumes/:id', '/v1/deployments/storage/volumes/:id'];
+deleteDeploymentVolumeRoutes.forEach((path) => {
+  router.delete(path, async (req, res) => {
+    await InferenceGateway.handleDeleteDeploymentVolume(req, res);
+  });
+});
+
+// 6. Download storage file (GET /deployments/storage/:filename & /v1/deployments/storage/:filename)
+const getDeploymentStorageFileRoutes = ['/deployments/storage/:filename', '/v1/deployments/storage/:filename'];
+getDeploymentStorageFileRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetDeploymentStorageFile(req, res);
+  });
+});
+
 // 4. Retrieve deployment (GET /deployments/:id & /v1/deployments/:id)
 const getDeploymentRoutes = ['/deployments/:id', '/v1/deployments/:id'];
 getDeploymentRoutes.forEach((path) => {
