@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openin-memorychain_z1fu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryChain) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionaldaemon_cplh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalDaemon) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenode_isp1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNode) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustercompiler_krzn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterCompiler) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriescore_wpbu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCore) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticnet_o69v_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticNet) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22572,6 +22612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openin-memorychain_z1fu_logic": {
+          try {
+            const { OpenInMemoryChainService } = await import("../liberty/openin-memorychain_z1fu.service.js");
+            const res = await OpenInMemoryChainService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionaldaemon_cplh_logic": {
+          try {
+            const { OpenHyperDimensionalDaemonService } = await import("../liberty/openhyper-dimensionaldaemon_cplh.service.js");
+            const res = await OpenHyperDimensionalDaemonService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenode_isp1_logic": {
+          try {
+            const { OpenCloudNativeNodeService } = await import("../liberty/opencloud-nativenode_isp1.service.js");
+            const res = await OpenCloudNativeNodeService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustercompiler_krzn_logic": {
+          try {
+            const { OpenCrossClusterCompilerService } = await import("../liberty/opencross-clustercompiler_krzn.service.js");
+            const res = await OpenCrossClusterCompilerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriescore_wpbu_logic": {
+          try {
+            const { OpenTimeSeriesCoreService } = await import("../liberty/opentime-seriescore_wpbu.service.js");
+            const res = await OpenTimeSeriesCoreService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesCore failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticnet_o69v_logic": {
           try {
             const { OpenSemanticNetService } = await import("../liberty/opensemanticnet_o69v.service.js");
