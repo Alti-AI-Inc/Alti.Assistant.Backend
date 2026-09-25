@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Microsoft GraphRAG (MIT). ⭐ 21k+ GitHub Stars
  * https://github.com/microsoft/graphrag
  * 
- * WHY THIS MATTERS: Directly beats standard RAG used in Gemini and ChatGPT.
+ * WHY THIS MATTERS: Directly beats standard RAG used in legacy providers.
  * Traditional vector search fails on holistic, multi-document synthesis
  * (e.g. "What are the major supply chain vulnerabilities across all 200 contracts?").
  * Microsoft GraphRAG builds community-detected knowledge graphs, generating

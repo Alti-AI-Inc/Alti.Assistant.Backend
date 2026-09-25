@@ -11,7 +11,7 @@ import { logger } from '../../../shared/logger.js';
  * a Python script and automatically versions data, schedules training,
  * scales to GPU clusters, and deploys to production.
  * 
- * Replaces: Azure ML ($$$), SageMaker ($$$), Vertex AI ($$$).
+ * Replaces: legacy cloud ML pipelines.
  */
 export const MetaflowService = {
 

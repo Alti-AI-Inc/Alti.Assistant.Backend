@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Apache Cassandra (Apache 2.0). ⭐ 9.5k+ GitHub Stars
  * https://github.com/apache/cassandra
  * 
- * WHY THIS MATTERS: Replaces Oracle NoSQL, IBM Cloudant, and Azure Cosmos DB.
+ * WHY THIS MATTERS: Replaces legacy NoSQL DBs.
  * Cassandra is the benchmark for peer-to-peer, masterless distributed databases.
  * Capable of handling petabytes of data across multiple racks at Liberty Center One
  * with zero single point of failure and linear write scalability for high-velocity

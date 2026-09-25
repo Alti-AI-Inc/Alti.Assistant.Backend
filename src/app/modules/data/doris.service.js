@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Apache Doris (Apache 2.0). ⭐ 13k+ GitHub Stars
  * https://github.com/apache/doris
  * 
- * WHY THIS MATTERS: Replaces Oracle Exadata, Azure Synapse, and Snowflake.
+ * WHY THIS MATTERS: Replaces legacy data warehouses.
  * Apache Doris is a next-generation real-time analytical database based on an MPP
  * architecture. It answers sub-second SQL queries across billions of rows,
  * supporting concurrent point lookups, high-throughput joins, and real-time upserts

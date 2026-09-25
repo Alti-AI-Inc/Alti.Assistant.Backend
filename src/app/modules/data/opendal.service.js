@@ -8,7 +8,7 @@ import { logger } from '../../../shared/logger.js';
  * WHY THIS MATTERS: Replaces fragmented cloud storage SDKs.
  * OpenDAL provides a single, asynchronous data access layer that allows Aphura
  * to read and write data seamlessly across 30+ storage backends (MinIO, S3,
- * Azure Blob, Google Cloud Storage, HDFS, Redis, SFTP) with consistent retry,
+ * HDFS, Redis, SFTP) with consistent retry,
  * observability, and zero vendor lock-in.
  */
 export const OpenDALService = {

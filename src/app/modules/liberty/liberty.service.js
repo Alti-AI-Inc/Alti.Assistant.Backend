@@ -8,7 +8,7 @@ import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
 // MinIO client targeting Aphura OpenStack Swift S3-compatible storage
-// MinIO client is Apache 2.0 — zero AWS dependency
+// MinIO client is Apache 2.0 — zero external cloud dependency
 const minioClient = new Minio.Client({
   endPoint: (config.objectStorage?.endpoint || 'storage.aphura.com').replace(/^https?:\/\//, ''),
   port: config.objectStorage?.port || 443,

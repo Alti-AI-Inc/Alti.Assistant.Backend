@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Tesseract.js (Apache 2.0). ⭐ 34k+ GitHub Stars
  * https://github.com/naptha/tesseract.js
  * 
- * WHY THIS MATTERS: Replaces IBM Datacap and Microsoft Azure AI Document Intelligence.
+ * WHY THIS MATTERS: Replaces IBM Datacap
  * When a user snaps a photo of a physical receipt, invoice, passport, or scanned
  * legal deed on the mobile app or web, Tesseract.js extracts all text and tabular
  * structures locally with zero data egress in over 100 languages.

@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Infisical (MIT). ⭐ 16k+ GitHub Stars
  * https://github.com/Infisical/infisical
  * 
- * WHY THIS MATTERS: Replaces CyberArk, HashiCorp Vault (BSL), and Azure Key Vault.
+ * WHY THIS MATTERS: Replaces CyberArk, HashiCorp Vault (BSL)
  * Infisical provides end-to-end encrypted secret management, dynamic credential
  * generation, automated rotation, and fine-grained access tokens across dev,
  * staging, and production environments without vendor lock-in.

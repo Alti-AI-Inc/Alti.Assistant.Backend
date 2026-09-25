@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Feast (Apache 2.0). ⭐ 5.3k+ GitHub Stars
  * https://github.com/feast-dev/feast
  * 
- * WHY THIS MATTERS: Replaces AWS SageMaker Feature Store and Databricks Feature Store.
+ * WHY THIS MATTERS: Replaces legacy feature stores.
  * Feast centralizes and standardizes feature definitions for AI models. It guarantees
  * consistency between offline batch training (retrieving past historical features
  * from Iceberg) and online real-time inference (retrieving low-latency features

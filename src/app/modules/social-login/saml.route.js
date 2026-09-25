@@ -26,7 +26,7 @@ const router = express.Router();
  * /api/v1/auth-saml/login:
  *   get:
  *     summary: Initiate Enterprise SAML 2.0 Login
- *     description: Redirects the user to the configured Identity Provider (Okta, Azure AD, etc.) for authentication.
+ *     description: Redirects the user to the configured Identity Provider (Okta, etc.) for authentication.
  *     tags:
  *       - Enterprise SSO
  */

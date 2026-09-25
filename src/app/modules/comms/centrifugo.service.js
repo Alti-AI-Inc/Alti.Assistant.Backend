@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Centrifugo (Apache 2.0). ⭐ 8k+ GitHub Stars
  * https://github.com/centrifugal/centrifugo
  * 
- * WHY THIS MATTERS: Replaces Pusher, Ably ($$$), and AWS IoT Core.
+ * WHY THIS MATTERS: Replaces Pusher, Ably ($$$)
  * Centrifugo is a real-time messaging server in Go that scales to over
  * 1,000,000 concurrent persistent connections (WebSockets, SSE, WebTransport).
  * It enables instant bidirectional data streaming, presence channels, and message

@@ -4,7 +4,7 @@ import path from 'path';
 import config from '../../../../config/index.js';
 
 // MinIO client targeting Aphura all-flash NVMe storage
-// Apache 2.0 — zero AWS dependency
+// Apache 2.0 — zero external cloud dependency
 const minioClient = new Minio.Client({
   endPoint: (config.objectStorage?.endpoint || 'storage.aphura.com').replace(/^https?:\/\//, ''),
   port: config.objectStorage?.port || 443,

@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by WatermelonDB (MIT). ⭐ 10k+ GitHub Stars
  * https://github.com/Nozbe/WatermelonDB
  * 
- * WHY THIS MATTERS: Replaces Microsoft Azure Mobile Apps Offline Sync.
+ * WHY THIS MATTERS: Replaces legacy offline sync solutions.
  * Built on SQLite, WatermelonDB is optimized for React and React Native.
  * It handles 10,000+ local records on low-end iOS and Android phones
  * with instant 60 FPS scrolling and lazy-loading, automatically syncing

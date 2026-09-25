@@ -55,10 +55,10 @@ import {
   llmGetEvalStatus,
   llmListEvalModels,
   // Batches
-  llmCreateBatch,
-  llmListBatches,
-  llmGetBatch,
-  llmCancelBatch,
+  createBatchJob,
+  listBatchJobs,
+  getBatchJob,
+  cancelBatchJob,
   // Whoami
   llmWhoami,
   // Models Beta / DMI
@@ -274,6 +274,10 @@ import {
   validateBatchRequest,
   validateBatchJsonlLine,
   validateBatchInputDataset,
+  createBatchJob,
+  listBatchJobs,
+  getBatchJob,
+  cancelBatchJob,
 } from './together.batches.js';
 import {
   TCI_SPEC,
@@ -1012,9 +1016,7 @@ Serverless Allowlist (${serverless.length} models):
 ${serverless.map(m => `  - ${m.id} (${m.name})${m.default_judge ? ' [DEFAULT JUDGE]' : ''}${m.vision ? ' [VISION]' : ''}`).join('\n')}
 
 External Shortcuts:
-  - Anthropic: ${docs.models.external_shortcuts.anthropic.slice(0, 3).join(', ')}...
   - Google: ${docs.models.external_shortcuts.google.slice(0, 3).join(', ')}...
-  - OpenAI: ${docs.models.external_shortcuts.openai.slice(0, 3).join(', ')}...
 Dedicated Format: ${docs.models.dedicated_endpoint_format}
 `.trim();
     return { ...modelsData, ...docs, text };
@@ -1022,7 +1024,7 @@ Dedicated Format: ${docs.models.dedicated_endpoint_format}
 
   if (action === 'validate') {
     const type = parsed.flags.type || 'classify';
-    const judgeModel = parsed.flags['judge-model'] || parsed.flags.judge || 'openai/gpt-oss-120b';
+    const judgeModel = parsed.flags['judge-model'] || parsed.flags.judge || 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
     const judgeSource = parsed.flags['judge-model-source'] || parsed.flags.judge_source || 'serverless';
     const judgeTemplate = parsed.flags['judge-system-template'] || DEFAULT_JUDGE_TEMPLATES.classify_harmful;
     const fileId = parsed.flags['input-data-file-path'] || parsed.flags.file || 'file-eval-sample';
@@ -1090,7 +1092,7 @@ ${validation.error ? `Error: ${validation.error}` : ''}
   if (action === 'create' || action === 'run') {
     const type = parsed.flags.type || 'classify';
     const fileId = parsed.flags['input-data-file-path'] || parsed.flags['eval-data-file'] || parsed.flags.file || 'file-eval-default';
-    const judgeModel = parsed.flags['judge-model'] || 'openai/gpt-oss-120b';
+    const judgeModel = parsed.flags['judge-model'] || 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
     const judgeSource = parsed.flags['judge-model-source'] || 'serverless';
     const judgeTemplate = parsed.flags['judge-system-template'] || DEFAULT_JUDGE_TEMPLATES.classify_harmful;
 
@@ -1316,7 +1318,7 @@ ${result.errors.length > 0 ? `  Errors: [${result.errors.join('; ')}]\n` : ''}${
     if (!endpoint) endpoint = '/v1/chat/completions';
 
     if (!inputFile) throw new Error('Missing required argument: --input-file');
-    const batch = await llmCreateBatch({ input_file_id: inputFile, endpoint });
+    const batch = await createBatchJob({ input_file_id: inputFile, endpoint });
     return {
       batch,
       text: `Batch submitted successfully.\n  ID: ${batch.id}\n  Endpoint: ${endpoint}\n  Input File: ${inputFile}\n  Status: ${batch.status || 'in_progress'}`,
@@ -1324,7 +1326,7 @@ ${result.errors.length > 0 ? `  Errors: [${result.errors.join('; ')}]\n` : ''}${
   }
 
   if (action === 'list') {
-    const batches = await llmListBatches();
+    const batches = await listBatchJobs();
     const list = Array.isArray(batches) ? batches : (batches.data || []);
     const rows = list.map(b => [
       b.id,
@@ -1340,7 +1342,7 @@ ${result.errors.length > 0 ? `  Errors: [${result.errors.join('; ')}]\n` : ''}${
   if (action === 'retrieve' || action === 'get') {
     const id = parsed.subsubcommand || parsed.flags.id;
     if (!id) throw new Error('Missing batch ID.');
-    const batch = await llmGetBatch(id);
+    const batch = await getBatchJob(id);
     return {
       batch,
       text: `Batch: ${batch.id}\n  Endpoint: ${batch.endpoint}\n  Status: ${batch.status}\n  Progress: ${batch.completed_requests || 0}/${batch.total_requests || 0}`,
@@ -1361,7 +1363,7 @@ ${result.errors.length > 0 ? `  Errors: [${result.errors.join('; ')}]\n` : ''}${
   if (action === 'cancel') {
     const id = parsed.subsubcommand || parsed.flags.id;
     if (!id) throw new Error('Missing batch ID.');
-    const cancelled = await llmCancelBatch(id);
+    const cancelled = await cancelBatchJob(id);
     return { batch: cancelled, text: `Batch ${id} cancelled.` };
   }
 

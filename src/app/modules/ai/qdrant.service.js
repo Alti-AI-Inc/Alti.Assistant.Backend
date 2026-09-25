@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Qdrant (Apache 2.0). ⭐ 21k+ GitHub Stars
  * https://github.com/qdrant/qdrant
  * 
- * WHY THIS MATTERS: Replaces Oracle AI Vector Search and Azure Vector Search.
+ * WHY THIS MATTERS: Replaces Oracle AI Vector Search
  * Qdrant provides vector similarity search with rich payload filtering,
  * multi-tenant isolation, and HNSW index optimization written in Rust.
  * Essential for semantic search, memory recall, and enterprise RAG.

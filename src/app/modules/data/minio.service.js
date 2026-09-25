@@ -8,7 +8,7 @@ import { logger } from '../../../shared/logger.js';
  * WHY THIS MATTERS: Every file upload, every PDF, every image, every
  * dataset, every model checkpoint needs to be stored somewhere.
  * MinIO gives Aphura a fully S3-compatible object store that runs
- * 100% on Liberty Center One. Zero dependency on AWS S3.
+ * 100% on Liberty Center One. Zero external cloud dependency.
  * Every byte of user data stays sovereign.
  */
 export const MinIOService = {

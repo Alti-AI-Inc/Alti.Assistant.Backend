@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Mem0 (Apache 2.0). ⭐ 25k+ GitHub Stars
  * https://github.com/mem0ai/mem0
  * 
- * WHY THIS MATTERS: Directly beats ChatGPT Memory and Claude Context Limits.
+ * WHY THIS MATTERS: Directly beats legacy context limits.
  * Mem0 provides persistent cognitive memory for AI agents. It extracts user
  * preferences, business background, past decisions, and conversational facts,
  * storing them in a personalized semantic graph that persists across sessions,

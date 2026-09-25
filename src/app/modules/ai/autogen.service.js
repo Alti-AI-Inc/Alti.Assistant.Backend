@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Microsoft AutoGen (MIT). ⭐ 36k+ GitHub Stars
  * https://github.com/microsoft/autogen
  * 
- * WHY THIS MATTERS: Directly beats ChatGPT and Claude on complex planning.
+ * WHY THIS MATTERS: Directly beats standard models on complex planning.
  * Built by Microsoft, AutoGen enables multiple conversational AI agents
  * (UserProxyAgent, AssistantAgent, Critic, Coder) to converse, cross-examine,
  * debate hypotheses, critique each other's code, and reach consensus autonomously

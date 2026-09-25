@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Apache Airflow (Apache 2.0). ⭐ 36k+ GitHub Stars
  * https://github.com/apache/airflow
  * 
- * WHY THIS MATTERS: Replaces IBM Control-M and Azure Data Factory.
+ * WHY THIS MATTERS: Replaces IBM Control-M
  * Airflow schedules, monitors, and manages mission-critical multi-step
  * enterprise workflows as Directed Acyclic Graphs (DAGs). When a business
  * runs daily payroll, nightly reconciliations, or hourly syncs across 50

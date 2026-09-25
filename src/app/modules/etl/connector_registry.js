@@ -69,7 +69,7 @@ export const CONNECTOR_CATEGORIES = {
     'contractworks', 'ironclad', 'juro', 'precisely', 'concord'
   ],
   AI_ML: [
-    'openai', 'anthropic', 'together_ai', 'replicate', 'huggingface',
+    'together_ai', 'huggingface',
     'cohere', 'stability_ai', 'mistral', 'deepseek', 'perplexity'
   ],
   SOCIAL: [

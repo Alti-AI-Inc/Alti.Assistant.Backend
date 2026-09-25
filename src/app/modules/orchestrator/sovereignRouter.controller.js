@@ -14,7 +14,7 @@ export const SovereignRouterController = {
    * Handles POST /api/v1/orchestrator/route-prompt
    * Handles POST /api/v1/search/stream
    * Handles POST /api/v1/chat/get-response
-   * Handles POST /api/v1/gemini/4nano/get-response
+   * Handles POST /api/v1/v1/chat/completions
    */
   routePrompt: catchAsync(async (req, res) => {
     const prompt = req.body.prompt || req.body.message;

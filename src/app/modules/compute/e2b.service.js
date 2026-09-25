@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by E2B (Apache 2.0).
  * https://github.com/e2b-dev/e2b
  * 
- * WHY THIS MATTERS: This is the single feature that makes ChatGPT's
+ * WHY THIS MATTERS: This is the single feature that makes standard code interpreters
  * Code Interpreter work. Without E2B, Aphura can only WRITE code.
  * With E2B, Aphura can EXECUTE code in real-time inside isolated
  * cloud sandboxes — Python, Node.js, Bash, anything — and return

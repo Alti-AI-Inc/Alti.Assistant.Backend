@@ -6,7 +6,7 @@ import { logger } from '../../../shared/logger.js';
  * https://github.com/evidence-dev/evidence
  * 
  * WHY THIS MATTERS: Microsoft Power BI costs $10/user/month and sends
- * your data to Azure. Evidence generates beautiful BI dashboards from
+ * your data. Evidence generates beautiful BI dashboards from
  * SQL + Markdown that run 100% on Liberty Center One. A user asks a
  * business question → Aphura writes the SQL → Evidence renders an
  * interactive dashboard with charts, KPIs, and drill-downs inline

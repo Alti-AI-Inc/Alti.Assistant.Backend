@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Apache Drill (Apache 2.0). ⭐ 4.3k+ GitHub Stars
  * https://github.com/apache/drill
  * 
- * WHY THIS MATTERS: Replaces AWS Athena and Google BigQuery.
+ * WHY THIS MATTERS: Replaces legacy query engines.
  * Apache Drill is an ANSI SQL query engine that operates directly over schema-free
  * data. Without creating tables or defining schemas, Aphura can run instant SQL
  * queries directly across messy JSON files, Parquet directories on MinIO,

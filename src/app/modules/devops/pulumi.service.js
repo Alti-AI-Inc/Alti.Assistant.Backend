@@ -7,7 +7,7 @@ const execAsync = util.promisify(exec);
 /**
  * Aphura Infrastructure Engine
  * Powered by Pulumi (Apache 2.0).
- * Autonomously provisions AWS/GCP infrastructure using TypeScript/Python code.
+ * Autonomously provisions Liberty Center One infrastructure using TypeScript/Python code.
  */
 export const PulumiService = {
   
@@ -21,9 +21,9 @@ export const PulumiService = {
 PULUMI DEPLOYMENT PLAN (DRY RUN)
 Target: ${cloudProvider.toUpperCase()}
 Resources to Create:
-  + aws:eks/cluster:Cluster "aphura-k8s"
-  + aws:ec2/vpc:Vpc "aphura-vpc"
-  + aws:rds/instance:Instance "aphura-db"
+  + sovereign:k8s/cluster:Cluster "aphura-k8s"
+  + sovereign:vpc/vpc:Vpc "aphura-vpc"
+  + sovereign:db/instance:Instance "aphura-db"
 
 Status: Validation Passed. Ready to apply.
       `;

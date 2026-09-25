@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Apache Spark (Apache 2.0). ⭐ 39k+ GitHub Stars
  * https://github.com/apache/spark
  * 
- * WHY THIS MATTERS: Replaces IBM InfoSphere, Databricks, and Azure Synapse.
+ * WHY THIS MATTERS: Replaces legacy data processing engines.
  * Spark is the undisputed global standard for large-scale data processing.
  * When an enterprise user uploads multi-gigabyte financial datasets, customer
  * logs, or sales transactions, Spark distributes the computation across

@@ -6,7 +6,7 @@ import { logger } from '../../shared/logger.js';
 
 // 🛑 OEM HARD LAW: EXCLUSIVE PROVIDER LOCK
 // Aphura is strictly bound to Together.ai as the sole inference engine.
-// Connecting to OpenAI, Anthropic, Google, or any other provider is mathematically forbidden.
+// Connecting to other providers or any other provider is mathematically forbidden.
 const llmClient = new Together({
   apiKey: config.llm?.apiKey || process.env.TOGETHER_API_KEY || 'dummy_key',
   baseURL: 'https://api.together.xyz/v1', // Hardcoded base URL lock
@@ -31,7 +31,7 @@ const TOGETHER_AI_FACTORY = {
   VISION_HEAVY: 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo',
   VISION_FAST: 'meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo',
   
-  // ⚡ General Chat & Edge Speed (ChatGPT Speed Killers)
+  // ⚡ General Chat & Edge Speed (High Speed Chat)
   CHAT_SPEED: 'deepseek-ai/DeepSeek-V4-Flash',
   CHAT_SMART: 'zai-org/GLM-5.3',
 
@@ -1471,7 +1471,7 @@ export async function llmListEvalModels(options = {}) {
       'deepseek-ai/DeepSeek-V4-Pro',
       'deepseek-ai/DeepSeek-R1',
       'Qwen/Qwen2.5-72B-Instruct-Turbo',
-      'openai/gpt-oss-120b',
+      'meta-llama/Llama-3.3-70B-Instruct-Turbo',
       'mistralai/Mixtral-8x7B-Instruct-v0.1',
     ],
   };

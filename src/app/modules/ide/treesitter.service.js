@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Tree-sitter (MIT). ⭐ 18k+ GitHub Stars
  * https://github.com/tree-sitter/tree-sitter
  * 
- * WHY THIS MATTERS: Directly beats Cursor, GitHub Copilot, and Claude Code.
+ * WHY THIS MATTERS: Directly beats legacy IDE tools.
  * Tree-sitter builds incremental Concrete Syntax Trees (CSTs) for 40+ programming
  * languages in sub-millisecond time. It powers code folding, syntax navigation,
  * symbol definition lookups, and semantic refactoring across Web, Desktop, and IDE,

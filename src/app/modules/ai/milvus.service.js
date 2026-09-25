@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Milvus (Apache 2.0). ⭐ 33k+ GitHub Stars
  * https://github.com/milvus-io/milvus
  * 
- * WHY THIS MATTERS: Replaces Pinecone ($$$) and AWS OpenSearch Vector.
+ * WHY THIS MATTERS: Replaces Pinecone ($$$)
  * Milvus is built specifically for massive-scale similarity search, handling
  * billions of high-dimensional vectors with hardware acceleration (GPU/AVX-512).
  * It features separated compute and storage, horizontal cluster scaling,

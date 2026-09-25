@@ -20,7 +20,7 @@
  *    - Next.js App Router streaming
  *    - LangChain (langchain-together / ChatTogether)
  *    - LlamaIndex (OpenAILike)
- *    - LiteLLM (litellm proxy & Claude Code)
+ *    - LiteLLM (litellm proxy )
  *    - Helicone (LLM Observability gateway)
  * 
  * License: MIT

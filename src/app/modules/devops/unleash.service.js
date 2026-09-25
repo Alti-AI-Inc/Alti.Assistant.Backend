@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Unleash (Apache 2.0). ⭐ 11k+ GitHub Stars
  * https://github.com/Unleash/unleash
  * 
- * WHY THIS MATTERS: Replaces LaunchDarkly ($$$/seat) and Azure App Configuration.
+ * WHY THIS MATTERS: Replaces LaunchDarkly ($$$/seat)
  * Unleash allows product managers and executives to toggle features on/off instantly,
  * run percentage-based canary rollouts, and target specific enterprise customer tiers
  * across Web, Mobile, and Desktop without redeploying code.

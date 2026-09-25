@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by QuestDB (Apache 2.0). ⭐ 14k+ GitHub Stars
  * https://github.com/questdb/questdb
  * 
- * WHY THIS MATTERS: Replaces kdb+, Oracle Time Series, and Azure Time Series Insights.
+ * WHY THIS MATTERS: Replaces legacy time-series DBs.
  * QuestDB processes millions of time-series events per second using vectorized SIMD
  * instructions and column-oriented storage. Optimized for financial tick data,
  * algorithmic trading signals, IoT telemetry, and real-time server metrics.

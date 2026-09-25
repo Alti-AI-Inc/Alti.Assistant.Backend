@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Whisper.cpp (MIT).
  * https://github.com/ggerganov/whisper.cpp
  * 
- * WHY THIS MATTERS: Every competitor (ChatGPT, Gemini, Grok) has voice.
+ * WHY THIS MATTERS: Modern AI systems has voice.
  * Whisper.cpp is OpenAI's Whisper model compiled to pure C++ — it runs
  * locally on Liberty Center One at extreme speed without sending audio
  * to any external API. The user's voice data NEVER leaves the sovereign

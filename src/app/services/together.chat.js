@@ -250,7 +250,7 @@ export const REASONING_MODELS_CATALOG = [
   { model: 'moonshotai/Kimi-K3', type: 'Hybrid (on by default)', context_length: '1M', reasoning_field: 'reasoning_content' },
   { model: 'Qwen/Qwen3.6-Plus', type: 'Hybrid (on by default)', context_length: '1M', reasoning_field: 'reasoning_content' },
   { model: 'Qwen/Qwen3.5-9B', type: 'Hybrid (on by default)', context_length: '262K', reasoning_field: 'reasoning_content' },
-  { model: 'openai/gpt-oss-120b', type: 'Adjustable effort', context_length: '128K', reasoning_field: 'reasoning' },
+  { model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', type: 'Adjustable effort', context_length: '128K', reasoning_field: 'reasoning' },
   { model: 'deepseek-ai/DeepSeek-R1', type: 'Reasoning only', context_length: '128K', reasoning_field: '<think> tag in content' },
 ];
 

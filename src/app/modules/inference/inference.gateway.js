@@ -213,6 +213,11 @@ import {
   getSupportedModelsDocs,
   validateEvaluationParams,
   validateDatasetColumns,
+  createEvaluationJob,
+  listEvaluationJobs,
+  listSupportedEvaluationModels,
+  getEvaluationJobDetails,
+  getEvaluationJobStatus,
 } from '../../services/together.evaluations.js';
 import {
   getBatchOverview,
@@ -221,6 +226,10 @@ import {
   validateBatchRequest,
   validateBatchJsonlLine,
   validateBatchInputDataset,
+  createBatchJob,
+  listBatchJobs,
+  getBatchJob,
+  cancelBatchJob,
 } from '../../services/together.batches.js';
 import {
   getCodeExecutionOverview,
@@ -1210,71 +1219,13 @@ export const InferenceGateway = {
    */
   async handleExecuteCode(req, res) {
     const reqBody = req.body || {};
-    if (!reqBody.code) {
-      return res.status(400).json({
-        data: null,
-        errors: [
-          {
-            message: "Missing required parameter 'code'.",
-            type: 'invalid_request_error',
-            param: 'code',
-            code: 'missing_parameter',
-          },
-        ],
-      });
-    }
-
-    const TOGETHER_API_KEY = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const TOGETHER_ENDPOINT = 'https://api.together.ai/v1/tci/execute';
-    const language = reqBody.language || 'python';
-    const sessionId = reqBody.session_id || reqBody.sessionId;
-
-    const payload = {
-      code: String(reqBody.code),
-      language,
-      session_id: sessionId,
-      files: reqBody.files,
-    };
-
-    Object.keys(payload).forEach((k) => {
-      if (payload[k] === undefined) delete payload[k];
-    });
-
     try {
-      logger.info(`[Inference Gateway] 💻 Executing code snippet (${language})`);
-      const response = await fetch(TOGETHER_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${TOGETHER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(60000),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData?.error?.message || `Together TCI API returned ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await executeCodeInterpreter(reqBody);
       return res.status(200).json(data);
     } catch (error) {
-      logger.warn(`[Inference Gateway] TCI execute failed upstream: ${error.message}. Returning sovereign execution.`);
-      const assignedSession = sessionId || `ses_sov_${Date.now()}`;
-      const outputText = `[Aphura Sovereign Interpreter]\nExecuted ${language} code block:\n${String(reqBody.code).slice(0, 100)}\nExit code: 0\n`;
-      return res.status(200).json({
-        errors: null,
-        data: {
-          session_id: assignedSession,
-          status: 'success',
-          outputs: [
-            {
-              type: 'stdout',
-              data: outputText,
-            },
-          ],
-        },
+      const status = error.statusCode || 500;
+      return res.status(status).json({ 
+        error: { message: error.message, errors: error.errors } 
       });
     }
   },
@@ -1284,42 +1235,11 @@ export const InferenceGateway = {
    * Official Reference: https://docs.together.ai/reference/tci-sessions
    */
   async handleListCodeSessions(req, res) {
-    const TOGETHER_API_KEY = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const TOGETHER_ENDPOINT = 'https://api.together.ai/v1/tci/sessions';
-
     try {
-      logger.info(`[Inference Gateway] 🔍 Fetching active code interpreter sessions`);
-      const response = await fetch(TOGETHER_ENDPOINT, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${TOGETHER_API_KEY}`,
-        },
-        signal: AbortSignal.timeout(30000),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Together TCI API returned ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await listCodeInterpreterSessions();
       return res.status(200).json(data);
     } catch (error) {
-      logger.warn(`[Inference Gateway] TCI sessions failed upstream: ${error.message}. Returning sovereign session list.`);
-      const nowIso = new Date().toISOString();
-      return res.status(200).json({
-        errors: null,
-        data: {
-          sessions: [
-            {
-              id: 'ses_sov_primary',
-              started_at: new Date(Date.now() - 3600000).toISOString(),
-              last_execute_at: nowIso,
-              expires_at: new Date(Date.now() + 86400000).toISOString(),
-              execute_count: 1,
-            },
-          ],
-        },
-      });
+      return res.status(500).json({ error: error.message });
     }
   },
 
@@ -1720,25 +1640,14 @@ export const InferenceGateway = {
    */
   async handleCreateBatch(req, res) {
     const payload = req.body || {};
-    const inputFileId = payload.input_file_id || payload.inputFileId;
-    const endpoint = payload.endpoint;
-
-    if (!inputFileId || !endpoint) {
-      return res.status(400).json({
-        error: {
-          message: "Both 'input_file_id' and 'endpoint' are required parameters.",
-          type: 'invalid_request_error',
-          param: !inputFileId ? 'input_file_id' : 'endpoint',
-          code: 'missing_parameter',
-        },
-      });
-    }
-
     try {
-      const data = await llmCreateBatch(payload);
+      const data = await createBatchJob(payload);
       return res.status(200).json(data);
     } catch (error) {
-      return res.status(500).json({ error: error.message });
+      const status = error.statusCode || 500;
+      return res.status(status).json({ 
+        error: { message: error.message, errors: error.errors } 
+      });
     }
   },
 
@@ -1748,7 +1657,7 @@ export const InferenceGateway = {
    */
   async handleListBatches(req, res) {
     try {
-      const data = await llmListBatches(req.query);
+      const data = await listBatchJobs(req.query);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -1771,7 +1680,7 @@ export const InferenceGateway = {
       });
     }
     try {
-      const data = await llmGetBatch(batchId);
+      const data = await getBatchJob(batchId);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -1794,7 +1703,7 @@ export const InferenceGateway = {
       });
     }
     try {
-      const data = await llmCancelBatch(batchId);
+      const data = await cancelBatchJob(batchId);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -2145,10 +2054,13 @@ export const InferenceGateway = {
    */
   async handleCreateEval(req, res) {
     try {
-      const data = await llmCreateEval(req.body);
+      const data = await createEvaluationJob(req.body);
       return res.status(200).json(data);
     } catch (error) {
-      return res.status(500).json({ error: error.message });
+      const status = error.statusCode || 500;
+      return res.status(status).json({ 
+        error: { message: error.message, errors: error.errors } 
+      });
     }
   },
 
@@ -2158,7 +2070,7 @@ export const InferenceGateway = {
    */
   async handleListEvals(req, res) {
     try {
-      const data = await llmListEvals(req.query);
+      const data = await listEvaluationJobs(req.query);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -2171,7 +2083,7 @@ export const InferenceGateway = {
    */
   async handleListEvalModels(req, res) {
     try {
-      const data = await llmListEvalModels(req.query);
+      const data = await listSupportedEvaluationModels(req.query);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -2194,7 +2106,7 @@ export const InferenceGateway = {
       });
     }
     try {
-      const data = await llmGetEval(evalId);
+      const data = await getEvaluationJobDetails(evalId);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -2217,7 +2129,7 @@ export const InferenceGateway = {
       });
     }
     try {
-      const data = await llmGetEvalStatus(evalId);
+      const data = await getEvaluationJobStatus(evalId);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });

@@ -139,13 +139,13 @@ export function getReferenceImagesDocs() {
       {
         name: 'reference_images',
         type: 'string[]',
-        models: ['FLUX.2 Pro', 'FLUX.2 Dev', 'FLUX.2 Flex', 'Gemini 3 Pro Image', 'Flash Image 2.5'],
+        models: ['FLUX.2 Pro', 'FLUX.2 Dev', 'FLUX.2 Flex', 'SDXL', 'Flash Image 2.5'],
         description: 'An array of image URLs to guide multi-image generation, subject replacement, or composite editing.',
       },
     ],
     rules: [
       'reference_images is recommended for FLUX.2 and Google models because it supports multi-image inputs.',
-      'FLUX.2 [dev], Gemini 3 Pro Image, and Flash Image 2.5 strictly require reference_images array.',
+      'FLUX.2 [dev], SDXL, and Flash Image 2.5 strictly require reference_images array.',
       'Kontext models strictly require image_url and use aspect_ratio for output sizing.',
     ],
     code_snippets: {

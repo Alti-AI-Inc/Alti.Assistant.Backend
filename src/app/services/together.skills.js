@@ -264,7 +264,6 @@ export const DOCS_MCP_SERVER = {
   transport: 'http',
   install_commands: {
     universal: 'npx add-mcp https://docs.together.ai/mcp',
-    claude_code: 'claude mcp add --transport http "TogetherAIDocs" https://docs.together.ai/mcp',
     cursor: {
       url: 'https://docs.together.ai/mcp',
       settings_json: { mcpServers: { 'together-docs': { url: 'https://docs.together.ai/mcp' } } },

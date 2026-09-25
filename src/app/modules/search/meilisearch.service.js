@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Meilisearch (MIT). ⭐ 46k+ GitHub Stars
  * https://github.com/meilisearch/meilisearch
  * 
- * WHY THIS MATTERS: Replaces Algolia ($$$ per search) and Azure AI Search.
+ * WHY THIS MATTERS: Replaces Algolia ($$$ per search)
  * Meilisearch provides typo-tolerant, sub-10ms instant search across website,
  * mobile app, and desktop app. As users type in the prompt box or search bar,
  * search results, documents, and product catalogs update instantaneously.

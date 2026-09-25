@@ -5,7 +5,7 @@ import { logger } from '../../../shared/logger.js';
  * Powered by Ray (Apache 2.0). ⭐ 34k+ GitHub Stars
  * https://github.com/ray-project/ray
  * 
- * WHY THIS MATTERS: Replaces Azure Batch, AWS ParallelCluster, and Databricks Ray.
+ * WHY THIS MATTERS: Replaces Databricks Ray.
  * Ray distributes Python and heavy computational workloads across entire bare-metal
  * server clusters at Liberty Center One. It dynamically schedules thousands of parallel
  * tasks, hyperparameter tuning runs, and Monte Carlo financial simulations across
