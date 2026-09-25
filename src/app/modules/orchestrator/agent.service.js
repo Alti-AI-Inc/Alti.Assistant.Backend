@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialvortex_9zkk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialVortex) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencygraph_21rb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyGraph) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedchain_8wjk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedChain) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphiccontroller_rr66_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicController) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessnode_wror_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNode) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwarelayer_3l5p_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareLayer) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29732,6 +29772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialvortex_9zkk_logic": {
+          try {
+            const { OpenFinancialVortexService } = await import("../liberty/openfinancialvortex_9zkk.service.js");
+            const res = await OpenFinancialVortexService.execute(args.target || "system");
+            return { output: `### OpenFinancialVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencygraph_21rb_logic": {
+          try {
+            const { OpenHighFrequencyGraphService } = await import("../liberty/openhigh-frequencygraph_21rb.service.js");
+            const res = await OpenHighFrequencyGraphService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedchain_8wjk_logic": {
+          try {
+            const { OpenFederatedChainService } = await import("../liberty/openfederatedchain_8wjk.service.js");
+            const res = await OpenFederatedChainService.execute(args.target || "system");
+            return { output: `### OpenFederatedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphiccontroller_rr66_logic": {
+          try {
+            const { OpenNeuromorphicControllerService } = await import("../liberty/openneuromorphiccontroller_rr66.service.js");
+            const res = await OpenNeuromorphicControllerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicController failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessnode_wror_logic": {
+          try {
+            const { OpenHeadlessNodeService } = await import("../liberty/openheadlessnode_wror.service.js");
+            const res = await OpenHeadlessNodeService.execute(args.target || "system");
+            return { output: `### OpenHeadlessNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessNode failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwarelayer_3l5p_logic": {
           try {
             const { OpenHardwareLayerService } = await import("../liberty/openhardwarelayer_3l5p.service.js");
