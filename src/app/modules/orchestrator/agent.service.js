@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openlogengine_4fjb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogEngine) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfbroker_zrw9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFBroker) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgedaemon_nohy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeDaemon) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalbroker_fwr2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalBroker) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatacluster_5zsd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataCluster) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativebroker_5zgo_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeBroker) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28892,6 +28932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openlogengine_4fjb_logic": {
+          try {
+            const { OpenLogEngineService } = await import("../liberty/openlogengine_4fjb.service.js");
+            const res = await OpenLogEngineService.execute(args.target || "system");
+            return { output: `### OpenLogEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfbroker_zrw9_logic": {
+          try {
+            const { OpeneBPFBrokerService } = await import("../liberty/openebpfbroker_zrw9.service.js");
+            const res = await OpeneBPFBrokerService.execute(args.target || "system");
+            return { output: `### OpeneBPFBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgedaemon_nohy_logic": {
+          try {
+            const { OpenEdgeDaemonService } = await import("../liberty/openedgedaemon_nohy.service.js");
+            const res = await OpenEdgeDaemonService.execute(args.target || "system");
+            return { output: `### OpenEdgeDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalbroker_fwr2_logic": {
+          try {
+            const { OpenHyperDimensionalBrokerService } = await import("../liberty/openhyper-dimensionalbroker_fwr2.service.js");
+            const res = await OpenHyperDimensionalBrokerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatacluster_5zsd_logic": {
+          try {
+            const { OpenDataClusterService } = await import("../liberty/opendatacluster_5zsd.service.js");
+            const res = await OpenDataClusterService.execute(args.target || "system");
+            return { output: `### OpenDataCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataCluster failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativebroker_5zgo_logic": {
           try {
             const { OpenCloudNativeBrokerService } = await import("../liberty/opencloud-nativebroker_5zgo.service.js");
