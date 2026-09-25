@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openquantumnet_e244_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumNet) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustnexus_p0tu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustNexus) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openloglayer_fq7q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogLayer) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendengine_bkee_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendEngine) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedproxy_ovi0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedProxy) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhomomorphicengine_oi16_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicEngine) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26212,6 +26252,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openquantumnet_e244_logic": {
+          try {
+            const { OpenQuantumNetService } = await import("../liberty/openquantumnet_e244.service.js");
+            const res = await OpenQuantumNetService.execute(args.target || "system");
+            return { output: `### OpenQuantumNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustnexus_p0tu_logic": {
+          try {
+            const { OpenZeroTrustNexusService } = await import("../liberty/openzero-trustnexus_p0tu.service.js");
+            const res = await OpenZeroTrustNexusService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openloglayer_fq7q_logic": {
+          try {
+            const { OpenLogLayerService } = await import("../liberty/openloglayer_fq7q.service.js");
+            const res = await OpenLogLayerService.execute(args.target || "system");
+            return { output: `### OpenLogLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendengine_bkee_logic": {
+          try {
+            const { OpenMicroFrontendEngineService } = await import("../liberty/openmicro-frontendengine_bkee.service.js");
+            const res = await OpenMicroFrontendEngineService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedproxy_ovi0_logic": {
+          try {
+            const { OpenAutomatedProxyService } = await import("../liberty/openautomatedproxy_ovi0.service.js");
+            const res = await OpenAutomatedProxyService.execute(args.target || "system");
+            return { output: `### OpenAutomatedProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openhomomorphicengine_oi16_logic": {
           try {
             const { OpenHomomorphicEngineService } = await import("../liberty/openhomomorphicengine_oi16.service.js");
