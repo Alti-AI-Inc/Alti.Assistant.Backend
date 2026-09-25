@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengraphmesh_38d4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphMesh) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpproxy_dbpu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPProxy) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphfabric_qb4a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphFabric) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyswarm_rgwo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartySwarm) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentcontroller_o3wv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentController) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondvortex_kfhg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondVortex) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27692,6 +27732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengraphmesh_38d4_logic": {
+          try {
+            const { OpenGraphMeshService } = await import("../liberty/opengraphmesh_38d4.service.js");
+            const res = await OpenGraphMeshService.execute(args.target || "system");
+            return { output: `### OpenGraphMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpproxy_dbpu_logic": {
+          try {
+            const { OpenBGPProxyService } = await import("../liberty/openbgpproxy_dbpu.service.js");
+            const res = await OpenBGPProxyService.execute(args.target || "system");
+            return { output: `### OpenBGPProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphfabric_qb4a_logic": {
+          try {
+            const { OpenGraphFabricService } = await import("../liberty/opengraphfabric_qb4a.service.js");
+            const res = await OpenGraphFabricService.execute(args.target || "system");
+            return { output: `### OpenGraphFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyswarm_rgwo_logic": {
+          try {
+            const { OpenMultiPartySwarmService } = await import("../liberty/openmulti-partyswarm_rgwo.service.js");
+            const res = await OpenMultiPartySwarmService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartySwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartySwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentcontroller_o3wv_logic": {
+          try {
+            const { OpenPersistentControllerService } = await import("../liberty/openpersistentcontroller_o3wv.service.js");
+            const res = await OpenPersistentControllerService.execute(args.target || "system");
+            return { output: `### OpenPersistentController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentController failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondvortex_kfhg_logic": {
           try {
             const { OpenSubMillisecondVortexService } = await import("../liberty/opensub-millisecondvortex_kfhg.service.js");
