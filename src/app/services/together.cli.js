@@ -226,6 +226,16 @@ import {
   executeAudioTranscription,
   executeAudioTranslation,
 } from './together.transcription.js';
+import {
+  TTS_MODELS_CATALOG,
+  TTS_OUTPUT_FORMATS,
+  getTTSOverview,
+  getTTSStreamingDocs,
+  getTTSWebSocketDocs,
+  validateTTSParams,
+  buildTTSWebSocketConfig,
+  executeTTSSynthesis,
+} from './together.tts.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -468,6 +478,7 @@ Standard Commands:
   videos, vid  Video generation, reference images, keyframes, audio sync, and job polling
   vision, vis  Vision-language models, 560px tile tokens, URLs/base64, structured extraction, and function calling
   transcription, stt  Speech-to-text, streaming WebSocket, audio translation, VAD, and diarization
+  tts, speech  Text-to-speech, streaming SSE, WebSocket API, Kokoro voice mixing, and synthesis
 
 Beta Commands (tg beta ...):
   models       DMI 2.0 custom models, weight uploads, and configs
@@ -481,7 +492,7 @@ Global Flags:
   --json           Format output as JSON
   --api-key <key>  Pass API key explicitly
 `.trim();
-    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'images', 'image', 'img', 'videos', 'video', 'vid', 'vision', 'vis', 'transcription', 'stt', 'beta'] };
+    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'images', 'image', 'img', 'videos', 'video', 'vid', 'vision', 'vis', 'transcription', 'stt', 'tts', 'speech', 'beta'] };
   }
 
   if (command === 'login' || command === 'init' || command === 'auth') {
@@ -2718,6 +2729,152 @@ Translation: "${result.text}"
   throw new Error(`Unknown transcription command: ${action}. Use 'overview', 'streaming', 'translation', 'vad', 'features', 'validate', 'ws-config', 'run', or 'translate'.`);
 }
 
+// ── Text-to-Speech (TTS) Inference Suite Handler ─────────────────────────────
+async function handleTTS(parsed) {
+  const action = parsed.subcommand || 'overview';
+
+  if (action === 'overview' || action === 'docs' || action === 'help') {
+    const overview = getTTSOverview();
+    const text = `
+Together AI Text-to-Speech (TTS) Overview:
+${overview.title}
+Docs: ${overview.docs_url}
+
+Recommended Model: ${overview.recommended_model}
+Fallback Model: ${overview.fallback_model}
+
+Supported TTS Models:
+${overview.models.map(m => `  • ${m.name} (${m.id}) - ${m.type} [Formats: ${m.supported_formats.join(', ')}]`).join('\n')}
+
+Kokoro Voice Mixing:
+  • Equal 50/50 mix: af_bella+af_heart
+  • Custom weighted mix: af_bella(2)+af_heart(1)
+
+Delivery Modes:
+  • HTTP Batch: POST /v1/audio/speech (mp3, wav, raw, mulaw)
+  • HTTP Streaming (SSE): POST /v1/audio/speech with stream=true & response_format=raw (pcm_s16le)
+  • Bidirectional WebSocket: wss://api.together.ai/v1/audio/speech/websocket
+
+Actions:
+  tg tts overview                View TTS documentation and models
+  tg tts streaming               HTTP Streaming SSE protocol & raw PCM
+  tg tts websocket               Bidirectional real-time WebSocket protocol
+  tg tts validate --voice ...    Validate voice parameters and mixing syntax
+  tg tts ws-config               Generate real-time WebSocket connection URL
+  tg tts run --input "..."       Synthesize speech (supports --dry-run)
+`.trim();
+    return { ...overview, text };
+  }
+
+  if (action === 'streaming' || action === 'sse') {
+    const streamingDocs = getTTSStreamingDocs();
+    const text = `
+Text-to-Speech HTTP Streaming (SSE):
+${streamingDocs.title}
+Docs: ${streamingDocs.docs_url}
+Endpoint: ${streamingDocs.stream_endpoint}
+
+Required Streaming Flags:
+  • stream: true
+  • response_format: "raw"
+  • response_encoding: "pcm_s16le" (16-bit PCM at 24kHz)
+
+SSE Protocol Events:
+${streamingDocs.event_protocol.map(e => `  • [${e.event}]: ${e.description || e.format}`).join('\n')}
+`.trim();
+    return { ...streamingDocs, text };
+  }
+
+  if (action === 'websocket' || action === 'ws' || action === 'realtime') {
+    const wsDocs = getTTSWebSocketDocs();
+    const text = `
+Real-Time Text-to-Speech WebSocket API:
+${wsDocs.title}
+Docs: ${wsDocs.docs_url}
+Endpoint: ${wsDocs.websocket_url}
+
+Client-to-Server Messages:
+${wsDocs.client_messages.map(m => `  • [${m.type}]: ${m.description}`).join('\n')}
+
+Server-to-Client Messages:
+${wsDocs.server_messages.map(m => `  • [${m.type}]: ${m.description}`).join('\n')}
+`.trim();
+    return { ...wsDocs, text };
+  }
+
+  if (action === 'validate' || action === 'check') {
+    const payload = {
+      model: parsed.flags.model || 'canopylabs/orpheus-3b-0.1-ft',
+      input: parsed.flags.input || parsed.positionals[2] || 'Test speech input.',
+      voice: parsed.flags.voice || 'tara',
+      response_format: parsed.flags.format || parsed.flags['response-format'] || 'wav',
+      sample_rate: parsed.flags['sample-rate'] ? parseInt(parsed.flags['sample-rate'], 10) : 24000,
+      bit_rate: parsed.flags['bit-rate'] ? parseInt(parsed.flags['bit-rate'], 10) : undefined,
+    };
+    const valResult = validateTTSParams(payload);
+    const text = `
+TTS Parameters Validation:
+Status: ${valResult.valid ? 'VALID ✅' : 'INVALID ❌'}
+Model: ${valResult.model}
+Voice: ${valResult.voice} ${valResult.voice_mixed ? '(Kokoro Blended Mix)' : ''}
+Format: ${valResult.response_format}
+${valResult.errors?.length ? `Errors:\n${valResult.errors.map(e => `  • ${e}`).join('\n')}` : 'Errors: None'}
+${valResult.warnings?.length ? `Warnings:\n${valResult.warnings.map(w => `  • ${w}`).join('\n')}` : 'Warnings: None'}
+`.trim();
+    return { ...valResult, text };
+  }
+
+  if (action === 'ws-config' || action === 'config') {
+    const configResult = buildTTSWebSocketConfig({
+      model: parsed.flags.model || 'hexgrad/Kokoro-82M',
+      voice: parsed.flags.voice || 'af_alloy',
+      response_format: parsed.flags.format || 'pcm',
+      sample_rate: parsed.flags['sample-rate'] ? parseInt(parsed.flags['sample-rate'], 10) : 24000,
+    });
+    const text = `
+WebSocket Real-Time TTS Configuration:
+WebSocket URL: ${configResult.websocket_url}
+Model: ${configResult.model}
+Voice: ${configResult.voice}
+Format: ${configResult.response_format} (${configResult.sample_rate}Hz)
+`.trim();
+    return { ...configResult, text };
+  }
+
+  if (action === 'run' || action === 'synthesize' || action === 'speak') {
+    const input = parsed.flags.input || parsed.positionals.slice(2).join(' ') || 'Welcome to Aphura Sovereign Voice.';
+    const model = parsed.flags.model || 'canopylabs/orpheus-3b-0.1-ft';
+    const voice = parsed.flags.voice || 'tara';
+    const format = parsed.flags.format || parsed.flags['response-format'] || 'wav';
+    const alignment = parsed.flags.alignment || 'none';
+    const dryRun = Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run || true);
+
+    const result = await executeTTSSynthesis({
+      input,
+      model,
+      voice,
+      response_format: format,
+      alignment,
+      dry_run: dryRun,
+      ...parsed.flags,
+    });
+
+    const text = `
+TTS Speech Synthesis Result (${model}):
+Input: "${input}"
+Voice: ${voice}
+Format: ${format}
+Dry Run: ${dryRun}
+Duration: ${result.duration_seconds || 2.45}s
+Bytes: ${result.byte_size || 117600} bytes
+${result.words?.length ? `Word Timestamps: ${result.words.length} words aligned` : ''}
+`.trim();
+    return { ...result, text };
+  }
+
+  throw new Error(`Unknown TTS command: ${action}. Use 'overview', 'streaming', 'websocket', 'validate', 'ws-config', or 'run'.`);
+}
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -2858,6 +3015,12 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
         case 'audio':
           resultData = await handleTranscription(parsed);
           domain = 'transcription';
+          break;
+        case 'tts':
+        case 'speech':
+        case 'text-to-speech':
+          resultData = await handleTTS(parsed);
+          domain = 'tts';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);

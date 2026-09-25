@@ -189,6 +189,14 @@ import {
   executeAudioTranscription,
   executeAudioTranslation,
 } from '../../services/together.transcription.js';
+import {
+  getTTSOverview,
+  getTTSStreamingDocs,
+  getTTSWebSocketDocs,
+  validateTTSParams,
+  buildTTSWebSocketConfig,
+  executeTTSSynthesis,
+} from '../../services/together.tts.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -3986,6 +3994,87 @@ export const InferenceGateway = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error executing translation.' });
+    }
+  },
+
+  /**
+   * Retrieves Text-to-Speech (TTS) Overview Docs and Voices Catalog
+   * (GET /together/inference/text-to-speech/overview, GET /v1/together/inference/text-to-speech/overview)
+   */
+  async handleGetTTSOverview(req, res) {
+    try {
+      const data = getTTSOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving TTS overview.' });
+    }
+  },
+
+  /**
+   * Retrieves Text-to-Speech HTTP Streaming (SSE) Docs
+   * (GET /together/inference/text-to-speech/streaming, GET /v1/together/inference/text-to-speech/streaming)
+   */
+  async handleGetTTSStreamingDocs(req, res) {
+    try {
+      const data = getTTSStreamingDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving TTS streaming docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Real-Time Text-to-Speech WebSocket Protocol Docs
+   * (GET /together/inference/text-to-speech/websocket, GET /v1/together/inference/text-to-speech/websocket)
+   */
+  async handleGetTTSWebSocketDocs(req, res) {
+    try {
+      const data = getTTSWebSocketDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving TTS websocket docs.' });
+    }
+  },
+
+  /**
+   * Validates Text-to-Speech Parameters (Voice, Kokoro Blending, Bitrate)
+   * (POST /together/inference/text-to-speech/validate, POST /v1/together/inference/text-to-speech/validate)
+   */
+  async handleValidateTTSParams(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = validateTTSParams(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating TTS parameters.' });
+    }
+  },
+
+  /**
+   * Generates Real-Time TTS WebSocket Connection URL and Options
+   * (POST /together/inference/text-to-speech/websocket-config, GET /together/inference/text-to-speech/websocket-config)
+   */
+  async handleGetTTSWebSocketConfig(req, res) {
+    try {
+      const params = { ...(req.query || {}), ...(req.body || {}) };
+      const config = buildTTSWebSocketConfig(params);
+      return res.status(200).json(config);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error generating TTS websocket config.' });
+    }
+  },
+
+  /**
+   * Synthesizes Speech from Text (with Dry-Run and Word Timestamps support)
+   * (POST /together/inference/text-to-speech/synthesize, POST /v1/together/inference/text-to-speech/synthesize)
+   */
+  async handleExecuteTTSSynthesis(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await executeTTSSynthesis(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing speech synthesis.' });
     }
   },
 };

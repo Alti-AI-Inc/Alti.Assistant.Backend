@@ -1978,6 +1978,100 @@ transcriptionTranslateRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Text-to-Speech (TTS) Inference Suite Endpoints ────────────────
+// 1. Overview & Voices Catalog
+const ttsOverviewRoutes = [
+  '/together/inference/text-to-speech/overview',
+  '/v1/together/inference/text-to-speech/overview',
+  '/inference/text-to-speech/overview',
+  '/v1/inference/text-to-speech/overview',
+  '/together/tts/overview',
+  '/v1/tts/overview',
+];
+ttsOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetTTSOverview(req, res);
+  });
+});
+
+// 2. HTTP Streaming (SSE)
+const ttsStreamingRoutes = [
+  '/together/inference/text-to-speech/streaming',
+  '/v1/together/inference/text-to-speech/streaming',
+  '/inference/text-to-speech/streaming',
+  '/v1/inference/text-to-speech/streaming',
+  '/together/tts/streaming',
+  '/v1/tts/streaming',
+];
+ttsStreamingRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetTTSStreamingDocs(req, res);
+  });
+});
+
+// 3. Real-Time WebSocket Protocol
+const ttsWebSocketRoutes = [
+  '/together/inference/text-to-speech/websocket',
+  '/v1/together/inference/text-to-speech/websocket',
+  '/inference/text-to-speech/websocket',
+  '/v1/inference/text-to-speech/websocket',
+  '/together/tts/websocket',
+  '/v1/tts/websocket',
+];
+ttsWebSocketRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetTTSWebSocketDocs(req, res);
+  });
+});
+
+// 4. Validate Parameters
+const ttsValidateRoutes = [
+  '/together/inference/text-to-speech/validate',
+  '/v1/together/inference/text-to-speech/validate',
+  '/inference/text-to-speech/validate',
+  '/v1/inference/text-to-speech/validate',
+  '/together/tts/validate',
+  '/v1/tts/validate',
+];
+ttsValidateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateTTSParams(req, res);
+  });
+});
+
+// 5. WebSocket Configuration
+const ttsWsConfigRoutes = [
+  '/together/inference/text-to-speech/websocket-config',
+  '/v1/together/inference/text-to-speech/websocket-config',
+  '/inference/text-to-speech/websocket-config',
+  '/v1/inference/text-to-speech/websocket-config',
+  '/together/tts/websocket-config',
+  '/v1/tts/websocket-config',
+];
+ttsWsConfigRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetTTSWebSocketConfig(req, res);
+  });
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleGetTTSWebSocketConfig(req, res);
+  });
+});
+
+// 6. Speech Synthesis (with Dry-Run support)
+const ttsSynthesizeRoutes = [
+  '/together/inference/text-to-speech/synthesize',
+  '/v1/together/inference/text-to-speech/synthesize',
+  '/inference/text-to-speech/synthesize',
+  '/v1/inference/text-to-speech/synthesize',
+  '/together/tts/synthesize',
+  '/v1/tts/synthesize',
+];
+ttsSynthesizeRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteTTSSynthesis(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');
