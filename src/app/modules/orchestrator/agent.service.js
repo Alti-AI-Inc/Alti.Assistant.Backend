@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepbroker_7bzj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepBroker) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarymesh_stn6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryMesh) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedoracle_iqlz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedOracle) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcontroller_8vcs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedController) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustswarm_3mfm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustSwarm) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterstream_2tpp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterStream) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25972,6 +26012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepbroker_7bzj_logic": {
+          try {
+            const { OpenDeepBrokerService } = await import("../liberty/opendeepbroker_7bzj.service.js");
+            const res = await OpenDeepBrokerService.execute(args.target || "system");
+            return { output: `### OpenDeepBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarymesh_stn6_logic": {
+          try {
+            const { OpenPlanetaryMeshService } = await import("../liberty/openplanetarymesh_stn6.service.js");
+            const res = await OpenPlanetaryMeshService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedoracle_iqlz_logic": {
+          try {
+            const { OpenAdvancedOracleService } = await import("../liberty/openadvancedoracle_iqlz.service.js");
+            const res = await OpenAdvancedOracleService.execute(args.target || "system");
+            return { output: `### OpenAdvancedOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcontroller_8vcs_logic": {
+          try {
+            const { OpenDecentralizedControllerService } = await import("../liberty/opendecentralizedcontroller_8vcs.service.js");
+            const res = await OpenDecentralizedControllerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedController failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustswarm_3mfm_logic": {
+          try {
+            const { OpenZeroTrustSwarmService } = await import("../liberty/openzero-trustswarm_3mfm.service.js");
+            const res = await OpenZeroTrustSwarmService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterstream_2tpp_logic": {
           try {
             const { OpenCrossClusterStreamService } = await import("../liberty/opencross-clusterstream_2tpp.service.js");
