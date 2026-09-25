@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesnode_k4l5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNode) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterpipeline_gd35_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterPipeline) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedgrid_n978_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedGrid) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedswarm_qj14_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedSwarm) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisebroker_ecyp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseBroker) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictiveplane_g0x3_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictivePlane) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22172,6 +22212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesnode_k4l5_logic": {
+          try {
+            const { OpenTimeSeriesNodeService } = await import("../liberty/opentime-seriesnode_k4l5.service.js");
+            const res = await OpenTimeSeriesNodeService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterpipeline_gd35_logic": {
+          try {
+            const { OpenCrossClusterPipelineService } = await import("../liberty/opencross-clusterpipeline_gd35.service.js");
+            const res = await OpenCrossClusterPipelineService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedgrid_n978_logic": {
+          try {
+            const { OpenAdvancedGridService } = await import("../liberty/openadvancedgrid_n978.service.js");
+            const res = await OpenAdvancedGridService.execute(args.target || "system");
+            return { output: `### OpenAdvancedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedswarm_qj14_logic": {
+          try {
+            const { OpenAdvancedSwarmService } = await import("../liberty/openadvancedswarm_qj14.service.js");
+            const res = await OpenAdvancedSwarmService.execute(args.target || "system");
+            return { output: `### OpenAdvancedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisebroker_ecyp_logic": {
+          try {
+            const { OpenEnterpriseBrokerService } = await import("../liberty/openenterprisebroker_ecyp.service.js");
+            const res = await OpenEnterpriseBrokerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseBroker failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictiveplane_g0x3_logic": {
           try {
             const { OpenPredictivePlaneService } = await import("../liberty/openpredictiveplane_g0x3.service.js");
