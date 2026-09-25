@@ -116,6 +116,11 @@ import {
   getCliTelemetryConfig,
   updateCliTelemetryConfig,
 } from '../../services/together.cli.js';
+import {
+  getFrameworksCatalog,
+  getFrameworkDoc,
+  executeFrameworkAgent,
+} from '../../services/together.frameworks.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -3157,6 +3162,72 @@ export const InferenceGateway = {
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error updating CLI telemetry config.' });
+    }
+  },
+
+  /**
+   * Retrieves documentation and metadata for all Together AI frameworks
+   * (GET /together/frameworks/docs, GET /v1/together/frameworks/docs, GET /frameworks/docs)
+   */
+  async handleGetFrameworksDocs(req, res) {
+    try {
+      const data = getFrameworksCatalog();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving frameworks catalog.' });
+    }
+  },
+
+  /**
+   * Retrieves specific framework documentation and code snippets
+   * (GET /together/frameworks/docs/:framework, GET /v1/together/frameworks/docs/:framework)
+   */
+  async handleGetFrameworkDoc(req, res) {
+    try {
+      const framework = req.params.framework;
+      const data = getFrameworkDoc(framework);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(404).json({ error: error.message || 'Framework not found.' });
+    }
+  },
+
+  /**
+   * Executes a live framework agent run powered by Together AI and Liberty Center One
+   * (POST /together/frameworks/execute, POST /v1/together/frameworks/execute, POST /frameworks/execute)
+   */
+  async handleExecuteFrameworkAgent(req, res) {
+    try {
+      const framework = req.body?.framework || 'intro';
+      const payload = req.body?.payload || req.body || {};
+      const result = await executeFrameworkAgent(framework, payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing framework agent.' });
+    }
+  },
+
+  /**
+   * Returns framework configuration, readiness, and active endpoints
+   * (GET /together/frameworks/config, GET /v1/together/frameworks/config)
+   */
+  async handleGetFrameworksConfig(req, res) {
+    try {
+      const key = process.env.TOGETHER_API_KEY || '';
+      return res.status(200).json({
+        success: true,
+        authenticated: Boolean(key),
+        api_key_configured: Boolean(key),
+        infrastructure: 'Liberty Center One / Together.ai Sovereign Cluster',
+        base_urls: {
+          standard: 'https://api.together.ai/v1',
+          legacy: 'https://api.together.xyz/v1',
+          sovereign_internal: 'http://localhost:5000/v1',
+        },
+        supported_frameworks: ['intro', 'composio', 'crewai', 'langgraph', 'dspy', 'pydanticai', 'autogen', 'agno'],
+      });
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving framework config.' });
     }
   },
 };

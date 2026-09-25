@@ -1251,6 +1251,55 @@ updateCliTelemetryRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Framework Integrations (Composio, CrewAI, LangGraph, DSPy, PydanticAI, AutoGen, Agno, Intro)
+const getFrameworksDocsRoutes = [
+  '/together/frameworks/docs',
+  '/v1/together/frameworks/docs',
+  '/frameworks/docs',
+  '/v1/frameworks/docs',
+];
+getFrameworksDocsRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetFrameworksDocs(req, res);
+  });
+});
+
+const getFrameworkDocDetailRoutes = [
+  '/together/frameworks/docs/:framework',
+  '/v1/together/frameworks/docs/:framework',
+  '/frameworks/docs/:framework',
+  '/v1/frameworks/docs/:framework',
+];
+getFrameworkDocDetailRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetFrameworkDoc(req, res);
+  });
+});
+
+const executeFrameworkRoutes = [
+  '/together/frameworks/execute',
+  '/v1/together/frameworks/execute',
+  '/frameworks/execute',
+  '/v1/frameworks/execute',
+];
+executeFrameworkRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteFrameworkAgent(req, res);
+  });
+});
+
+const getFrameworkConfigRoutes = [
+  '/together/frameworks/config',
+  '/v1/together/frameworks/config',
+  '/frameworks/config',
+  '/v1/frameworks/config',
+];
+getFrameworkConfigRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetFrameworksConfig(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

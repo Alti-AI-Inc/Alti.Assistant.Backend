@@ -123,6 +123,11 @@ import {
   llmClearQueue,
   llmGetQueueMetrics,
 } from './llm.client.js';
+import {
+  getFrameworksCatalog,
+  getFrameworkDoc,
+  executeFrameworkAgent,
+} from './together.frameworks.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -355,6 +360,7 @@ Standard Commands:
   batches      Manage offline inference batch jobs
   whoami       Display authenticated identity and organization details
   telemetry    View and configure anonymous telemetry status
+  frameworks   Explore & run agent frameworks (Composio, CrewAI, LangGraph, DSPy, PydanticAI, AutoGen, Agno)
 
 Beta Commands (tg beta ...):
   models       DMI 2.0 custom models, weight uploads, and configs
@@ -1432,6 +1438,54 @@ ENTRYPOINT ["vllm", "serve", "zai-org/GLM-5.2"]
   throw new Error(`Unknown jig command: ${action}`);
 }
 
+// ── Domain 14: Frameworks (Composio, CrewAI, LangGraph, DSPy, PydanticAI, AutoGen, Agno, Intro) ──
+async function handleFrameworks(parsed) {
+  const action = parsed.subcommand || 'list';
+
+  if (action === 'list') {
+    const catalog = getFrameworksCatalog();
+    const rows = catalog.frameworks.map(f => [f.id, f.name, f.url]);
+    const text = formatTable(['FRAMEWORK ID', 'NAME', 'OFFICIAL DOCS URL'], rows);
+    return { ...catalog, text };
+  }
+
+  if (action === 'docs' || action === 'info') {
+    const fw = parsed.subsubcommand || parsed.flags.framework || 'intro';
+    const doc = getFrameworkDoc(fw);
+    const f = doc.framework;
+    const text = `
+Framework: ${f.name}
+Documentation: ${f.url}
+Description: ${f.description}
+
+Python Example:
+${f.python_snippet}
+
+TypeScript Example:
+${f.typescript_snippet}
+`.trim();
+    return { ...doc, text };
+  }
+
+  if (action === 'run' || action === 'execute') {
+    const fw = parsed.subsubcommand || parsed.flags.framework || 'intro';
+    const payload = {
+      model: parsed.flags.model,
+      prompt: parsed.flags.prompt,
+      objective: parsed.flags.objective,
+      task: parsed.flags.task,
+      query: parsed.flags.query,
+    };
+    const res = await executeFrameworkAgent(fw, payload);
+    return {
+      ...res,
+      text: `Executed ${fw} framework agent successfully.\nResult: ${JSON.stringify(res.data, null, 2)}`,
+    };
+  }
+
+  throw new Error(`Unknown frameworks command: ${action}. Use 'list', 'docs <framework>', or 'run <framework>'.`);
+}
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -1522,6 +1576,10 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
           // Also allow direct "together jig"
           resultData = await handleJig(parsed);
           domain = 'jig';
+          break;
+        case 'frameworks':
+          resultData = await handleFrameworks(parsed);
+          domain = 'frameworks';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);
