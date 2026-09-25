@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhyper-dimensionalvault_v80a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalVault) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractmatrix_3u56_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractMatrix) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarenet_48k5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareNet) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontenddaemon_sn1l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendDaemon) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatachain_vqw3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataChain) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarygrid_w6mx_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryGrid) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25692,6 +25732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhyper-dimensionalvault_v80a_logic": {
+          try {
+            const { OpenHyperDimensionalVaultService } = await import("../liberty/openhyper-dimensionalvault_v80a.service.js");
+            const res = await OpenHyperDimensionalVaultService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractmatrix_3u56_logic": {
+          try {
+            const { OpenAbstractMatrixService } = await import("../liberty/openabstractmatrix_3u56.service.js");
+            const res = await OpenAbstractMatrixService.execute(args.target || "system");
+            return { output: `### OpenAbstractMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarenet_48k5_logic": {
+          try {
+            const { OpenHardwareNetService } = await import("../liberty/openhardwarenet_48k5.service.js");
+            const res = await OpenHardwareNetService.execute(args.target || "system");
+            return { output: `### OpenHardwareNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontenddaemon_sn1l_logic": {
+          try {
+            const { OpenMicroFrontendDaemonService } = await import("../liberty/openmicro-frontenddaemon_sn1l.service.js");
+            const res = await OpenMicroFrontendDaemonService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatachain_vqw3_logic": {
+          try {
+            const { OpenDataChainService } = await import("../liberty/opendatachain_vqw3.service.js");
+            const res = await OpenDataChainService.execute(args.target || "system");
+            return { output: `### OpenDataChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataChain failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarygrid_w6mx_logic": {
           try {
             const { OpenPlanetaryGridService } = await import("../liberty/openplanetarygrid_w6mx.service.js");
