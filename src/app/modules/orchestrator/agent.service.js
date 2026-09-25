@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedrouter_cslk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedRouter) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedmatrix_82b3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedMatrix) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-serieslayer_gt84_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesLayer) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgerouter_gygq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeRouter) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedgraph_6jr3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedGraph) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondlayer_s3li_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondLayer) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23612,6 +23652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedrouter_cslk_logic": {
+          try {
+            const { OpenAdvancedRouterService } = await import("../liberty/openadvancedrouter_cslk.service.js");
+            const res = await OpenAdvancedRouterService.execute(args.target || "system");
+            return { output: `### OpenAdvancedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedmatrix_82b3_logic": {
+          try {
+            const { OpenAdvancedMatrixService } = await import("../liberty/openadvancedmatrix_82b3.service.js");
+            const res = await OpenAdvancedMatrixService.execute(args.target || "system");
+            return { output: `### OpenAdvancedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-serieslayer_gt84_logic": {
+          try {
+            const { OpenTimeSeriesLayerService } = await import("../liberty/opentime-serieslayer_gt84.service.js");
+            const res = await OpenTimeSeriesLayerService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgerouter_gygq_logic": {
+          try {
+            const { OpenZeroKnowledgeRouterService } = await import("../liberty/openzero-knowledgerouter_gygq.service.js");
+            const res = await OpenZeroKnowledgeRouterService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedgraph_6jr3_logic": {
+          try {
+            const { OpenFederatedGraphService } = await import("../liberty/openfederatedgraph_6jr3.service.js");
+            const res = await OpenFederatedGraphService.execute(args.target || "system");
+            return { output: `### OpenFederatedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedGraph failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondlayer_s3li_logic": {
           try {
             const { OpenSubMillisecondLayerService } = await import("../liberty/opensub-millisecondlayer_s3li.service.js");
