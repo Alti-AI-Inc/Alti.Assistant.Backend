@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensemanticswarm_wbdd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticSwarm) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpunet_ou0q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUNet) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcluster_j6l1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCluster) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivenode_a1th_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNode) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfchain_8p3w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFChain) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpulayer_6m03_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPULayer) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29852,6 +29892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensemanticswarm_wbdd_logic": {
+          try {
+            const { OpenSemanticSwarmService } = await import("../liberty/opensemanticswarm_wbdd.service.js");
+            const res = await OpenSemanticSwarmService.execute(args.target || "system");
+            return { output: `### OpenSemanticSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpunet_ou0q_logic": {
+          try {
+            const { OpenGPUNetService } = await import("../liberty/opengpunet_ou0q.service.js");
+            const res = await OpenGPUNetService.execute(args.target || "system");
+            return { output: `### OpenGPUNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcluster_j6l1_logic": {
+          try {
+            const { OpenDecentralizedClusterService } = await import("../liberty/opendecentralizedcluster_j6l1.service.js");
+            const res = await OpenDecentralizedClusterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivenode_a1th_logic": {
+          try {
+            const { OpenPredictiveNodeService } = await import("../liberty/openpredictivenode_a1th.service.js");
+            const res = await OpenPredictiveNodeService.execute(args.target || "system");
+            return { output: `### OpenPredictiveNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfchain_8p3w_logic": {
+          try {
+            const { OpeneBPFChainService } = await import("../liberty/openebpfchain_8p3w.service.js");
+            const res = await OpeneBPFChainService.execute(args.target || "system");
+            return { output: `### OpeneBPFChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFChain failed: ${err.message}` };
+          }
+        }
         case "execute_opengpulayer_6m03_logic": {
           try {
             const { OpenGPULayerService } = await import("../liberty/opengpulayer_6m03.service.js");
