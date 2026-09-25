@@ -1,6 +1,6 @@
 # Aphura — Sovereign Autonomous Enterprise AI Operating System
 
-Aphura is a sovereign, multi-platform AI operating system executed from a single prompt box across **Web**, **iOS**, **Android**, **Desktop**, and **API**. It is powered by **231 deeply entrenched, verified open-source engines** (pure MIT or Apache 2.0 only), bare-metal compute at **Liberty Center One**, and cloud inference via **Together.ai**.
+Aphura is a sovereign, multi-platform AI operating system executed from a single prompt box across **Web**, **iOS**, **Android**, **Desktop**, and **API**. It is powered by **236 deeply entrenched, verified open-source engines** (pure MIT or Apache 2.0 only), bare-metal compute at **Liberty Center One**, and cloud inference via **Together.ai**.
 
 ---
 
@@ -43,7 +43,7 @@ Aphura replaces legacy, closed-source enterprise software suites from Microsoft,
 
 ---
 
-## 📦 Key Functional Domains (231 Engines)
+## 📦 Key Functional Domains (236 Engines)
 
 ### 1. Presentation, Pitch Deck & Document Automation
 - **Pitch Deck Agent**: Generates 12-slide investor pitch decks, 6-slide sales decks, and 10-slide executive overviews from a single prompt.
@@ -106,7 +106,7 @@ npm run dev
 ### Verification & Diagnostic Tests
 
 ```bash
-# Verify all 231 engines are deeply entrenched
+# Verify all 236 engines are deeply entrenched
 find src/app/modules -name "*.service.js" -o -name "*.agent.js" | grep -v "agent.service.js" | wc -l
 
 # Test Pitch Deck Agent
