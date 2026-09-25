@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedengine_h4ls_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedEngine) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarecore_9k4f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareCore) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeeprouter_45ow_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepRouter) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablelayer_p74n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableLayer) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedring_cyio_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRing) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancednode_xyn3_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNode) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27132,6 +27172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedengine_h4ls_logic": {
+          try {
+            const { OpenAutomatedEngineService } = await import("../liberty/openautomatedengine_h4ls.service.js");
+            const res = await OpenAutomatedEngineService.execute(args.target || "system");
+            return { output: `### OpenAutomatedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarecore_9k4f_logic": {
+          try {
+            const { OpenHardwareCoreService } = await import("../liberty/openhardwarecore_9k4f.service.js");
+            const res = await OpenHardwareCoreService.execute(args.target || "system");
+            return { output: `### OpenHardwareCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeeprouter_45ow_logic": {
+          try {
+            const { OpenDeepRouterService } = await import("../liberty/opendeeprouter_45ow.service.js");
+            const res = await OpenDeepRouterService.execute(args.target || "system");
+            return { output: `### OpenDeepRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablelayer_p74n_logic": {
+          try {
+            const { OpenImmutableLayerService } = await import("../liberty/openimmutablelayer_p74n.service.js");
+            const res = await OpenImmutableLayerService.execute(args.target || "system");
+            return { output: `### OpenImmutableLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedring_cyio_logic": {
+          try {
+            const { OpenDecentralizedRingService } = await import("../liberty/opendecentralizedring_cyio.service.js");
+            const res = await OpenDecentralizedRingService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRing failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancednode_xyn3_logic": {
           try {
             const { OpenAdvancedNodeService } = await import("../liberty/openadvancednode_xyn3.service.js");
