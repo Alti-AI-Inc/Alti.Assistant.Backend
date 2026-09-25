@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-kernelmesh_soo6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelMesh) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustervortex_gp6i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterVortex) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivefabric_v7kr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveFabric) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractcompiler_y529_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractCompiler) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedrouter_z3dp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedRouter) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumplane_jl6b_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumPlane) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25332,6 +25372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-kernelmesh_soo6_logic": {
+          try {
+            const { OpenMicroKernelMeshService } = await import("../liberty/openmicro-kernelmesh_soo6.service.js");
+            const res = await OpenMicroKernelMeshService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustervortex_gp6i_logic": {
+          try {
+            const { OpenCrossClusterVortexService } = await import("../liberty/opencross-clustervortex_gp6i.service.js");
+            const res = await OpenCrossClusterVortexService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivefabric_v7kr_logic": {
+          try {
+            const { OpenPredictiveFabricService } = await import("../liberty/openpredictivefabric_v7kr.service.js");
+            const res = await OpenPredictiveFabricService.execute(args.target || "system");
+            return { output: `### OpenPredictiveFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractcompiler_y529_logic": {
+          try {
+            const { OpenAbstractCompilerService } = await import("../liberty/openabstractcompiler_y529.service.js");
+            const res = await OpenAbstractCompilerService.execute(args.target || "system");
+            return { output: `### OpenAbstractCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedrouter_z3dp_logic": {
+          try {
+            const { OpenFederatedRouterService } = await import("../liberty/openfederatedrouter_z3dp.service.js");
+            const res = await OpenFederatedRouterService.execute(args.target || "system");
+            return { output: `### OpenFederatedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedRouter failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumplane_jl6b_logic": {
           try {
             const { OpenQuantumPlaneService } = await import("../liberty/openquantumplane_jl6b.service.js");
