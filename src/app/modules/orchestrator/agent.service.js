@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondnode_848n_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondNode) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativeoracle_0kro_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeOracle) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpswarm_k17w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPSwarm) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablevortex_97k4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableVortex) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicgraph_2not_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicGraph) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgplayer_aaua_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPLayer) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22932,6 +22972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondnode_848n_logic": {
+          try {
+            const { OpenSubMillisecondNodeService } = await import("../liberty/opensub-millisecondnode_848n.service.js");
+            const res = await OpenSubMillisecondNodeService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativeoracle_0kro_logic": {
+          try {
+            const { OpenCloudNativeOracleService } = await import("../liberty/opencloud-nativeoracle_0kro.service.js");
+            const res = await OpenCloudNativeOracleService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpswarm_k17w_logic": {
+          try {
+            const { OpenBGPSwarmService } = await import("../liberty/openbgpswarm_k17w.service.js");
+            const res = await OpenBGPSwarmService.execute(args.target || "system");
+            return { output: `### OpenBGPSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablevortex_97k4_logic": {
+          try {
+            const { OpenImmutableVortexService } = await import("../liberty/openimmutablevortex_97k4.service.js");
+            const res = await OpenImmutableVortexService.execute(args.target || "system");
+            return { output: `### OpenImmutableVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicgraph_2not_logic": {
+          try {
+            const { OpenHomomorphicGraphService } = await import("../liberty/openhomomorphicgraph_2not.service.js");
+            const res = await OpenHomomorphicGraphService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openbgplayer_aaua_logic": {
           try {
             const { OpenBGPLayerService } = await import("../liberty/openbgplayer_aaua.service.js");
