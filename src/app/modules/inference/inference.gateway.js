@@ -70,6 +70,11 @@ import {
   llmUpdateDeployment,
   llmDeleteDeployment,
   llmGetDeploymentLogs,
+  llmListSecrets,
+  llmCreateSecret,
+  llmGetSecret,
+  llmUpdateSecret,
+  llmDeleteSecret,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -2294,6 +2299,134 @@ export const InferenceGateway = {
       return res.status(500).json({
         error: {
           message: error.message || 'Error retrieving deployment logs.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Lists all project secrets (GET /deployments/secrets & /v1/deployments/secrets)
+   * Official Reference: https://docs.together.ai/reference/deployments-secrets-list
+   */
+  async handleListSecrets(req, res) {
+    try {
+      const data = await llmListSecrets(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error listing secrets.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Creates a new secret (POST /deployments/secrets & /v1/deployments/secrets)
+   * Official Reference: https://docs.together.ai/reference/deployments-secrets-create
+   */
+  async handleCreateSecret(req, res) {
+    if (!req.body?.name || !req.body?.value) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameters: 'name' and 'value' are required.",
+          type: 'invalid_request_error',
+        },
+      });
+    }
+    try {
+      const data = await llmCreateSecret(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error creating secret.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Retrieves secret details (GET /deployments/secrets/:id & /v1/deployments/secrets/:id)
+   * Official Reference: https://docs.together.ai/reference/deployments-secrets-get
+   */
+  async handleGetSecret(req, res) {
+    const secretId = req.params?.id || req.params?.secret_id;
+    if (!secretId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
+    try {
+      const data = await llmGetSecret(secretId);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error retrieving secret.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Updates an existing secret (PATCH /deployments/secrets/:id, PUT/POST & /v1/)
+   * Official Reference: https://docs.together.ai/reference/deployments-secrets-update
+   */
+  async handleUpdateSecret(req, res) {
+    const secretId = req.params?.id || req.params?.secret_id;
+    if (!secretId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
+    try {
+      const data = await llmUpdateSecret(secretId, req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error updating secret.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Deletes a secret (DELETE /deployments/secrets/:id & /v1/deployments/secrets/:id)
+   * Official Reference: https://docs.together.ai/reference/deployments-secrets-delete
+   */
+  async handleDeleteSecret(req, res) {
+    const secretId = req.params?.id || req.params?.secret_id;
+    if (!secretId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
+    try {
+      const data = await llmDeleteSecret(secretId);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error deleting secret.',
           type: 'api_error',
         },
       });

@@ -754,6 +754,53 @@ deploymentLogsRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Deployment Secrets (Official: https://docs.together.ai/reference/deployments-secrets)
+// 1. List secrets (GET /deployments/secrets & /v1/deployments/secrets)
+const listSecretsRoutes = ['/deployments/secrets', '/v1/deployments/secrets'];
+listSecretsRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleListSecrets(req, res);
+  });
+});
+
+// 2. Create secret (POST /deployments/secrets & /v1/deployments/secrets)
+const createSecretRoutes = ['/deployments/secrets', '/v1/deployments/secrets'];
+createSecretRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleCreateSecret(req, res);
+  });
+});
+
+// 3. Retrieve secret (GET /deployments/secrets/:id & /v1/deployments/secrets/:id)
+const getSecretRoutes = ['/deployments/secrets/:id', '/v1/deployments/secrets/:id'];
+getSecretRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetSecret(req, res);
+  });
+});
+
+// 4. Update secret (PATCH /deployments/secrets/:id, PUT, POST & /v1/ aliases)
+const updateSecretRoutes = ['/deployments/secrets/:id', '/v1/deployments/secrets/:id'];
+updateSecretRoutes.forEach((path) => {
+  router.patch(path, async (req, res) => {
+    await InferenceGateway.handleUpdateSecret(req, res);
+  });
+  router.put(path, async (req, res) => {
+    await InferenceGateway.handleUpdateSecret(req, res);
+  });
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleUpdateSecret(req, res);
+  });
+});
+
+// 5. Delete secret (DELETE /deployments/secrets/:id & /v1/deployments/secrets/:id)
+const deleteSecretRoutes = ['/deployments/secrets/:id', '/v1/deployments/secrets/:id'];
+deleteSecretRoutes.forEach((path) => {
+  router.delete(path, async (req, res) => {
+    await InferenceGateway.handleDeleteSecret(req, res);
+  });
+});
+
 // 4. Retrieve deployment (GET /deployments/:id & /v1/deployments/:id)
 const getDeploymentRoutes = ['/deployments/:id', '/v1/deployments/:id'];
 getDeploymentRoutes.forEach((path) => {
