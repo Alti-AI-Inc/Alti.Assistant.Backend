@@ -1370,11 +1370,26 @@ export const InferenceGateway = {
 
   /**
    * Creates batch job (POST /batches & POST /v1/batches)
-   * Official Reference: https://docs.together.ai/reference/batches
+   * Official Reference: https://docs.together.ai/reference/batch-create
    */
   async handleCreateBatch(req, res) {
+    const payload = req.body || {};
+    const inputFileId = payload.input_file_id || payload.inputFileId;
+    const endpoint = payload.endpoint;
+
+    if (!inputFileId || !endpoint) {
+      return res.status(400).json({
+        error: {
+          message: "Both 'input_file_id' and 'endpoint' are required parameters.",
+          type: 'invalid_request_error',
+          param: !inputFileId ? 'input_file_id' : 'endpoint',
+          code: 'missing_parameter',
+        },
+      });
+    }
+
     try {
-      const data = await llmCreateBatch(req.body);
+      const data = await llmCreateBatch(payload);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -1383,6 +1398,7 @@ export const InferenceGateway = {
 
   /**
    * Lists batch jobs (GET /batches & GET /v1/batches)
+   * Official Reference: https://docs.together.ai/reference/batch-list
    */
   async handleListBatches(req, res) {
     try {
@@ -1395,10 +1411,21 @@ export const InferenceGateway = {
 
   /**
    * Retrieves batch job (GET /batches/:id & GET /v1/batches/:id)
+   * Official Reference: https://docs.together.ai/reference/batch-get
    */
   async handleGetBatch(req, res) {
+    const batchId = req.params?.id;
+    if (!batchId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
     try {
-      const data = await llmGetBatch(req.params.id);
+      const data = await llmGetBatch(batchId);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -1407,10 +1434,21 @@ export const InferenceGateway = {
 
   /**
    * Cancels batch job (POST /batches/:id/cancel & POST /v1/batches/:id/cancel)
+   * Official Reference: https://docs.together.ai/reference/batch-cancel
    */
   async handleCancelBatch(req, res) {
+    const batchId = req.params?.id;
+    if (!batchId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'id'.",
+          type: 'invalid_request_error',
+          param: 'id',
+        },
+      });
+    }
     try {
-      const data = await llmCancelBatch(req.params.id);
+      const data = await llmCancelBatch(batchId);
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
