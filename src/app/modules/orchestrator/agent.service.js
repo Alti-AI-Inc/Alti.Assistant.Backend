@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustrouter_tf3j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustRouter) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisegraph_jsqs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGraph) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventbroker_cyud_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventBroker) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgprouter_t4ug_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPRouter) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicsync_uktk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicSync) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedring_gdmv_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedRing) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27812,6 +27852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustrouter_tf3j_logic": {
+          try {
+            const { OpenZeroTrustRouterService } = await import("../liberty/openzero-trustrouter_tf3j.service.js");
+            const res = await OpenZeroTrustRouterService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisegraph_jsqs_logic": {
+          try {
+            const { OpenEnterpriseGraphService } = await import("../liberty/openenterprisegraph_jsqs.service.js");
+            const res = await OpenEnterpriseGraphService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventbroker_cyud_logic": {
+          try {
+            const { OpenEventBrokerService } = await import("../liberty/openeventbroker_cyud.service.js");
+            const res = await OpenEventBrokerService.execute(args.target || "system");
+            return { output: `### OpenEventBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgprouter_t4ug_logic": {
+          try {
+            const { OpenBGPRouterService } = await import("../liberty/openbgprouter_t4ug.service.js");
+            const res = await OpenBGPRouterService.execute(args.target || "system");
+            return { output: `### OpenBGPRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicsync_uktk_logic": {
+          try {
+            const { OpenNeuromorphicSyncService } = await import("../liberty/openneuromorphicsync_uktk.service.js");
+            const res = await OpenNeuromorphicSyncService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicSync failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedring_gdmv_logic": {
           try {
             const { OpenAutomatedRingService } = await import("../liberty/openautomatedring_gdmv.service.js");
