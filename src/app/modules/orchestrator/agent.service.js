@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "execute_spark_job", description: "Use the Aphura Big Data Compute Engine (Apache Spark, Apache 2.0) to process petabyte-scale datasets and distributed SQL queries with in-memory caching across cluster nodes. Replaces Databricks and IBM InfoSphere.", parameters: { type: "object", properties: { jobName: { type: "string" }, sqlQuery: { type: "string" }, partitions: { type: "number" } }, required: ["jobName", "sqlQuery"] } } },
+  { type: "function", function: { name: "trigger_workflow_dag", description: "Use the Aphura Enterprise Workflow Engine (Apache Airflow, Apache 2.0) to orchestrate, schedule, and execute complex multi-system enterprise pipelines with automated retries and task dependencies. Replaces IBM Control-M.", parameters: { type: "object", properties: { dagId: { type: "string" } }, required: ["dagId"] } } },
+  { type: "function", function: { name: "generate_bi_visualizations", description: "Use the Aphura Enterprise BI Engine (Apache Superset, 63k stars, Apache 2.0) to generate interactive enterprise dashboards, geospatial charts, cohort grids, and KPI scorecards. Replaces Tableau and Oracle Analytics.", parameters: { type: "object", properties: { dashboardTitle: { type: "string" }, datasetName: { type: "string" } }, required: ["dashboardTitle", "datasetName"] } } },
+  { type: "function", function: { name: "register_flink_stream", description: "Use the Aphura Real-Time Stream Engine (Apache Flink, Apache 2.0) to run sub-millisecond complex event processing, fraud detection, and live anomaly analysis on streaming data with exactly-once semantics. Replaces IBM Streams.", parameters: { type: "object", properties: { streamJob: { type: "string" }, windowSeconds: { type: "number" } }, required: ["streamJob"] } } },
+  { type: "function", function: { name: "query_lakehouse_snapshot", description: "Use the Aphura Lakehouse Engine (Apache Iceberg, Apache 2.0) to run ACID transactions, schema evolution, and time-travel audit queries on petabyte-scale datasets stored in sovereign MinIO. Replaces Databricks Delta Lake.", parameters: { type: "object", properties: { tableName: { type: "string" }, asOfTimestamp: { type: "string" } }, required: ["tableName"] } } },
   { type: "function", function: { name: "provision_enterprise_sso", description: "Use the Aphura Identity Engine (Keycloak, Apache 2.0) to configure SAML 2.0, OpenID Connect, and LDAP/Active Directory synchronization. Replaces Microsoft Entra ID and Okta.", parameters: { type: "object", properties: { tenantId: { type: "string" }, idpType: { type: "string" } }, required: ["tenantId", "idpType"] } } },
   { type: "function", function: { name: "configure_api_gateway", description: "Use the Aphura API Gateway (Kong, Apache 2.0) to apply extreme-scale rate limiting, bot detection, and caching natively in C/Lua. Replaces IBM API Connect.", parameters: { type: "object", properties: { apiRoute: { type: "string" }, policyOptions: { type: "string" } }, required: ["apiRoute"] } } },
   { type: "function", function: { name: "create_kafka_stream", description: "Use the Aphura Distributed Event Streaming Engine (Apache Kafka, Apache 2.0) to provision high-throughput, fault-tolerant message streams. Replaces IBM MQ.", parameters: { type: "object", properties: { topicName: { type: "string" }, partitions: { type: "number" } }, required: ["topicName"] } } },
@@ -8865,6 +8870,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_spark_job": {
+          try {
+            const { SparkService } = await import("../data/spark.service.js");
+            const res = await SparkService.executeDistributedJob(args.jobName, args.sqlQuery, args.partitions);
+            return { output: "### Spark Job Execution\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Spark execution failed: " + err.message };
+          }
+        }
+        case "trigger_workflow_dag": {
+          try {
+            const { AirflowService } = await import("../devops/airflow.service.js");
+            const res = await AirflowService.triggerEnterpriseDAG(args.dagId, {});
+            return { output: "### Airflow DAG Triggered\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Airflow trigger failed: " + err.message };
+          }
+        }
+        case "generate_bi_visualizations": {
+          try {
+            const { SupersetService } = await import("../data/superset.service.js");
+            const res = await SupersetService.generateEnterpriseDashboard(args.dashboardTitle, args.datasetName);
+            return { output: "### Superset Dashboard Generated\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Superset dashboard failed: " + err.message };
+          }
+        }
+        case "register_flink_stream": {
+          try {
+            const { FlinkService } = await import("../data/flink.service.js");
+            const res = await FlinkService.registerStreamProcessor(args.streamJob, args.windowSeconds);
+            return { output: "### Flink Stream Processor Registered\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Flink registration failed: " + err.message };
+          }
+        }
+        case "query_lakehouse_snapshot": {
+          try {
+            const { IcebergService } = await import("../data/iceberg.service.js");
+            const res = await IcebergService.queryWithTimeTravel(args.tableName, args.asOfTimestamp);
+            return { output: "### Iceberg Lakehouse Snapshot\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Iceberg query failed: " + err.message };
+          }
+        }
         case "provision_enterprise_sso": {
           try {
             const { KeycloakService } = await import("../enterprise/keycloak.service.js");
