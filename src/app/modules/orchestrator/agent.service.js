@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativebroker_5zgo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeBroker) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivestream_a5yh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveStream) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativeswarm_bysz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeSwarm) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticnet_v34b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticNet) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialmesh_vkr9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialMesh) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativeplane_76xo_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativePlane) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28852,6 +28892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativebroker_5zgo_logic": {
+          try {
+            const { OpenCloudNativeBrokerService } = await import("../liberty/opencloud-nativebroker_5zgo.service.js");
+            const res = await OpenCloudNativeBrokerService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivestream_a5yh_logic": {
+          try {
+            const { OpenPredictiveStreamService } = await import("../liberty/openpredictivestream_a5yh.service.js");
+            const res = await OpenPredictiveStreamService.execute(args.target || "system");
+            return { output: `### OpenPredictiveStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativeswarm_bysz_logic": {
+          try {
+            const { OpenCloudNativeSwarmService } = await import("../liberty/opencloud-nativeswarm_bysz.service.js");
+            const res = await OpenCloudNativeSwarmService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticnet_v34b_logic": {
+          try {
+            const { OpenStaticNetService } = await import("../liberty/openstaticnet_v34b.service.js");
+            const res = await OpenStaticNetService.execute(args.target || "system");
+            return { output: `### OpenStaticNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialmesh_vkr9_logic": {
+          try {
+            const { OpenFinancialMeshService } = await import("../liberty/openfinancialmesh_vkr9.service.js");
+            const res = await OpenFinancialMeshService.execute(args.target || "system");
+            return { output: `### OpenFinancialMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialMesh failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativeplane_76xo_logic": {
           try {
             const { OpenCloudNativePlaneService } = await import("../liberty/opencloud-nativeplane_76xo.service.js");
