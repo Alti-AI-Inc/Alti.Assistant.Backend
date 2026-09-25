@@ -33,6 +33,7 @@ import { TemporalService } from '../temporal/temporal.service.js';
 import { LibertyService } from '../liberty/liberty.service.js';
 import { MapboxService } from '../mapbox/mapbox.service.js';
 import { recordToolUsage } from './toolUsage.model.js';
+import { SovereignRouter } from './sovereign_router.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -7687,14 +7688,6 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "wire_langchain_graph",
-      description: "Use the Aphura AI Orchestration Engine (LangChain) to autonomously wire multiple disparate LLMs together (e.g. Vision -> Text -> Code) to solve extremely complex multi-step reasoning problems.",
-      parameters: { type: "object", properties: { taskGoal: { type: "string" }, agentNodes: { type: "array", items: { type: "string" } } }, required: ["taskGoal", "agentNodes"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
       name: "orchestrate_vllm_engine",
       description: "Use the Aphura Inference Engine (vLLM) to autonomously deploy PagedAttention memory grids, maximizing the concurrency and token-throughput of external AI models by 10x.",
       parameters: { type: "object", properties: { modelName: { type: "string" }, batchSize: { type: "number" } }, required: ["modelName"] }
@@ -7847,14 +7840,6 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "compile_desktop_app",
-      description: "Use the Aphura Desktop Engine (Tauri) to securely package web applications into hyper-fast, lightweight native Rust executables for Windows, macOS, or Linux.",
-      parameters: { type: "object", properties: { webAppPath: { type: "string" }, osTarget: { type: "string", enum: ["Windows", "macOS", "Linux"] } }, required: ["webAppPath", "osTarget"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
       name: "compile_mobile_app",
       description: "Use the Aphura Mobile OS Engine (React Native) to autonomously compile JavaScript codebases into native, installable iOS (.ipa) and Android (.apk) binaries.",
       parameters: { type: "object", properties: { projectName: { type: "string" }, targetOs: { type: "string", enum: ["iOS", "Android"] } }, required: ["projectName", "targetOs"] }
@@ -7970,14 +7955,6 @@ const tools = [
       name: "encrypt_data_payload",
       description: "Use the Aphura Cryptography Engine (Bouncy Castle) to autonomously generate secure keys and encrypt highly sensitive payloads using military-grade AES-256-GCM algorithms.",
       parameters: { type: "object", properties: { payloadData: { type: "string" } }, required: ["payloadData"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "pin_to_ipfs",
-      description: "Use the Aphura Decentralized Storage Engine (IPFS) to autonomously upload and pin files or entire web applications to the peer-to-peer IPFS network, generating an immutable CID hash.",
-      parameters: { type: "object", properties: { filePath: { type: "string" } }, required: ["filePath"] }
     }
   },
   {
@@ -8255,14 +8232,6 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "generate_browser_trace",
-      description: "If a standard web interaction fails (e.g., CAPTCHA, hidden element), use the Aphura Browser Tracer to dump the full DOM, network requests, and visual timeline so you can self-correct.",
-      parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
       name: "decompile_binary",
       description: "Use the Aphura Reverse Engineering Engine (Ghidra/Radare2) to rip apart compiled binaries (.exe, .apk) and extract their underlying C/C++ logic.",
       parameters: { type: "object", properties: { binaryPath: { type: "string" } }, required: ["binaryPath"] }
@@ -8314,14 +8283,6 @@ const tools = [
       name: "generate_audio_track",
       description: "Use the Aphura Generative Audio Engine (MusicGen) to create high-quality songs, ambient tracks, or sound effects from text.",
       parameters: { type: "object", properties: { prompt: { type: "string" }, durationSec: { type: "number" } }, required: ["prompt"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "run_security_audit",
-      description: "Use the Aphura Cyber-Security Engine (Semgrep) to autonomously scan a codebase for Zero-Day vulnerabilities, SQL injections, or memory leaks.",
-      parameters: { type: "object", properties: { repoPath: { type: "string" } }, required: ["repoPath"] }
     }
   },
   {
@@ -8383,41 +8344,9 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "execute_python_code",
-      description: "Write and execute Python code in a sandboxed Jupyter kernel to perform advanced data analysis, crunch math, or generate visual charts.",
-      parameters: { type: "object", properties: { code: { type: "string" } }, required: ["code"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
       name: "process_complex_document",
       description: "Process a complex PDF, financial report, or scientific document using the Aphura Docling Engine to extract perfect tables and layout prior to RAG analysis.",
       parameters: { type: "object", properties: { filePath: { type: "string" }, collectionId: { type: "string" } }, required: ["filePath", "collectionId"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "swe_execute_command",
-      description: "Execute a bash command in the Aphura Autonomous Engineering sandbox. Use this to run tests, grep for files, or compile code.",
-      parameters: { type: "object", properties: { command: { type: "string" } }, required: ["command"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "swe_edit_file",
-      description: "Edit a file natively in the Aphura sandbox by replacing an exact string.",
-      parameters: { type: "object", properties: { targetFile: { type: "string" }, searchString: { type: "string" }, replacementString: { type: "string" } }, required: ["targetFile", "searchString", "replacementString"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "swe_view_file",
-      description: "Read the contents of a file in the Aphura sandbox using line numbers to avoid context limits.",
-      parameters: { type: "object", properties: { targetFile: { type: "string" }, startLine: { type: "number" }, endLine: { type: "number" } }, required: ["targetFile"] }
     }
   },
   {
@@ -8438,38 +8367,6 @@ const tools = [
   },
   {
     type: "function",
-    function: {
-      name: "delegate_to_aphura_sovereign_agent",
-      description: "Delegate complex, multi-step autonomous reasoning to the Aphura Sovereign Agent (Cleaned Hermes Engine).",
-      parameters: { type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "analyze_legal_contract",
-      description: "Pass legal documents and contracts to the Aphura Compliance Engine (Cleaned OpenClaw) for deep liability analysis.",
-      parameters: { type: "object", properties: { contract_text: { type: "string" } }, required: ["contract_text"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "browser_use_action",
-      description: "Use the ultrafast Browser-Use framework to physically control a headless browser. Use this to scrape modern web apps, click buttons, or extract dynamic data that simple GET requests cannot handle.",
-      parameters: { type: "object", properties: { action: { type: "string", enum: ["launch", "click", "type", "scroll", "close"] }, url_or_target: { type: "string" }, sessionId: { type: "string" } }, required: ["action", "url_or_target", "sessionId"] }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "query_knowledgebase",
-      description: "Perform a semantic RAG vector search against the user's massive private document database (Enterprise Memory). Use this when the user asks about their own PDFs, codebases, or uploaded files.",
-      parameters: { type: "object", properties: { query: { type: "string" }, collectionId: { type: "string" } }, required: ["query"] }
-    }
-  },
-      {
-        type: "function",
         function: {
           name: "get_noaa_weather",
           description: "Fetch live official weather radar, forecast, and atmospheric observations directly from the National Oceanic and Atmospheric Administration (NOAA / NWS).",
@@ -8942,8 +8839,116 @@ const tools = [
         params: { type: 'string', description: 'JSON string of action parameters' }
       }, required: ['action'] }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'analyze_spreadsheet',
+      description: 'Use the Aphura Spreadsheet Analytics Engine (SheetJS, Apache 2.0) to parse Excel/CSV workbooks or query sheets directly using ANSI SQL.',
+      parameters: { type: 'object', properties: {
+        filePath: { type: 'string', description: 'Path or URL of the spreadsheet file' },
+        sqlQuery: { type: 'string', description: 'Optional SQL query to execute on spreadsheet' }
+      }, required: ['filePath'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_business_document',
+      description: 'Use the Aphura Document Generation Engine to create high-compliance business documents, contracts, and proposals from templates.',
+      parameters: { type: 'object', properties: {
+        templateName: { type: 'string', description: 'Template identifier' },
+        data: { type: 'string', description: 'Document data payload' }
+      }, required: ['templateName'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_invoice',
+      description: 'Use the Aphura Financial Billing Engine to generate enterprise PDF invoices with tax breakdown, line items, and payment instructions.',
+      parameters: { type: 'object', properties: {
+        clientName: { type: 'string', description: 'Name of the recipient client or business' },
+        amount: { type: 'number', description: 'Total invoice amount' },
+        currency: { type: 'string', description: 'Currency code (USD, EUR, etc.)' }
+      }, required: ['clientName', 'amount'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'analyze_contract',
+      description: 'Use the Aphura Legal Contract Engine to analyze legal agreements, NDAs, and commercial contracts for risks, liabilities, and key clauses.',
+      parameters: { type: 'object', properties: {
+        filePath: { type: 'string', description: 'Path to contract file or text content' }
+      }, required: ['filePath'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'execute_sovereign_etl_pipeline',
+      description: 'Use the Aphura Sovereign ETL Engine to execute high-throughput airgapped data extractions across enterprise data lakes.',
+      parameters: { type: 'object', properties: {
+        connectorName: { type: 'string', description: 'Source connector name' },
+        destinationLake: { type: 'string', description: 'Destination data lake or table' }
+      }, required: ['connectorName'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'deploy_openebs_cas',
+      description: 'Use the Aphura Container Attached Storage Engine (OpenEBS, Apache 2.0) to provision persistent NVMe/SSD block storage for stateful workloads.',
+      parameters: { type: 'object', properties: {
+        target: { type: 'string', description: 'Storage target or pool configuration' }
+      } }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'instrument_opentelemetry',
+      description: 'Use the Aphura Distributed Telemetry Engine (OpenTelemetry, Apache 2.0) to inject trace spans and collect real-time APM metrics.',
+      parameters: { type: 'object', properties: {
+        target: { type: 'string', description: 'Target microservice or module name' }
+      } }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_bi_dashboard',
+      description: 'Use the Aphura Business Intelligence Engine (Apache Superset, Apache 2.0) to generate interactive data slice charts, metrics, and BI dashboards.',
+      parameters: { type: 'object', properties: {
+        datasetId: { type: 'string', description: 'Dataset or table ID to visualize' }
+      }, required: ['datasetId'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_image',
+      description: 'Generate high-fidelity images from natural language prompts using Together AI FLUX image generation.',
+      parameters: { type: 'object', properties: {
+        prompt: { type: 'string', description: 'Visual prompt describing the image to generate' }
+      }, required: ['prompt'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_sec_filings',
+      description: 'Fetch official SEC EDGAR 10-K, 10-Q, 8-K filings and financial disclosures for public companies by stock ticker.',
+      parameters: { type: 'object', properties: {
+        ticker: { type: 'string', description: 'Stock ticker symbol (e.g. AAPL, NVDA, TSLA)' }
+      }, required: ['ticker'] }
+    }
   }
 ];
+
+// Initialize the Smart Sovereign Router with all available tool definitions
+SovereignRouter.initialize(tools);
 
 export const AgentService = {
   /**
@@ -12093,7 +12098,9 @@ export const AgentService = {
         ...options,
         model: config.llm?.lightModel || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
       };
-      const response = await llmToolCall(messages, tools, toolCallOptions);
+      // Smart MoE Routing: select top 8-12 optimal tools instead of saturating context with 300+ tools
+      const optimalTools = options.tools || SovereignRouter.selectOptimalTools(messages);
+      const response = await llmToolCall(messages, optimalTools, toolCallOptions);
       const responseMessage = response.choices[0]?.message;
 
       if (!responseMessage) {
@@ -12181,7 +12188,9 @@ export const AgentService = {
       const lightModel = config.llm?.lightModel || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
       while (stepCount < maxSteps) {
         stepCount++;
-        const response = await llmToolCall(messages, tools, { model: lightModel, temperature });
+        // Smart MoE Routing: select top 8-12 optimal tools instead of saturating context with 300+ tools
+        const optimalTools = options.tools || SovereignRouter.selectOptimalTools(messages);
+        const response = await llmToolCall(messages, optimalTools, { model: lightModel, temperature });
         const toolCalls = response.choices?.[0]?.message?.tool_calls;
         
         if (!toolCalls || toolCalls.length === 0) break;

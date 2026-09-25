@@ -2,8 +2,9 @@ import { logger } from '../../../shared/logger.js';
 import { SOVEREIGN_DOMAINS, getDomainCount, getTotalNamedEngines } from './sovereign_manifest.js';
 
 /**
- * Aphura Sovereign Core
- * The central nervous system binding all engines into one organism.
+ * Aphura Sovereign Core (License: MIT)
+ * The central nervous system binding all 256 engines into one sovereign organism.
+ * Powered by Aphura Sovereign Core (MIT).
  */
 export const SovereignCore = {
   initialized: false,
