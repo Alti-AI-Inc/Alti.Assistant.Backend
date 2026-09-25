@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessvault_p5id_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessVault) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventmesh_ojfm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventMesh) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedrouter_2b8h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterring_03lt_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterRing) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractproxy_1ckq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractProxy) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlesscluster_qpu0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessCluster) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24452,6 +24492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessvault_p5id_logic": {
+          try {
+            const { OpenServerlessVaultService } = await import("../liberty/openserverlessvault_p5id.service.js");
+            const res = await OpenServerlessVaultService.execute(args.target || "system");
+            return { output: `### OpenServerlessVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventmesh_ojfm_logic": {
+          try {
+            const { OpenEventMeshService } = await import("../liberty/openeventmesh_ojfm.service.js");
+            const res = await OpenEventMeshService.execute(args.target || "system");
+            return { output: `### OpenEventMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedrouter_2b8h_logic": {
+          try {
+            const { OpenDecentralizedRouterService } = await import("../liberty/opendecentralizedrouter_2b8h.service.js");
+            const res = await OpenDecentralizedRouterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterring_03lt_logic": {
+          try {
+            const { OpenCrossClusterRingService } = await import("../liberty/opencross-clusterring_03lt.service.js");
+            const res = await OpenCrossClusterRingService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractproxy_1ckq_logic": {
+          try {
+            const { OpenAbstractProxyService } = await import("../liberty/openabstractproxy_1ckq.service.js");
+            const res = await OpenAbstractProxyService.execute(args.target || "system");
+            return { output: `### OpenAbstractProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlesscluster_qpu0_logic": {
           try {
             const { OpenServerlessClusterService } = await import("../liberty/openserverlesscluster_qpu0.service.js");
