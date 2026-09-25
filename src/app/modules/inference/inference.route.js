@@ -1839,6 +1839,145 @@ visionCompletionRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Audio Transcription (STT) Inference Suite Endpoints ──────────
+// 1. Overview & Models
+const transcriptionOverviewRoutes = [
+  '/together/inference/transcription/overview',
+  '/v1/together/inference/transcription/overview',
+  '/inference/transcription/overview',
+  '/v1/inference/transcription/overview',
+  '/together/transcription/overview',
+  '/v1/transcription/overview',
+];
+transcriptionOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetTranscriptionOverview(req, res);
+  });
+});
+
+// 2. Real-time Streaming WebSocket
+const transcriptionStreamingRoutes = [
+  '/together/inference/transcription/streaming',
+  '/v1/together/inference/transcription/streaming',
+  '/inference/transcription/streaming',
+  '/v1/inference/transcription/streaming',
+  '/together/transcription/streaming',
+  '/v1/transcription/streaming',
+];
+transcriptionStreamingRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetTranscriptionStreamingDocs(req, res);
+  });
+});
+
+// 3. Audio Translation to English
+const transcriptionTranslationRoutes = [
+  '/together/inference/transcription/translation',
+  '/v1/together/inference/transcription/translation',
+  '/inference/transcription/translation',
+  '/v1/inference/transcription/translation',
+  '/together/transcription/translation',
+  '/v1/transcription/translation',
+];
+transcriptionTranslationRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetTranscriptionTranslationDocs(req, res);
+  });
+});
+
+// 4. Voice Activity Detection (VAD)
+const transcriptionVADRoutes = [
+  '/together/inference/transcription/voice-activity-detection',
+  '/v1/together/inference/transcription/voice-activity-detection',
+  '/inference/transcription/voice-activity-detection',
+  '/v1/inference/transcription/voice-activity-detection',
+  '/together/transcription/vad',
+  '/v1/transcription/vad',
+];
+transcriptionVADRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetVoiceActivityDetectionDocs(req, res);
+  });
+});
+
+// 5. Advanced Features (Diarization, Timestamps, Formats)
+const transcriptionFeaturesRoutes = [
+  '/together/inference/transcription/features',
+  '/v1/together/inference/transcription/features',
+  '/inference/transcription/features',
+  '/v1/inference/transcription/features',
+  '/together/transcription/features',
+  '/v1/transcription/features',
+];
+transcriptionFeaturesRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetTranscriptionFeaturesDocs(req, res);
+  });
+});
+
+// 6. Validate Parameters
+const transcriptionValidateRoutes = [
+  '/together/inference/transcription/validate',
+  '/v1/together/inference/transcription/validate',
+  '/inference/transcription/validate',
+  '/v1/inference/transcription/validate',
+  '/together/transcription/validate',
+  '/v1/transcription/validate',
+];
+transcriptionValidateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateTranscriptionParams(req, res);
+  });
+});
+
+// 7. Streaming WebSocket Config
+const transcriptionWsConfigRoutes = [
+  '/together/inference/transcription/websocket-config',
+  '/v1/together/inference/transcription/websocket-config',
+  '/inference/transcription/websocket-config',
+  '/v1/inference/transcription/websocket-config',
+  '/together/transcription/websocket-config',
+  '/v1/transcription/websocket-config',
+];
+transcriptionWsConfigRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetStreamingWebSocketConfig(req, res);
+  });
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleGetStreamingWebSocketConfig(req, res);
+  });
+});
+
+// 8. Run Transcription (with Dry-Run support)
+const transcriptionRunRoutes = [
+  '/together/inference/transcription/run',
+  '/v1/together/inference/transcription/run',
+  '/inference/transcription/run',
+  '/v1/inference/transcription/run',
+  '/together/transcription/run',
+  '/v1/transcription/run',
+];
+transcriptionRunRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteTranscription(req, res);
+  });
+});
+
+// 9. Run Translation (with Dry-Run support)
+const transcriptionTranslateRoutes = [
+  '/together/inference/transcription/translate',
+  '/v1/together/inference/transcription/translate',
+  '/inference/transcription/translate',
+  '/v1/inference/transcription/translate',
+  '/together/transcription/translate',
+  '/v1/transcription/translate',
+];
+transcriptionTranslateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleExecuteTranslation(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

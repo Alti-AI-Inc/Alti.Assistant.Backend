@@ -211,6 +211,21 @@ import {
   calculateVisionTokens,
   executeVisionCompletion,
 } from './together.vision.js';
+import {
+  TRANSCRIPTION_MODELS_CATALOG,
+  AUDIO_FORMATS,
+  TRANSCRIPTION_LIMITS,
+  VAD_PRESETS,
+  getTranscriptionOverview,
+  getTranscriptionStreamingDocs,
+  getTranscriptionTranslationDocs,
+  getVoiceActivityDetectionDocs,
+  getTranscriptionFeaturesDocs,
+  validateTranscriptionParams,
+  buildStreamingWebSocketConfig,
+  executeAudioTranscription,
+  executeAudioTranslation,
+} from './together.transcription.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -452,6 +467,7 @@ Standard Commands:
   images, img  Text-to-image, reference images, parameters, validation, and generation
   videos, vid  Video generation, reference images, keyframes, audio sync, and job polling
   vision, vis  Vision-language models, 560px tile tokens, URLs/base64, structured extraction, and function calling
+  transcription, stt  Speech-to-text, streaming WebSocket, audio translation, VAD, and diarization
 
 Beta Commands (tg beta ...):
   models       DMI 2.0 custom models, weight uploads, and configs
@@ -465,7 +481,7 @@ Global Flags:
   --json           Format output as JSON
   --api-key <key>  Pass API key explicitly
 `.trim();
-    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'images', 'image', 'img', 'videos', 'video', 'vid', 'vision', 'vis', 'beta'] };
+    return { text, commands: ['models', 'endpoints', 'files', 'finetune', 'evals', 'batches', 'whoami', 'telemetry', 'frameworks', 'skills', 'mcp', 'inference', 'chat', 'fc', 'function-calling', 'tools', 'images', 'image', 'img', 'videos', 'video', 'vid', 'vision', 'vis', 'transcription', 'stt', 'beta'] };
   }
 
   if (command === 'login' || command === 'init' || command === 'auth') {
@@ -2500,6 +2516,208 @@ Tokens Used: ${completionResult.usage?.total_tokens || 1690}
   throw new Error(`Unknown vision command: ${action}. Use 'overview', 'inputs', 'structured', 'fc', 'tokens', or 'run'.`);
 }
 
+// ── Audio Transcription & Translation (STT) Handler ──────────────────────────
+async function handleTranscription(parsed) {
+  const action = parsed.subcommand || 'overview';
+
+  if (action === 'overview' || action === 'docs' || action === 'help') {
+    const overview = getTranscriptionOverview();
+    const text = `
+Together AI Speech-to-Text (Transcription) Overview:
+${overview.title}
+Docs: ${overview.docs_url}
+
+Recommended Model: ${overview.recommended_model}
+Fallback Model: ${overview.fallback_model}
+
+Supported Transcription Models:
+${overview.models.map(m => `  • ${m.name} (${m.id}) - ${m.type} [Tasks: ${m.supported_tasks.join(', ')}]`).join('\n')}
+
+Limits:
+  • Max duration: ${overview.limits.max_duration_hours} hours (${overview.limits.max_duration_seconds}s)
+  • Binary upload cap: ${overview.limits.max_binary_upload_mb} MB (HTTP 413 request_too_large if exceeded)
+  • URL-fetched audio cap: ${overview.limits.max_url_fetch_gb} GB
+
+Actions:
+  tg stt overview               View STT documentation and models
+  tg stt streaming              Real-time WebSocket protocol and reconnection
+  tg stt translation            Translate speech in any language to English
+  tg stt vad                    Voice Activity Detection parameters & presets
+  tg stt features               Speaker diarization, word timestamps, verbose JSON
+  tg stt validate --model ...   Validate transcription parameters
+  tg stt ws-config              Generate real-time WebSocket connection URL
+  tg stt run --file audio.mp3   Run transcription (supports --dry-run)
+  tg stt translate --file ...   Run translation to English (supports --dry-run)
+`.trim();
+    return { ...overview, text };
+  }
+
+  if (action === 'streaming' || action === 'ws' || action === 'realtime') {
+    const streamingDocs = getTranscriptionStreamingDocs();
+    const text = `
+Real-Time WebSocket Streaming Transcription:
+${streamingDocs.title}
+Docs: ${streamingDocs.docs_url}
+
+Endpoint: ${streamingDocs.websocket_url}
+Wire Audio Format: ${streamingDocs.wire_audio_format.format} (${streamingDocs.wire_audio_format.sample_rate_hz}Hz mono 16-bit PCM)
+
+Headers:
+  Authorization: Bearer $TOGETHER_API_KEY
+  OpenAI-Beta: realtime=v1
+
+Client-to-Server Events:
+${streamingDocs.client_events.map(e => `  • [${e.type}]: ${e.description}`).join('\n')}
+
+Server-to-Client Events:
+${streamingDocs.server_events.map(e => `  • [${e.type}]: ${e.description}`).join('\n')}
+`.trim();
+    return { ...streamingDocs, text };
+  }
+
+  if (action === 'translation' || action === 'translate-docs') {
+    const translationDocs = getTranscriptionTranslationDocs();
+    const text = `
+Speech Translation (Audio to English Text):
+${translationDocs.title}
+Docs: ${translationDocs.docs_url}
+Endpoint: ${translationDocs.endpoint}
+
+Model: ${translationDocs.recommended_model}
+Description: ${translationDocs.description}
+
+Limits:
+  • Max duration: 4 hours
+  • Binary upload cap: 80 MB
+  • URL-fetched audio cap: 1 GB
+`.trim();
+    return { ...translationDocs, text };
+  }
+
+  if (action === 'vad' || action === 'turn-detection') {
+    const vadDocs = getVoiceActivityDetectionDocs();
+    const text = `
+Voice Activity Detection (VAD) Reference:
+${vadDocs.title}
+Docs: ${vadDocs.docs_url}
+
+Tunable Parameters:
+${vadDocs.parameters.map(p => `  • ${p.name} (${p.type}, default: ${p.default}): ${p.description}`).join('\n')}
+
+Presets:
+  • conversational: threshold=0.3, min_silence=500ms, min_speech=250ms, max_speech=5s, pad=250ms
+  • phone_call_low_quality: threshold=0.01, min_silence=1000ms, min_speech=500ms, max_speech=60s, pad=10ms
+  • disabled (turn_detection=none): Disables auto-segmentation
+`.trim();
+    return { ...vadDocs, text };
+  }
+
+  if (action === 'features' || action === 'diarization' || action === 'timestamps') {
+    const featuresDocs = getTranscriptionFeaturesDocs();
+    const text = `
+Advanced Transcription Features:
+${featuresDocs.title}
+Docs: ${featuresDocs.docs_url}
+
+Features:
+${featuresDocs.features.map(f => `  • [${f.name}]: ${f.description}`).join('\n')}
+`.trim();
+    return { ...featuresDocs, text };
+  }
+
+  if (action === 'validate' || action === 'check') {
+    const payload = {
+      model: parsed.flags.model || 'openai/whisper-large-v3',
+      language: parsed.flags.language || 'en',
+      prompt: parsed.flags.prompt,
+      diarize: Boolean(parsed.flags.diarize),
+      timestamp_granularities: parsed.flags.timestamp_granularities || parsed.flags['timestamp-granularities'],
+      response_format: parsed.flags.response_format || parsed.flags['response-format'],
+      temperature: parsed.flags.temperature ? parseFloat(parsed.flags.temperature) : undefined,
+    };
+    const valResult = validateTranscriptionParams(payload);
+    const text = `
+Transcription Parameters Validation:
+Status: ${valResult.valid ? 'VALID ✅' : 'INVALID ❌'}
+Model: ${valResult.model}
+Diarization Enabled: ${valResult.diarization_enabled}
+Timestamps Enabled: ${valResult.timestamps_enabled}
+${valResult.errors?.length ? `Errors:\n${valResult.errors.map(e => `  • ${e}`).join('\n')}` : 'Errors: None'}
+${valResult.warnings?.length ? `Warnings:\n${valResult.warnings.map(w => `  • ${w}`).join('\n')}` : 'Warnings: None'}
+`.trim();
+    return { ...valResult, text };
+  }
+
+  if (action === 'ws-config' || action === 'config') {
+    const configResult = buildStreamingWebSocketConfig({
+      model: parsed.flags.model || 'openai/whisper-large-v3',
+      vad_preset: parsed.flags.preset || parsed.flags.vad || 'conversational',
+      input_audio_format: parsed.flags['audio-format'] || 'pcm_s16le_16000',
+    });
+    const text = `
+WebSocket Real-Time STT Configuration:
+WebSocket URL: ${configResult.websocket_url}
+Model: ${configResult.model}
+Audio Format: ${configResult.input_audio_format}
+VAD Preset: ${configResult.vad_config.preset_name || 'custom'} (Threshold: ${configResult.vad_config.threshold})
+`.trim();
+    return { ...configResult, text };
+  }
+
+  if (action === 'run' || action === 'transcribe') {
+    const file = parsed.flags.file || parsed.positionals[2] || 'audio.mp3';
+    const model = parsed.flags.model || 'openai/whisper-large-v3';
+    const language = parsed.flags.language || 'en';
+    const responseFormat = parsed.flags.response_format || parsed.flags['response-format'] || 'json';
+    const diarize = Boolean(parsed.flags.diarize);
+    const dryRun = Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run || true);
+
+    const result = await executeAudioTranscription({
+      file,
+      model,
+      language,
+      response_format: responseFormat,
+      diarize,
+      dry_run: dryRun,
+      ...parsed.flags,
+    });
+
+    const text = `
+Audio Transcription Result (${model}):
+File: ${file}
+Dry Run: ${dryRun}
+Language: ${result.language || language}
+Text: "${result.text}"
+${result.words?.length ? `Words: ${result.words.length} timestamped words` : ''}
+${result.speaker_segments?.length ? `Speaker Segments: ${result.speaker_segments.length} segment(s) identified` : ''}
+`.trim();
+    return { ...result, text };
+  }
+
+  if (action === 'translate' || action === 'translate-run') {
+    const file = parsed.flags.file || parsed.positionals[2] || 'foreign_audio.mp3';
+    const model = parsed.flags.model || 'openai/whisper-large-v3';
+    const dryRun = Boolean(parsed.flags['dry-run'] || parsed.flags.dry_run || true);
+
+    const result = await executeAudioTranslation({
+      file,
+      model,
+      dry_run: dryRun,
+      ...parsed.flags,
+    });
+
+    const text = `
+Audio Translation to English Result (${model}):
+File: ${file}
+Dry Run: ${dryRun}
+Translation: "${result.text}"
+`.trim();
+    return { ...result, text };
+  }
+
+  throw new Error(`Unknown transcription command: ${action}. Use 'overview', 'streaming', 'translation', 'vad', 'features', 'validate', 'ws-config', 'run', or 'translate'.`);
+}
+
 // ── Master Sovereign CLI Command Dispatcher ──────────────────────────────────
 export async function executeTogetherCliCommand(argsInput, options = {}) {
   const parsed = parseCliArgs(argsInput);
@@ -2634,6 +2852,12 @@ export async function executeTogetherCliCommand(argsInput, options = {}) {
         case 'vis':
           resultData = await handleVision(parsed);
           domain = 'vision';
+          break;
+        case 'transcription':
+        case 'stt':
+        case 'audio':
+          resultData = await handleTranscription(parsed);
+          domain = 'transcription';
           break;
         default:
           throw new Error(`Unknown together command: '${parsed.command}'. Run 'together --help' for available commands.`);

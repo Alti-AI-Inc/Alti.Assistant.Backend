@@ -178,6 +178,17 @@ import {
   calculateVisionTokens,
   executeVisionCompletion,
 } from '../../services/together.vision.js';
+import {
+  getTranscriptionOverview,
+  getTranscriptionStreamingDocs,
+  getTranscriptionTranslationDocs,
+  getVoiceActivityDetectionDocs,
+  getTranscriptionFeaturesDocs,
+  validateTranscriptionParams,
+  buildStreamingWebSocketConfig,
+  executeAudioTranscription,
+  executeAudioTranslation,
+} from '../../services/together.transcription.js';
 
 // The full Together AI Serverless Library available to Aphura
 const MODELS = {
@@ -3854,6 +3865,127 @@ export const InferenceGateway = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error executing vision completion.' });
+    }
+  },
+
+  /**
+   * Retrieves Transcription Overview Docs and Catalog
+   * (GET /together/inference/transcription/overview, GET /v1/together/inference/transcription/overview)
+   */
+  async handleGetTranscriptionOverview(req, res) {
+    try {
+      const data = getTranscriptionOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving transcription overview.' });
+    }
+  },
+
+  /**
+   * Retrieves Real-Time WebSocket Streaming Transcription Docs
+   * (GET /together/inference/transcription/streaming, GET /v1/together/inference/transcription/streaming)
+   */
+  async handleGetTranscriptionStreamingDocs(req, res) {
+    try {
+      const data = getTranscriptionStreamingDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving streaming docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Audio Translation to English Docs
+   * (GET /together/inference/transcription/translation, GET /v1/together/inference/transcription/translation)
+   */
+  async handleGetTranscriptionTranslationDocs(req, res) {
+    try {
+      const data = getTranscriptionTranslationDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving translation docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Voice Activity Detection (VAD) Documentation and Presets
+   * (GET /together/inference/transcription/voice-activity-detection, GET /v1/together/inference/transcription/voice-activity-detection)
+   */
+  async handleGetVoiceActivityDetectionDocs(req, res) {
+    try {
+      const data = getVoiceActivityDetectionDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving VAD docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Advanced Transcription Features (Diarization, Timestamps, Formats) Docs
+   * (GET /together/inference/transcription/features, GET /v1/together/inference/transcription/features)
+   */
+  async handleGetTranscriptionFeaturesDocs(req, res) {
+    try {
+      const data = getTranscriptionFeaturesDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving features docs.' });
+    }
+  },
+
+  /**
+   * Validates Audio Transcription Parameters
+   * (POST /together/inference/transcription/validate, POST /v1/together/inference/transcription/validate)
+   */
+  async handleValidateTranscriptionParams(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = validateTranscriptionParams(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating transcription parameters.' });
+    }
+  },
+
+  /**
+   * Generates WebSocket Real-Time URL and Configuration for STT
+   * (POST /together/inference/transcription/websocket-config, GET /together/inference/transcription/websocket-config)
+   */
+  async handleGetStreamingWebSocketConfig(req, res) {
+    try {
+      const params = { ...(req.query || {}), ...(req.body || {}) };
+      const config = buildStreamingWebSocketConfig(params);
+      return res.status(200).json(config);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error generating streaming WS config.' });
+    }
+  },
+
+  /**
+   * Executes Sovereign Audio Transcription (with Dry-Run support)
+   * (POST /together/inference/transcription/run, POST /v1/together/inference/transcription/run)
+   */
+  async handleExecuteTranscription(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await executeAudioTranscription(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing transcription.' });
+    }
+  },
+
+  /**
+   * Executes Sovereign Audio Translation to English (with Dry-Run support)
+   * (POST /together/inference/transcription/translate, POST /v1/together/inference/transcription/translate)
+   */
+  async handleExecuteTranslation(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = await executeAudioTranslation(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error executing translation.' });
     }
   },
 };
