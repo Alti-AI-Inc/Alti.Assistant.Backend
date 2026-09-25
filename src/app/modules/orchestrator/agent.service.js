@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetarycluster_sk83_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCluster) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondlayer_zpcq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondLayer) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractring_eywj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractRing) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogproxy_3rej_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogProxy) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentbroker_57v3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentBroker) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgeswarm_e7y5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeSwarm) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28692,6 +28732,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetarycluster_sk83_logic": {
+          try {
+            const { OpenPlanetaryClusterService } = await import("../liberty/openplanetarycluster_sk83.service.js");
+            const res = await OpenPlanetaryClusterService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondlayer_zpcq_logic": {
+          try {
+            const { OpenSubMillisecondLayerService } = await import("../liberty/opensub-millisecondlayer_zpcq.service.js");
+            const res = await OpenSubMillisecondLayerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractring_eywj_logic": {
+          try {
+            const { OpenAbstractRingService } = await import("../liberty/openabstractring_eywj.service.js");
+            const res = await OpenAbstractRingService.execute(args.target || "system");
+            return { output: `### OpenAbstractRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogproxy_3rej_logic": {
+          try {
+            const { OpenLogProxyService } = await import("../liberty/openlogproxy_3rej.service.js");
+            const res = await OpenLogProxyService.execute(args.target || "system");
+            return { output: `### OpenLogProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentbroker_57v3_logic": {
+          try {
+            const { OpenPersistentBrokerService } = await import("../liberty/openpersistentbroker_57v3.service.js");
+            const res = await OpenPersistentBrokerService.execute(args.target || "system");
+            return { output: `### OpenPersistentBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentBroker failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgeswarm_e7y5_logic": {
           try {
             const { OpenZeroKnowledgeSwarmService } = await import("../liberty/openzero-knowledgeswarm_e7y5.service.js");
