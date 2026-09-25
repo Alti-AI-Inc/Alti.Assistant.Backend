@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendistributedrouter_f9xa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedRouter) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatanexus_cebv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataNexus) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorymatrix_u9di_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryMatrix) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepnet_ho9a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepNet) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaregrid_7e16_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareGrid) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendataengine_4pxl_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataEngine) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26852,6 +26892,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendistributedrouter_f9xa_logic": {
+          try {
+            const { OpenDistributedRouterService } = await import("../liberty/opendistributedrouter_f9xa.service.js");
+            const res = await OpenDistributedRouterService.execute(args.target || "system");
+            return { output: `### OpenDistributedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatanexus_cebv_logic": {
+          try {
+            const { OpenDataNexusService } = await import("../liberty/opendatanexus_cebv.service.js");
+            const res = await OpenDataNexusService.execute(args.target || "system");
+            return { output: `### OpenDataNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorymatrix_u9di_logic": {
+          try {
+            const { OpenInMemoryMatrixService } = await import("../liberty/openin-memorymatrix_u9di.service.js");
+            const res = await OpenInMemoryMatrixService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepnet_ho9a_logic": {
+          try {
+            const { OpenDeepNetService } = await import("../liberty/opendeepnet_ho9a.service.js");
+            const res = await OpenDeepNetService.execute(args.target || "system");
+            return { output: `### OpenDeepNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaregrid_7e16_logic": {
+          try {
+            const { OpenHardwareGridService } = await import("../liberty/openhardwaregrid_7e16.service.js");
+            const res = await OpenHardwareGridService.execute(args.target || "system");
+            return { output: `### OpenHardwareGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareGrid failed: ${err.message}` };
+          }
+        }
         case "execute_opendataengine_4pxl_logic": {
           try {
             const { OpenDataEngineService } = await import("../liberty/opendataengine_4pxl.service.js");
