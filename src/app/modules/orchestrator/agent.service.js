@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmicro-frontendrouter_uc0s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRouter) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicrouter_3e9l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicRouter) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeswarm_1jdn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSwarm) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcore_efgx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPCore) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterbroker_u4j8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterBroker) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendeepfabric_izu0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDeepFabric) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25052,6 +25092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmicro-frontendrouter_uc0s_logic": {
+          try {
+            const { OpenMicroFrontendRouterService } = await import("../liberty/openmicro-frontendrouter_uc0s.service.js");
+            const res = await OpenMicroFrontendRouterService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicrouter_3e9l_logic": {
+          try {
+            const { OpenHomomorphicRouterService } = await import("../liberty/openhomomorphicrouter_3e9l.service.js");
+            const res = await OpenHomomorphicRouterService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeswarm_1jdn_logic": {
+          try {
+            const { OpenEdgeSwarmService } = await import("../liberty/openedgeswarm_1jdn.service.js");
+            const res = await OpenEdgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenEdgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcore_efgx_logic": {
+          try {
+            const { OpenBGPCoreService } = await import("../liberty/openbgpcore_efgx.service.js");
+            const res = await OpenBGPCoreService.execute(args.target || "system");
+            return { output: `### OpenBGPCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterbroker_u4j8_logic": {
+          try {
+            const { OpenCrossClusterBrokerService } = await import("../liberty/opencross-clusterbroker_u4j8.service.js");
+            const res = await OpenCrossClusterBrokerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterBroker failed: ${err.message}` };
+          }
+        }
         case "execute_opendeepfabric_izu0_logic": {
           try {
             const { OpenDeepFabricService } = await import("../liberty/opendeepfabric_izu0.service.js");
