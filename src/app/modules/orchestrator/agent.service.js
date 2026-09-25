@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedswarm_h779_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedSwarm) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventnexus_2fko_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventNexus) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpengine_cfu7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPEngine) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractcluster_8eq3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractCluster) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondnexus_7tc7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondNexus) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustnet_cmuu_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustNet) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29132,6 +29172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedswarm_h779_logic": {
+          try {
+            const { OpenDecentralizedSwarmService } = await import("../liberty/opendecentralizedswarm_h779.service.js");
+            const res = await OpenDecentralizedSwarmService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventnexus_2fko_logic": {
+          try {
+            const { OpenEventNexusService } = await import("../liberty/openeventnexus_2fko.service.js");
+            const res = await OpenEventNexusService.execute(args.target || "system");
+            return { output: `### OpenEventNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpengine_cfu7_logic": {
+          try {
+            const { OpenBGPEngineService } = await import("../liberty/openbgpengine_cfu7.service.js");
+            const res = await OpenBGPEngineService.execute(args.target || "system");
+            return { output: `### OpenBGPEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractcluster_8eq3_logic": {
+          try {
+            const { OpenAbstractClusterService } = await import("../liberty/openabstractcluster_8eq3.service.js");
+            const res = await OpenAbstractClusterService.execute(args.target || "system");
+            return { output: `### OpenAbstractCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondnexus_7tc7_logic": {
+          try {
+            const { OpenSubMillisecondNexusService } = await import("../liberty/opensub-millisecondnexus_7tc7.service.js");
+            const res = await OpenSubMillisecondNexusService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustnet_cmuu_logic": {
           try {
             const { OpenZeroTrustNetService } = await import("../liberty/openzero-trustnet_cmuu.service.js");
