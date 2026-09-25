@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfmatrix_ojv7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFMatrix) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicsync_652v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicSync) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedvortex_uj3t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedVortex) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partycluster_21m9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyCluster) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablecontroller_pqbv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableController) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openin-memorysync_m566_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenIn-MemorySync) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29532,6 +29572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfmatrix_ojv7_logic": {
+          try {
+            const { OpeneBPFMatrixService } = await import("../liberty/openebpfmatrix_ojv7.service.js");
+            const res = await OpeneBPFMatrixService.execute(args.target || "system");
+            return { output: `### OpeneBPFMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicsync_652v_logic": {
+          try {
+            const { OpenHomomorphicSyncService } = await import("../liberty/openhomomorphicsync_652v.service.js");
+            const res = await OpenHomomorphicSyncService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedvortex_uj3t_logic": {
+          try {
+            const { OpenFederatedVortexService } = await import("../liberty/openfederatedvortex_uj3t.service.js");
+            const res = await OpenFederatedVortexService.execute(args.target || "system");
+            return { output: `### OpenFederatedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partycluster_21m9_logic": {
+          try {
+            const { OpenMultiPartyClusterService } = await import("../liberty/openmulti-partycluster_21m9.service.js");
+            const res = await OpenMultiPartyClusterService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablecontroller_pqbv_logic": {
+          try {
+            const { OpenImmutableControllerService } = await import("../liberty/openimmutablecontroller_pqbv.service.js");
+            const res = await OpenImmutableControllerService.execute(args.target || "system");
+            return { output: `### OpenImmutableController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableController failed: ${err.message}` };
+          }
+        }
         case "execute_openin-memorysync_m566_logic": {
           try {
             const { OpenInMemorySyncService } = await import("../liberty/openin-memorysync_m566.service.js");
