@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlessgraph_ua8r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessGraph) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarybroker_gwxl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryBroker) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicvortex_irct_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicVortex) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencymesh_kf98_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyMesh) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialsync_o6jc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialSync) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialvault_hn1c_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialVault) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24532,6 +24572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlessgraph_ua8r_logic": {
+          try {
+            const { OpenServerlessGraphService } = await import("../liberty/openserverlessgraph_ua8r.service.js");
+            const res = await OpenServerlessGraphService.execute(args.target || "system");
+            return { output: `### OpenServerlessGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarybroker_gwxl_logic": {
+          try {
+            const { OpenPlanetaryBrokerService } = await import("../liberty/openplanetarybroker_gwxl.service.js");
+            const res = await OpenPlanetaryBrokerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicvortex_irct_logic": {
+          try {
+            const { OpenHomomorphicVortexService } = await import("../liberty/openhomomorphicvortex_irct.service.js");
+            const res = await OpenHomomorphicVortexService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencymesh_kf98_logic": {
+          try {
+            const { OpenHighFrequencyMeshService } = await import("../liberty/openhigh-frequencymesh_kf98.service.js");
+            const res = await OpenHighFrequencyMeshService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialsync_o6jc_logic": {
+          try {
+            const { OpenFinancialSyncService } = await import("../liberty/openfinancialsync_o6jc.service.js");
+            const res = await OpenFinancialSyncService.execute(args.target || "system");
+            return { output: `### OpenFinancialSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialSync failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialvault_hn1c_logic": {
           try {
             const { OpenFinancialVaultService } = await import("../liberty/openfinancialvault_hn1c.service.js");
