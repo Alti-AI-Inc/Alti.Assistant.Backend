@@ -84,6 +84,23 @@ router.get('/v1/realtime', (req, res) => {
   InferenceGateway.handleRealtimeSTTInfo(req, res);
 });
 
+// ── Videos (Official: https://docs.together.ai/reference/create-videos & get-videos-id)
+router.post('/videos', async (req, res) => {
+  await InferenceGateway.handleCreateVideo(req, res);
+});
+
+router.post('/v1/videos', async (req, res) => {
+  await InferenceGateway.handleCreateVideo(req, res);
+});
+
+router.get('/videos/:id', async (req, res) => {
+  await InferenceGateway.handleGetVideo(req, res);
+});
+
+router.get('/v1/videos/:id', async (req, res) => {
+  await InferenceGateway.handleGetVideo(req, res);
+});
+
 // ── Models Discovery (OpenAI/Together SDK compatible format) ───────────────
 const modelsHandler = async (req, res) => {
   try {
