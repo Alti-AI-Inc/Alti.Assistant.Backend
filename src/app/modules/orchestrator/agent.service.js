@@ -8118,7 +8118,7 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "generate_bi_dashboard",
+      name: "generate_evidence_dashboard",
       description: "Use the Aphura BI Engine (Apache Superset) to autonomously compile and deploy enterprise-grade, interactive data visualization dashboards.",
       parameters: { type: "object", properties: { datasetId: { type: "string" } }, required: ["datasetId"] }
     }
@@ -9097,7 +9097,7 @@ export const AgentService = {
         }
         case "trace_data_lineage": {
           try {
-            const { AtlasService } = await import("../enterprise/atlas.service.js");
+            const { AtlasService } = await import("../enterprise/apache_atlas.service.js");
             const res = await AtlasService.traceDataLineage(args.entityName);
             return { output: "### Data Lineage & Governance\n\n```text\n" + res.report + "\n```" };
           } catch (err) {
@@ -9464,7 +9464,7 @@ export const AgentService = {
             return { output: "Spreadsheet analysis failed: " + err.message };
           }
         }
-        case "generate_bi_dashboard": {
+        case "generate_evidence_dashboard": {
           try {
             const { EvidenceService } = await import("../data/evidence.service.js");
             const res = await EvidenceService.generateDashboard(args.title, [args.businessQuestion]);
@@ -9831,7 +9831,7 @@ export const AgentService = {
         }
         case "deploy_nats_mesh": {
           try {
-            const { NatsService } = await import("../data/nats.service.js");
+            const { NatsService } = await import("../enterprise/nats.service.js");
             const res = await NatsService.execute(args.target || "system");
             return { output: `### NATS Execution\\n\\n```text\\n${res.report}\\n```` };
           } catch (err) {
@@ -10299,7 +10299,7 @@ export const AgentService = {
           }
         }        case "provision_enterprise_blockchain": {
           try {
-            const { HyperledgerService } = await import("../web3/hyperledger.service.js");
+            const { HyperledgerService } = await import("../security/hyperledger.service.js");
             const res = await HyperledgerService.provisionNetwork(args.networkName, args.nodes);
             return { output: `### Enterprise Blockchain Deployed\\n\\n```text\\n${res.report}\\n```` };
           } catch (err) {
@@ -10347,7 +10347,7 @@ export const AgentService = {
           }
         }        case "provision_search_index": {
           try {
-            const { MeiliSearchService } = await import("../data/meilisearch.service.js");
+            const { MeiliSearchService } = await import("../search/meilisearch.service.js");
             const res = await MeiliSearchService.provisionSearchIndex(args.indexName);
             return { output: `### Search Index Configured\\n\\n```text\\n${res.report}\\n```` };
           } catch (err) {
@@ -10363,7 +10363,7 @@ export const AgentService = {
           }
         }        case "configure_edge_proxy": {
           try {
-            const { EnvoyService } = await import("../security/envoy.service.js");
+            const { EnvoyService } = await import("../enterprise/envoy.service.js");
             const res = await EnvoyService.configureProxy(args.domain, args.routingRules);
             return { output: `### Edge Proxy Configured\\n\\n```text\\n${res.report}\\n```` };
           } catch (err) {
@@ -10411,7 +10411,7 @@ export const AgentService = {
           }
         }        case "provision_sso_portal": {
           try {
-            const { KeycloakService } = await import("../security/keycloak.service.js");
+            const { KeycloakService } = await import("../enterprise/keycloak.service.js");
             const res = await KeycloakService.provisionAuth(args.domain, args.authType);
             return { output: `### Secure IAM Portal Deployed\\n\\nPortal URL: ${res.url}\\nStatus: ${res.status}` };
           } catch (err) {
@@ -10419,7 +10419,7 @@ export const AgentService = {
           }
         }        case "extract_file_metadata": {
           try {
-            const { TikaService } = await import("../rag/tika.service.js");
+            const { TikaService } = await import("../enterprise/tika.service.js");
             const res = await TikaService.extractContent(args.filePath);
             return { output: `### Tika Extraction Complete\\n\\n```text\\n${res.report}\\n```` };
           } catch (err) {
@@ -10623,7 +10623,7 @@ export const AgentService = {
           }
         }        case "run_database_migration": {
           try {
-            const { AtlasService } = await import("../database/atlas.service.js");
+            const { AtlasService } = await import("../database/ariga_atlas.service.js");
             const res = await AtlasService.inspectAndMigrate(args.targetConnectionString, args.desiredSchema);
             return { output: `### Database Migration Plan\\n\\n```text\\n${res.report}\\n```` };
           } catch (err) {
@@ -10663,7 +10663,7 @@ export const AgentService = {
           }
         }        case "dspy_compile_task": {
           try {
-            const { DSPyService } = await import("./dspy.service.js");
+            const { DSPyService } = await import("../ai/dspy.service.js");
             const res = await DSPyService.compileAndRun(args.taskDescription, args.inputs);
             return { output: `### DSPy Optimized Result\\n\\n${res}` };
           } catch (err) {
@@ -10679,7 +10679,7 @@ export const AgentService = {
           }
         }        case "query_knowledge_graph": {
           try {
-            const { GraphRAGService } = await import("../rag/graphrag.service.js");
+            const { GraphRAGService } = await import("../ai/graphrag.service.js");
             const res = await GraphRAGService.queryGraph(args.query, args.graphId);
             return { output: `### Knowledge Graph Synthesis\\n\\n${res.answer}` };
           } catch (err) {
