@@ -47,6 +47,12 @@ import {
   llmGetEval,
   llmGetEvalStatus,
   llmListEvalModels,
+  llmCreateCluster,
+  llmListClusters,
+  llmGetCluster,
+  llmUpdateCluster,
+  llmDeleteCluster,
+  llmListClusterRegions,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -1779,6 +1785,113 @@ export const InferenceGateway = {
     }
     try {
       const data = await llmGetEvalStatus(evalId);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Creates GPU cluster (POST /compute/clusters, POST /clusters & /v1/ aliases)
+   * Official Reference: https://docs.together.ai/reference/clusters-create
+   */
+  async handleCreateCluster(req, res) {
+    try {
+      const data = await llmCreateCluster(req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists all GPU clusters (GET /compute/clusters, GET /clusters & /v1/ aliases)
+   * Official Reference: https://docs.together.ai/reference/clusters-list
+   */
+  async handleListClusters(req, res) {
+    try {
+      const data = await llmListClusters(req.query);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves GPU cluster details (GET /compute/clusters/:id, GET /clusters/:id & /v1/ aliases)
+   * Official Reference: https://docs.together.ai/reference/clusters-get
+   */
+  async handleGetCluster(req, res) {
+    const clusterId = req.params?.id || req.params?.cluster_id;
+    if (!clusterId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'cluster_id'.",
+          type: 'invalid_request_error',
+          param: 'cluster_id',
+        },
+      });
+    }
+    try {
+      const data = await llmGetCluster(clusterId);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Updates GPU cluster configuration (PUT /compute/clusters/:id, PATCH /compute/clusters/:id & aliases)
+   * Official Reference: https://docs.together.ai/reference/clusters-update
+   */
+  async handleUpdateCluster(req, res) {
+    const clusterId = req.params?.id || req.params?.cluster_id;
+    if (!clusterId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'cluster_id'.",
+          type: 'invalid_request_error',
+          param: 'cluster_id',
+        },
+      });
+    }
+    try {
+      const data = await llmUpdateCluster(clusterId, req.body);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Deletes GPU cluster (DELETE /compute/clusters/:id, DELETE /clusters/:id & /v1/ aliases)
+   * Official Reference: https://docs.together.ai/reference/clusters-delete
+   */
+  async handleDeleteCluster(req, res) {
+    const clusterId = req.params?.id || req.params?.cluster_id;
+    if (!clusterId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'cluster_id'.",
+          type: 'invalid_request_error',
+          param: 'cluster_id',
+        },
+      });
+    }
+    try {
+      const data = await llmDeleteCluster(clusterId);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists available cluster regions (GET /compute/regions & aliases)
+   */
+  async handleListClusterRegions(req, res) {
+    try {
+      const data = await llmListClusterRegions();
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });

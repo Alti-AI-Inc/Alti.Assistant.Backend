@@ -499,6 +499,57 @@ getEvalRoutes.forEach((path) => {
   });
 });
 
+// ── GPU Clusters (Official: https://docs.together.ai/reference/clusters) ────
+// 1. Create cluster (POST /compute/clusters, POST /clusters & /v1/ aliases)
+const createClusterRoutes = ['/compute/clusters', '/v1/compute/clusters', '/clusters', '/v1/clusters'];
+createClusterRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleCreateCluster(req, res);
+  });
+});
+
+// 2. List cluster regions (GET /compute/regions & aliases - registered before /:id)
+const clusterRegionsRoutes = ['/compute/regions', '/v1/compute/regions', '/clusters/regions', '/v1/clusters/regions'];
+clusterRegionsRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleListClusterRegions(req, res);
+  });
+});
+
+// 3. List all GPU clusters (GET /compute/clusters, GET /clusters & /v1/ aliases)
+const listClusterRoutes = ['/compute/clusters', '/v1/compute/clusters', '/clusters', '/v1/clusters'];
+listClusterRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleListClusters(req, res);
+  });
+});
+
+// 4. Get GPU cluster details (GET /compute/clusters/:id, GET /clusters/:id & /v1/ aliases)
+const getClusterRoutes = ['/compute/clusters/:id', '/v1/compute/clusters/:id', '/clusters/:id', '/v1/clusters/:id'];
+getClusterRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetCluster(req, res);
+  });
+});
+
+// 5. Update GPU cluster configuration (PUT /compute/clusters/:id & PATCH & /v1/ aliases)
+const updateClusterRoutes = ['/compute/clusters/:id', '/v1/compute/clusters/:id', '/clusters/:id', '/v1/clusters/:id'];
+updateClusterRoutes.forEach((path) => {
+  router.put(path, async (req, res) => {
+    await InferenceGateway.handleUpdateCluster(req, res);
+  });
+  router.patch(path, async (req, res) => {
+    await InferenceGateway.handleUpdateCluster(req, res);
+  });
+});
+
+// 6. Delete GPU cluster (DELETE /compute/clusters/:id, DELETE /clusters/:id & /v1/ aliases)
+const deleteClusterRoutes = ['/compute/clusters/:id', '/v1/compute/clusters/:id', '/clusters/:id', '/v1/clusters/:id'];
+deleteClusterRoutes.forEach((path) => {
+  router.delete(path, async (req, res) => {
+    await InferenceGateway.handleDeleteCluster(req, res);
+  });
+});
 
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
