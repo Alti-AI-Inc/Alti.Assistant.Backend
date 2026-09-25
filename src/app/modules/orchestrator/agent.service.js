@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openneuromorphicnet_at7d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicNet) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondcompiler_ahqu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondCompiler) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogledger_vlzu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogLedger) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphpipeline_ooy5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphPipeline) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorymatrix_gg8r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryMatrix) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustbroker_x01f_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustBroker) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24892,6 +24932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openneuromorphicnet_at7d_logic": {
+          try {
+            const { OpenNeuromorphicNetService } = await import("../liberty/openneuromorphicnet_at7d.service.js");
+            const res = await OpenNeuromorphicNetService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondcompiler_ahqu_logic": {
+          try {
+            const { OpenSubMillisecondCompilerService } = await import("../liberty/opensub-millisecondcompiler_ahqu.service.js");
+            const res = await OpenSubMillisecondCompilerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogledger_vlzu_logic": {
+          try {
+            const { OpenLogLedgerService } = await import("../liberty/openlogledger_vlzu.service.js");
+            const res = await OpenLogLedgerService.execute(args.target || "system");
+            return { output: `### OpenLogLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphpipeline_ooy5_logic": {
+          try {
+            const { OpenGraphPipelineService } = await import("../liberty/opengraphpipeline_ooy5.service.js");
+            const res = await OpenGraphPipelineService.execute(args.target || "system");
+            return { output: `### OpenGraphPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorymatrix_gg8r_logic": {
+          try {
+            const { OpenInMemoryMatrixService } = await import("../liberty/openin-memorymatrix_gg8r.service.js");
+            const res = await OpenInMemoryMatrixService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustbroker_x01f_logic": {
           try {
             const { OpenZeroTrustBrokerService } = await import("../liberty/openzero-trustbroker_x01f.service.js");
