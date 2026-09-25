@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfnet_jbtk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFNet) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partychain_pi5c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyChain) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelproxy_18ek_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelProxy) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlesspipeline_2nxq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessPipeline) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatednode_pufd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedNode) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openlogrouter_955f_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenLogRouter) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24812,6 +24852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfnet_jbtk_logic": {
+          try {
+            const { OpeneBPFNetService } = await import("../liberty/openebpfnet_jbtk.service.js");
+            const res = await OpeneBPFNetService.execute(args.target || "system");
+            return { output: `### OpeneBPFNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partychain_pi5c_logic": {
+          try {
+            const { OpenMultiPartyChainService } = await import("../liberty/openmulti-partychain_pi5c.service.js");
+            const res = await OpenMultiPartyChainService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelproxy_18ek_logic": {
+          try {
+            const { OpenMicroKernelProxyService } = await import("../liberty/openmicro-kernelproxy_18ek.service.js");
+            const res = await OpenMicroKernelProxyService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlesspipeline_2nxq_logic": {
+          try {
+            const { OpenServerlessPipelineService } = await import("../liberty/openserverlesspipeline_2nxq.service.js");
+            const res = await OpenServerlessPipelineService.execute(args.target || "system");
+            return { output: `### OpenServerlessPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatednode_pufd_logic": {
+          try {
+            const { OpenFederatedNodeService } = await import("../liberty/openfederatednode_pufd.service.js");
+            const res = await OpenFederatedNodeService.execute(args.target || "system");
+            return { output: `### OpenFederatedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedNode failed: ${err.message}` };
+          }
+        }
         case "execute_openlogrouter_955f_logic": {
           try {
             const { OpenLogRouterService } = await import("../liberty/openlogrouter_955f.service.js");
