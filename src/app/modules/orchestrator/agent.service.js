@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendatanet_o8pr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataNet) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeengine_9avo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeEngine) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatalayer_898u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataLayer) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcompiler_m7ti_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCompiler) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatednexus_5i0o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedNexus) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openneuromorphicnet_tvpg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicNet) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26092,6 +26132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendatanet_o8pr_logic": {
+          try {
+            const { OpenDataNetService } = await import("../liberty/opendatanet_o8pr.service.js");
+            const res = await OpenDataNetService.execute(args.target || "system");
+            return { output: `### OpenDataNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeengine_9avo_logic": {
+          try {
+            const { OpenEdgeEngineService } = await import("../liberty/openedgeengine_9avo.service.js");
+            const res = await OpenEdgeEngineService.execute(args.target || "system");
+            return { output: `### OpenEdgeEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatalayer_898u_logic": {
+          try {
+            const { OpenDataLayerService } = await import("../liberty/opendatalayer_898u.service.js");
+            const res = await OpenDataLayerService.execute(args.target || "system");
+            return { output: `### OpenDataLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcompiler_m7ti_logic": {
+          try {
+            const { OpenDecentralizedCompilerService } = await import("../liberty/opendecentralizedcompiler_m7ti.service.js");
+            const res = await OpenDecentralizedCompilerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatednexus_5i0o_logic": {
+          try {
+            const { OpenFederatedNexusService } = await import("../liberty/openfederatednexus_5i0o.service.js");
+            const res = await OpenFederatedNexusService.execute(args.target || "system");
+            return { output: `### OpenFederatedNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openneuromorphicnet_tvpg_logic": {
           try {
             const { OpenNeuromorphicNetService } = await import("../liberty/openneuromorphicnet_tvpg.service.js");
