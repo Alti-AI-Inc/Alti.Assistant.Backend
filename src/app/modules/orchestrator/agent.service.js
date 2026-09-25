@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openchaosdaemon_xy9x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosDaemon) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessledger_lfhx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessLedger) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumchain_5nig_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumChain) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorylayer_m5zk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryLayer) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedgraph_k81x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedGraph) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpudaemon_kbcp_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPUDaemon) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28372,6 +28412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openchaosdaemon_xy9x_logic": {
+          try {
+            const { OpenChaosDaemonService } = await import("../liberty/openchaosdaemon_xy9x.service.js");
+            const res = await OpenChaosDaemonService.execute(args.target || "system");
+            return { output: `### OpenChaosDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessledger_lfhx_logic": {
+          try {
+            const { OpenServerlessLedgerService } = await import("../liberty/openserverlessledger_lfhx.service.js");
+            const res = await OpenServerlessLedgerService.execute(args.target || "system");
+            return { output: `### OpenServerlessLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumchain_5nig_logic": {
+          try {
+            const { OpenQuantumChainService } = await import("../liberty/openquantumchain_5nig.service.js");
+            const res = await OpenQuantumChainService.execute(args.target || "system");
+            return { output: `### OpenQuantumChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorylayer_m5zk_logic": {
+          try {
+            const { OpenInMemoryLayerService } = await import("../liberty/openin-memorylayer_m5zk.service.js");
+            const res = await OpenInMemoryLayerService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedgraph_k81x_logic": {
+          try {
+            const { OpenAutomatedGraphService } = await import("../liberty/openautomatedgraph_k81x.service.js");
+            const res = await OpenAutomatedGraphService.execute(args.target || "system");
+            return { output: `### OpenAutomatedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedGraph failed: ${err.message}` };
+          }
+        }
         case "execute_opengpudaemon_kbcp_logic": {
           try {
             const { OpenGPUDaemonService } = await import("../liberty/opengpudaemon_kbcp.service.js");
