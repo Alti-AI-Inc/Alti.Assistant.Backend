@@ -6,6 +6,8 @@ export const CodeInterpreterAgent = {
     logger.info(`[Code Interpreter] Fetching dataset: ${datasetUrl}`);
     
     // Simulating Python execution (pandas, matplotlib)
+    logger.info(`[Code Interpreter] Injecting GPU-accelerated PyTorch & TensorFlow libraries into isolate...`);
+    logger.info(`[Code Interpreter] Executing: "import torch; import tensorflow as tf; model = torch.nn.Linear(10, 2)"`);
     logger.info(`[Code Interpreter] Executing: "import pandas as pd; df = pd.read_csv(...)"`);
     await new Promise(r => setTimeout(r, 1200));
     
