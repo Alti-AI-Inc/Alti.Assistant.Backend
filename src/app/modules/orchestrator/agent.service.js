@@ -36,8 +36,9 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "generate_fastapi_microservice", description: "Use the Aphura Python API Framework (FastAPI, 78k stars, MIT) to compile high-speed, type-safe Python microservices with automatic OpenAPI Swagger documentation. The global standard for Python APIs.", parameters: { type: "object", properties: { serviceName: { type: "string" }, routes: { type: "string" } }, required: ["serviceName"] } } },
   { type: "function", function: { name: "run_autogen_debate", description: "Use the Aphura Multi-Agent Debate Engine (Microsoft AutoGen, 36k stars, MIT) to launch collaborative cross-examining conversations between specialized AI agents. Beats ChatGPT and Claude on planning.", parameters: { type: "object", properties: { taskGoal: { type: "string" }, agentRoles: { type: "string" } }, required: ["taskGoal"] } } },
-  { type: "function", function: { name: "process_image_sharp", description: "Use the Aphura Multimodal Image Engine (Sharp, 28k stars, Apache 2.0) to resize, convert, and optimize images for vision LLMs 5x faster than ImageMagick.", parameters: { type: "object", properties: { inputImagePath: { type: "string" }, targetFormat: { type: "string" } }, required: ["inputImagePath"] } } },
+  { type: "function", function: { name: "optimize_multimodal_image", description: "Use the Aphura Multimodal Image Engine (Sharp, 28k stars, Apache 2.0) to resize, convert, and optimize images for vision LLMs 5x faster than ImageMagick.", parameters: { type: "object", properties: { inputImagePath: { type: "string" }, targetFormat: { type: "string" } }, required: ["inputImagePath"] } } },
   { type: "function", function: { name: "evaluate_symbolic_math", description: "Use the Aphura Deterministic Math Engine (Math.js, 14k stars, Apache 2.0) for symbolic algebra, arbitrary-precision arithmetic, and matrix calculation with zero hallucination.", parameters: { type: "object", properties: { expression: { type: "string" } }, required: ["expression"] } } },
   { type: "function", function: { name: "execute_portable_git", description: "Use the Aphura Universal Git Engine (isomorphic-git, 7.3k stars, MIT) to clone, branch, commit, and push Git repos in pure JavaScript across Web, Mobile, and Desktop without native git binaries.", parameters: { type: "object", properties: { operation: { type: "string" }, repoUrl: { type: "string" } }, required: ["operation"] } } },
   { type: "function", function: { name: "apply_surgical_diff_patch", description: "Use the Aphura Semantic Patch Engine (Google diff-match-patch, Apache 2.0) to compute character-level diffs and apply fuzzy-matched surgical code patches without overwriting. Beats Cursor.", parameters: { type: "object", properties: { originalText: { type: "string" }, deltaPatch: { type: "string" } }, required: ["originalText", "deltaPatch"] } } },
@@ -8925,6 +8926,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "generate_fastapi_microservice": {
+          try {
+            const { FastAPIService } = await import("../api/fastapi.service.js");
+            const res = await FastAPIService.generateMicroservice(args.serviceName, args.routes);
+            return { output: "### FastAPI Microservice Compiled\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "FastAPI generation failed: " + err.message };
+          }
+        }
         case "run_autogen_debate": {
           try {
             const { AutoGenService } = await import("../ai/autogen.service.js");
@@ -8934,9 +8944,9 @@ export const AgentService = {
             return { output: "AutoGen debate failed: " + err.message };
           }
         }
-        case "process_image_sharp": {
+        case "optimize_multimodal_image": {
           try {
-            const { SharpService } = await import("../media/sharp.service.js");
+            const { SharpService } = await import("../vision/sharp.service.js");
             const res = await SharpService.processMultimodalImage(args.inputImagePath, args.targetFormat, "1920x1080");
             return { output: "### Sharp Image Optimization\n\n```text\n" + res.report + "\n```" };
           } catch (err) {
