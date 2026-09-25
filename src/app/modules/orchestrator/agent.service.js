@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentnet_7r8h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentNet) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionallayer_numl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalLayer) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecore_zyxs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeCore) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessfabric_k1ue_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessFabric) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventpipeline_631p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventPipeline) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpgrid_bfbi_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPGrid) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24972,6 +25012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentnet_7r8h_logic": {
+          try {
+            const { OpenPersistentNetService } = await import("../liberty/openpersistentnet_7r8h.service.js");
+            const res = await OpenPersistentNetService.execute(args.target || "system");
+            return { output: `### OpenPersistentNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionallayer_numl_logic": {
+          try {
+            const { OpenHyperDimensionalLayerService } = await import("../liberty/openhyper-dimensionallayer_numl.service.js");
+            const res = await OpenHyperDimensionalLayerService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecore_zyxs_logic": {
+          try {
+            const { OpenZeroKnowledgeCoreService } = await import("../liberty/openzero-knowledgecore_zyxs.service.js");
+            const res = await OpenZeroKnowledgeCoreService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessfabric_k1ue_logic": {
+          try {
+            const { OpenHeadlessFabricService } = await import("../liberty/openheadlessfabric_k1ue.service.js");
+            const res = await OpenHeadlessFabricService.execute(args.target || "system");
+            return { output: `### OpenHeadlessFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventpipeline_631p_logic": {
+          try {
+            const { OpenEventPipelineService } = await import("../liberty/openeventpipeline_631p.service.js");
+            const res = await OpenEventPipelineService.execute(args.target || "system");
+            return { output: `### OpenEventPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openbgpgrid_bfbi_logic": {
           try {
             const { OpenBGPGridService } = await import("../liberty/openbgpgrid_bfbi.service.js");
