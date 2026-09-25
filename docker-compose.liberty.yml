@@ -46033,3 +46033,68 @@ services:
       - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
       - LICENSE_VALIDATION="Apache 2.0"
     restart: always
+
+  engine-openpredictivenexus_cke4:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENPREDICTIVENEXUS
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-opentime-seriesgrid_tksv:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENTIME-SERIESGRID
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-opentime-seriesring_8v3w:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENTIME-SERIESRING
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-openedgechain_tfyq:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENEDGECHAIN
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="MIT"
+    restart: always
+
+  engine-openedgedaemon_zs4p:
+    build:
+      context: .
+      dockerfile: Dockerfile.liberty-engine
+    networks:
+      - liberty-mesh
+    environment:
+      - ENGINE_ROLE=OPENEDGEDAEMON
+      - ISOLATION_LEVEL=MAX
+      - COMPUTE_NODE="Liberty Center One - Infinite Cluster"
+      - LICENSE_VALIDATION="Apache 2.0"
+    restart: always

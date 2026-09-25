@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgedaemon_zs4p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeDaemon) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgechain_tfyq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeChain) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesring_8v3w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesRing) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesgrid_tksv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesGrid) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivenexus_cke4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNexus) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisesync_a6ey_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseSync) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29012,6 +29052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgedaemon_zs4p_logic": {
+          try {
+            const { OpenEdgeDaemonService } = await import("../liberty/openedgedaemon_zs4p.service.js");
+            const res = await OpenEdgeDaemonService.execute(args.target || "system");
+            return { output: `### OpenEdgeDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgechain_tfyq_logic": {
+          try {
+            const { OpenEdgeChainService } = await import("../liberty/openedgechain_tfyq.service.js");
+            const res = await OpenEdgeChainService.execute(args.target || "system");
+            return { output: `### OpenEdgeChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeChain failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesring_8v3w_logic": {
+          try {
+            const { OpenTimeSeriesRingService } = await import("../liberty/opentime-seriesring_8v3w.service.js");
+            const res = await OpenTimeSeriesRingService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesRing failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesgrid_tksv_logic": {
+          try {
+            const { OpenTimeSeriesGridService } = await import("../liberty/opentime-seriesgrid_tksv.service.js");
+            const res = await OpenTimeSeriesGridService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivenexus_cke4_logic": {
+          try {
+            const { OpenPredictiveNexusService } = await import("../liberty/openpredictivenexus_cke4.service.js");
+            const res = await OpenPredictiveNexusService.execute(args.target || "system");
+            return { output: `### OpenPredictiveNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveNexus failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisesync_a6ey_logic": {
           try {
             const { OpenEnterpriseSyncService } = await import("../liberty/openenterprisesync_a6ey.service.js");
