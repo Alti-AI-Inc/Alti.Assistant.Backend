@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openplanetaryswarm_4xmi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetarySwarm) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfmatrix_myig_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFMatrix) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicstream_j3jj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicStream) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryswarm_jf2b_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetarySwarm) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialring_42zz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialRing) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openautomatedgrid_kib0_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAutomatedGrid) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24052,6 +24092,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openplanetaryswarm_4xmi_logic": {
+          try {
+            const { OpenPlanetarySwarmService } = await import("../liberty/openplanetaryswarm_4xmi.service.js");
+            const res = await OpenPlanetarySwarmService.execute(args.target || "system");
+            return { output: `### OpenPlanetarySwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetarySwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfmatrix_myig_logic": {
+          try {
+            const { OpeneBPFMatrixService } = await import("../liberty/openebpfmatrix_myig.service.js");
+            const res = await OpeneBPFMatrixService.execute(args.target || "system");
+            return { output: `### OpeneBPFMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicstream_j3jj_logic": {
+          try {
+            const { OpenHomomorphicStreamService } = await import("../liberty/openhomomorphicstream_j3jj.service.js");
+            const res = await OpenHomomorphicStreamService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryswarm_jf2b_logic": {
+          try {
+            const { OpenPlanetarySwarmService } = await import("../liberty/openplanetaryswarm_jf2b.service.js");
+            const res = await OpenPlanetarySwarmService.execute(args.target || "system");
+            return { output: `### OpenPlanetarySwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetarySwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialring_42zz_logic": {
+          try {
+            const { OpenFinancialRingService } = await import("../liberty/openfinancialring_42zz.service.js");
+            const res = await OpenFinancialRingService.execute(args.target || "system");
+            return { output: `### OpenFinancialRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialRing failed: ${err.message}` };
+          }
+        }
         case "execute_openautomatedgrid_kib0_logic": {
           try {
             const { OpenAutomatedGridService } = await import("../liberty/openautomatedgrid_kib0.service.js");
