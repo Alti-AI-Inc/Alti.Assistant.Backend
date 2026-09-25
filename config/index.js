@@ -53,10 +53,10 @@ export default {
   },
   redis_url: process.env.REDIS_URL,
 
-  // ── Groq (LLM — single source of truth) ───────────────────────────────────
-  // gpt-oss-120b: 120B MoE, 500 tok/s, 128k context — heavy reasoning & code
-  // gpt-oss-20b:  20B dense, 1200 tok/s, 128k context — fast classification
-  // whisper-large-v3-turbo: Speech-to-text
+  // ── Together.ai (LLM — Sovereign Single Source of Truth) ───────────────────
+  // meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo: Heavy reasoning & code
+  // meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo: Fast classification
+  // deepseek-ai/DeepSeek-V4-Pro / Flash: MoE Expert inference
   llm: {
     apiKey: process.env.TOGETHER_API_KEY,
     model: process.env.TOGETHER_MODEL || 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',

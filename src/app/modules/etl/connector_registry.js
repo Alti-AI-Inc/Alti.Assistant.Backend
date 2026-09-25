@@ -70,7 +70,7 @@ export const CONNECTOR_CATEGORIES = {
   ],
   AI_ML: [
     'openai', 'anthropic', 'together_ai', 'replicate', 'huggingface',
-    'cohere', 'stability_ai', 'mistral', 'groq', 'perplexity'
+    'cohere', 'stability_ai', 'mistral', 'deepseek', 'perplexity'
   ],
   SOCIAL: [
     'twitter', 'facebook', 'instagram', 'linkedin', 'youtube',

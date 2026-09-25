@@ -8,7 +8,7 @@ process.env.STRIPE_SECRET_KEY = 'sk_test_51MockStripeSecretKeyForVitest12345';
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_mock_stripe_webhook_secret';
 process.env.CLOUDFLARE_ACCOUNT_ID = 'mock_cloudflare_account_id';
 process.env.CLOUDFLARE_API_TOKEN = 'mock_cloudflare_api_token';
-process.env.GROQ_API_KEY = 'gsk_mock_groq_api_key';
+process.env.TOGETHER_API_KEY = 'mock_together_api_key';
 
 const mockRedisClient = {
   connect: vi.fn().mockResolvedValue(undefined),
@@ -100,7 +100,7 @@ vi.mock('./shared/logging/index.js', () => {
   };
 });
 
-vi.mock('groq-sdk', () => {
+vi.mock('together-ai', () => {
   return {
     default: class {
       constructor() {
