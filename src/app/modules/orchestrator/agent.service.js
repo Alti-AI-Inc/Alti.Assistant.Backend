@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opensub-millisecondmesh_gggr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondMesh) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumoracle_0d9z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumOracle) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendcontroller_fmtg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendController) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogvault_k9ns_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogVault) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphcore_qyba_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphCore) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendatanet_o8pr_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDataNet) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26132,6 +26172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opensub-millisecondmesh_gggr_logic": {
+          try {
+            const { OpenSubMillisecondMeshService } = await import("../liberty/opensub-millisecondmesh_gggr.service.js");
+            const res = await OpenSubMillisecondMeshService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumoracle_0d9z_logic": {
+          try {
+            const { OpenQuantumOracleService } = await import("../liberty/openquantumoracle_0d9z.service.js");
+            const res = await OpenQuantumOracleService.execute(args.target || "system");
+            return { output: `### OpenQuantumOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendcontroller_fmtg_logic": {
+          try {
+            const { OpenMicroFrontendControllerService } = await import("../liberty/openmicro-frontendcontroller_fmtg.service.js");
+            const res = await OpenMicroFrontendControllerService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendController failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogvault_k9ns_logic": {
+          try {
+            const { OpenLogVaultService } = await import("../liberty/openlogvault_k9ns.service.js");
+            const res = await OpenLogVaultService.execute(args.target || "system");
+            return { output: `### OpenLogVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphcore_qyba_logic": {
+          try {
+            const { OpenGraphCoreService } = await import("../liberty/opengraphcore_qyba.service.js");
+            const res = await OpenGraphCoreService.execute(args.target || "system");
+            return { output: `### OpenGraphCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphCore failed: ${err.message}` };
+          }
+        }
         case "execute_opendatanet_o8pr_logic": {
           try {
             const { OpenDataNetService } = await import("../liberty/opendatanet_o8pr.service.js");
