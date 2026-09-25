@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicoracle_m20o_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicOracle) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessmesh_magd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessMesh) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuvault_lns8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUVault) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelrouter_30l0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelRouter) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryledger_h1f3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryLedger) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventmesh_a6vm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventMesh) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22252,6 +22292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicoracle_m20o_logic": {
+          try {
+            const { OpenHomomorphicOracleService } = await import("../liberty/openhomomorphicoracle_m20o.service.js");
+            const res = await OpenHomomorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessmesh_magd_logic": {
+          try {
+            const { OpenHeadlessMeshService } = await import("../liberty/openheadlessmesh_magd.service.js");
+            const res = await OpenHeadlessMeshService.execute(args.target || "system");
+            return { output: `### OpenHeadlessMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuvault_lns8_logic": {
+          try {
+            const { OpenGPUVaultService } = await import("../liberty/opengpuvault_lns8.service.js");
+            const res = await OpenGPUVaultService.execute(args.target || "system");
+            return { output: `### OpenGPUVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelrouter_30l0_logic": {
+          try {
+            const { OpenMicroKernelRouterService } = await import("../liberty/openmicro-kernelrouter_30l0.service.js");
+            const res = await OpenMicroKernelRouterService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryledger_h1f3_logic": {
+          try {
+            const { OpenPlanetaryLedgerService } = await import("../liberty/openplanetaryledger_h1f3.service.js");
+            const res = await OpenPlanetaryLedgerService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryLedger failed: ${err.message}` };
+          }
+        }
         case "execute_openeventmesh_a6vm_logic": {
           try {
             const { OpenEventMeshService } = await import("../liberty/openeventmesh_a6vm.service.js");
