@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativecore_ckda_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCore) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustvault_ya45_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustVault) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablepipeline_pciv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutablePipeline) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedgraph_5dou_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedGraph) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesmatrix_ciyr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesMatrix) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedmatrix_8hkr_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedMatrix) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28012,6 +28052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativecore_ckda_logic": {
+          try {
+            const { OpenCloudNativeCoreService } = await import("../liberty/opencloud-nativecore_ckda.service.js");
+            const res = await OpenCloudNativeCoreService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustvault_ya45_logic": {
+          try {
+            const { OpenZeroTrustVaultService } = await import("../liberty/openzero-trustvault_ya45.service.js");
+            const res = await OpenZeroTrustVaultService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablepipeline_pciv_logic": {
+          try {
+            const { OpenImmutablePipelineService } = await import("../liberty/openimmutablepipeline_pciv.service.js");
+            const res = await OpenImmutablePipelineService.execute(args.target || "system");
+            return { output: `### OpenImmutablePipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutablePipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedgraph_5dou_logic": {
+          try {
+            const { OpenAdvancedGraphService } = await import("../liberty/openadvancedgraph_5dou.service.js");
+            const res = await OpenAdvancedGraphService.execute(args.target || "system");
+            return { output: `### OpenAdvancedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesmatrix_ciyr_logic": {
+          try {
+            const { OpenTimeSeriesMatrixService } = await import("../liberty/opentime-seriesmatrix_ciyr.service.js");
+            const res = await OpenTimeSeriesMatrixService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedmatrix_8hkr_logic": {
           try {
             const { OpenDistributedMatrixService } = await import("../liberty/opendistributedmatrix_8hkr.service.js");
