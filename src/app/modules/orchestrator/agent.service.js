@@ -8855,7 +8855,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "generate_pitch_deck": {
+        case "analyze_spreadsheet": {
+          try {
+            const { SheetJSService } = await import("../data/sheetjs.service.js");
+            const res = args.sqlQuery ? await SheetJSService.analyzeWithSQL(args.filePath, args.sqlQuery) : await SheetJSService.parseSpreadsheet(args.filePath);
+            return { output: "### Spreadsheet Analysis\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Spreadsheet analysis failed: " + err.message };
+          }
+        }
+        case "generate_bi_dashboard": {
+          try {
+            const { EvidenceService } = await import("../data/evidence.service.js");
+            const res = await EvidenceService.generateDashboard(args.title, [args.businessQuestion]);
+            return { output: "### BI Dashboard\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Dashboard generation failed: " + err.message };
+          }
+        }
+        case "generate_business_document": {
+          try {
+            const { DocGenService } = await import("../business/docgen.service.js");
+            const res = await DocGenService.generateDocument(args.templateName, { content: args.data });
+            return { output: "### Document Generated\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Document generation failed: " + err.message };
+          }
+        }
+        case "generate_invoice": {
+          try {
+            const { InvoiceAgent } = await import("../business/invoice.agent.js");
+            const res = await InvoiceAgent.generateInvoice(args.clientName, args.amount, args.lineItems, args.currency);
+            return { output: "### Invoice Generated\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Invoice generation failed: " + err.message };
+          }
+        }
+        case "analyze_contract": {
+          try {
+            const { ContractAgent } = await import("../business/contract.agent.js");
+            const res = await ContractAgent.analyzeContract(args.filePath);
+            return { output: "### Contract Analysis\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Contract analysis failed: " + err.message };
+          }
+        }        case "generate_pitch_deck": {
           try {
             const { PitchDeckAgent } = await import("../presentations/pitchdeck.agent.js");
             const res = await PitchDeckAgent.generatePitchDeck(args.prompt, args.deckType || "startup");
