@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openbgprouter_7rbc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPRouter) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatalayer_87qn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataLayer) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumnode_15h0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumNode) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryoracle_4psg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryOracle) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutableproxy_4rs2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableProxy) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openadvancedrouter_cslk_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAdvancedRouter) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23652,6 +23692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openbgprouter_7rbc_logic": {
+          try {
+            const { OpenBGPRouterService } = await import("../liberty/openbgprouter_7rbc.service.js");
+            const res = await OpenBGPRouterService.execute(args.target || "system");
+            return { output: `### OpenBGPRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatalayer_87qn_logic": {
+          try {
+            const { OpenDataLayerService } = await import("../liberty/opendatalayer_87qn.service.js");
+            const res = await OpenDataLayerService.execute(args.target || "system");
+            return { output: `### OpenDataLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumnode_15h0_logic": {
+          try {
+            const { OpenQuantumNodeService } = await import("../liberty/openquantumnode_15h0.service.js");
+            const res = await OpenQuantumNodeService.execute(args.target || "system");
+            return { output: `### OpenQuantumNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryoracle_4psg_logic": {
+          try {
+            const { OpenPlanetaryOracleService } = await import("../liberty/openplanetaryoracle_4psg.service.js");
+            const res = await OpenPlanetaryOracleService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutableproxy_4rs2_logic": {
+          try {
+            const { OpenImmutableProxyService } = await import("../liberty/openimmutableproxy_4rs2.service.js");
+            const res = await OpenImmutableProxyService.execute(args.target || "system");
+            return { output: `### OpenImmutableProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableProxy failed: ${err.message}` };
+          }
+        }
         case "execute_openadvancedrouter_cslk_logic": {
           try {
             const { OpenAdvancedRouterService } = await import("../liberty/openadvancedrouter_cslk.service.js");
