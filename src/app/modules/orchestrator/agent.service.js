@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablerouter_971d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableRouter) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventmatrix_ayhp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventMatrix) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriespipeline_r84p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesPipeline) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendring_zx42_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendRing) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedchain_judl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedChain) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfmatrix_ojv7_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFMatrix) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29572,6 +29612,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablerouter_971d_logic": {
+          try {
+            const { OpenImmutableRouterService } = await import("../liberty/openimmutablerouter_971d.service.js");
+            const res = await OpenImmutableRouterService.execute(args.target || "system");
+            return { output: `### OpenImmutableRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventmatrix_ayhp_logic": {
+          try {
+            const { OpenEventMatrixService } = await import("../liberty/openeventmatrix_ayhp.service.js");
+            const res = await OpenEventMatrixService.execute(args.target || "system");
+            return { output: `### OpenEventMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriespipeline_r84p_logic": {
+          try {
+            const { OpenTimeSeriesPipelineService } = await import("../liberty/opentime-seriespipeline_r84p.service.js");
+            const res = await OpenTimeSeriesPipelineService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendring_zx42_logic": {
+          try {
+            const { OpenMicroFrontendRingService } = await import("../liberty/openmicro-frontendring_zx42.service.js");
+            const res = await OpenMicroFrontendRingService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedchain_judl_logic": {
+          try {
+            const { OpenAutomatedChainService } = await import("../liberty/openautomatedchain_judl.service.js");
+            const res = await OpenAutomatedChainService.execute(args.target || "system");
+            return { output: `### OpenAutomatedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedChain failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfmatrix_ojv7_logic": {
           try {
             const { OpeneBPFMatrixService } = await import("../liberty/openebpfmatrix_ojv7.service.js");
