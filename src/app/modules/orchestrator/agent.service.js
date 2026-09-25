@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgeengine_6ih2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeEngine) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarestream_2ne3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareStream) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialgrid_qgzv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialGrid) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedring_ve45_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedRing) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedlayer_mw4v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedLayer) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutableengine_a6po_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableEngine) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27452,6 +27492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgeengine_6ih2_logic": {
+          try {
+            const { OpenZeroKnowledgeEngineService } = await import("../liberty/openzero-knowledgeengine_6ih2.service.js");
+            const res = await OpenZeroKnowledgeEngineService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarestream_2ne3_logic": {
+          try {
+            const { OpenHardwareStreamService } = await import("../liberty/openhardwarestream_2ne3.service.js");
+            const res = await OpenHardwareStreamService.execute(args.target || "system");
+            return { output: `### OpenHardwareStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialgrid_qgzv_logic": {
+          try {
+            const { OpenFinancialGridService } = await import("../liberty/openfinancialgrid_qgzv.service.js");
+            const res = await OpenFinancialGridService.execute(args.target || "system");
+            return { output: `### OpenFinancialGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedring_ve45_logic": {
+          try {
+            const { OpenFederatedRingService } = await import("../liberty/openfederatedring_ve45.service.js");
+            const res = await OpenFederatedRingService.execute(args.target || "system");
+            return { output: `### OpenFederatedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedlayer_mw4v_logic": {
+          try {
+            const { OpenAdvancedLayerService } = await import("../liberty/openadvancedlayer_mw4v.service.js");
+            const res = await OpenAdvancedLayerService.execute(args.target || "system");
+            return { output: `### OpenAdvancedLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedLayer failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutableengine_a6po_logic": {
           try {
             const { OpenImmutableEngineService } = await import("../liberty/openimmutableengine_a6po.service.js");
