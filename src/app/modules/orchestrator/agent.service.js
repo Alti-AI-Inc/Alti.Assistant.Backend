@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openneuromorphicoracle_fjrv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicOracle) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustergraph_0mnh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterGraph) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivevault_sejx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveVault) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticfabric_z6vk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticFabric) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumswarm_nu58_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumSwarm) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openheadlessnode_4fn4_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHeadlessNode) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28292,6 +28332,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openneuromorphicoracle_fjrv_logic": {
+          try {
+            const { OpenNeuromorphicOracleService } = await import("../liberty/openneuromorphicoracle_fjrv.service.js");
+            const res = await OpenNeuromorphicOracleService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustergraph_0mnh_logic": {
+          try {
+            const { OpenCrossClusterGraphService } = await import("../liberty/opencross-clustergraph_0mnh.service.js");
+            const res = await OpenCrossClusterGraphService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivevault_sejx_logic": {
+          try {
+            const { OpenPredictiveVaultService } = await import("../liberty/openpredictivevault_sejx.service.js");
+            const res = await OpenPredictiveVaultService.execute(args.target || "system");
+            return { output: `### OpenPredictiveVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticfabric_z6vk_logic": {
+          try {
+            const { OpenSemanticFabricService } = await import("../liberty/opensemanticfabric_z6vk.service.js");
+            const res = await OpenSemanticFabricService.execute(args.target || "system");
+            return { output: `### OpenSemanticFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumswarm_nu58_logic": {
+          try {
+            const { OpenQuantumSwarmService } = await import("../liberty/openquantumswarm_nu58.service.js");
+            const res = await OpenQuantumSwarmService.execute(args.target || "system");
+            return { output: `### OpenQuantumSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openheadlessnode_4fn4_logic": {
           try {
             const { OpenHeadlessNodeService } = await import("../liberty/openheadlessnode_4fn4.service.js");
