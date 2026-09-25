@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectornet_f79z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorNet) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivenexus_xtbe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveNexus) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendlayer_nzeh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendLayer) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogplane_k5cf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogPlane) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterchain_5ivi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterChain) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openabstractoracle_q7le_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenAbstractOracle) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26412,6 +26452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectornet_f79z_logic": {
+          try {
+            const { OpenVectorNetService } = await import("../liberty/openvectornet_f79z.service.js");
+            const res = await OpenVectorNetService.execute(args.target || "system");
+            return { output: `### OpenVectorNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivenexus_xtbe_logic": {
+          try {
+            const { OpenPredictiveNexusService } = await import("../liberty/openpredictivenexus_xtbe.service.js");
+            const res = await OpenPredictiveNexusService.execute(args.target || "system");
+            return { output: `### OpenPredictiveNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendlayer_nzeh_logic": {
+          try {
+            const { OpenMicroFrontendLayerService } = await import("../liberty/openmicro-frontendlayer_nzeh.service.js");
+            const res = await OpenMicroFrontendLayerService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogplane_k5cf_logic": {
+          try {
+            const { OpenLogPlaneService } = await import("../liberty/openlogplane_k5cf.service.js");
+            const res = await OpenLogPlaneService.execute(args.target || "system");
+            return { output: `### OpenLogPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterchain_5ivi_logic": {
+          try {
+            const { OpenCrossClusterChainService } = await import("../liberty/opencross-clusterchain_5ivi.service.js");
+            const res = await OpenCrossClusterChainService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterChain failed: ${err.message}` };
+          }
+        }
         case "execute_openabstractoracle_q7le_logic": {
           try {
             const { OpenAbstractOracleService } = await import("../liberty/openabstractoracle_q7le.service.js");
