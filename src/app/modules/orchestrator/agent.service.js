@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openenterprisegrid_o1e5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGrid) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticmatrix_bywg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticMatrix) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwaregrid_w1yo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareGrid) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcore_9w3z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCore) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticchain_n72p_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticChain) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpvortex_0er6_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPVortex) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24612,6 +24652,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openenterprisegrid_o1e5_logic": {
+          try {
+            const { OpenEnterpriseGridService } = await import("../liberty/openenterprisegrid_o1e5.service.js");
+            const res = await OpenEnterpriseGridService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticmatrix_bywg_logic": {
+          try {
+            const { OpenSemanticMatrixService } = await import("../liberty/opensemanticmatrix_bywg.service.js");
+            const res = await OpenSemanticMatrixService.execute(args.target || "system");
+            return { output: `### OpenSemanticMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwaregrid_w1yo_logic": {
+          try {
+            const { OpenHardwareGridService } = await import("../liberty/openhardwaregrid_w1yo.service.js");
+            const res = await OpenHardwareGridService.execute(args.target || "system");
+            return { output: `### OpenHardwareGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcore_9w3z_logic": {
+          try {
+            const { OpenDecentralizedCoreService } = await import("../liberty/opendecentralizedcore_9w3z.service.js");
+            const res = await OpenDecentralizedCoreService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticchain_n72p_logic": {
+          try {
+            const { OpenStaticChainService } = await import("../liberty/openstaticchain_n72p.service.js");
+            const res = await OpenStaticChainService.execute(args.target || "system");
+            return { output: `### OpenStaticChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticChain failed: ${err.message}` };
+          }
+        }
         case "execute_openbgpvortex_0er6_logic": {
           try {
             const { OpenBGPVortexService } = await import("../liberty/openbgpvortex_0er6.service.js");
