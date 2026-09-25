@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "query_semantic_layer", description: "Use the Aphura Universal Semantic Engine (Cube.js, 17k stars, Apache 2.0) to query governed business metrics (MRR, CAC, Gross Margin) with zero hallucination and mathematical consistency across multi-table databases. Replaces Microsoft Power BI Semantic Models.", parameters: { type: "object", properties: { metricName: { type: "string" }, dimensions: { type: "string" } }, required: ["metricName"] } } },
+  { type: "function", function: { name: "publish_tenant_stream", description: "Use the Aphura Multi-Tenant Messaging Engine (Apache Pulsar, 14k stars, Apache 2.0) to route isolated tenant streams with automated tiered offloading to MinIO. Replaces IBM MQ and AWS Kinesis.", parameters: { type: "object", properties: { tenantId: { type: "string" }, topic: { type: "string" }, message: { type: "string" } }, required: ["tenantId", "topic"] } } },
+  { type: "function", function: { name: "execute_inmemory_grid", description: "Use the Aphura In-Memory Data Grid (Apache Ignite, Apache 2.0) to run distributed calculations and table joins in microsecond RAM speeds across cluster nodes. Replaces Oracle Coherence.", parameters: { type: "object", properties: { cacheName: { type: "string" }, computeTask: { type: "string" } }, required: ["cacheName"] } } },
+  { type: "function", function: { name: "register_edge_route", description: "Use the Aphura Dynamic Edge Router (Traefik, 51k stars, MIT) to expose service endpoints with automatic TLS and zero-reload dynamic configuration. Replaces Microsoft IIS ARR.", parameters: { type: "object", properties: { serviceName: { type: "string" }, rule: { type: "string" } }, required: ["serviceName"] } } },
+  { type: "function", function: { name: "extract_deep_metadata", description: "Use the Aphura Universal Content & Metadata Engine (Apache Tika, Apache 2.0) to inspect and extract structured metadata and text from 1,000+ file formats (PDF, Office, emails, media). Replaces IBM Watson Discovery.", parameters: { type: "object", properties: { filePath: { type: "string" } }, required: ["filePath"] } } },
   { type: "function", function: { name: "register_cdc_stream", description: "Use the Aphura Change Data Capture Engine (Debezium, Apache 2.0) to stream row-level database changes in real time from transaction logs into Kafka with zero polling. Replaces Oracle GoldenGate and IBM InfoSphere CDC.", parameters: { type: "object", properties: { connectorName: { type: "string" }, databaseEngine: { type: "string" } }, required: ["connectorName"] } } },
   { type: "function", function: { name: "rotate_enterprise_secret", description: "Use the Aphura Secrets Management Engine (Infisical, MIT) to manage zero-knowledge encrypted credentials and automate secret rotation across all environments. Replaces CyberArk and Azure Key Vault.", parameters: { type: "object", properties: { secretName: { type: "string" }, environment: { type: "string" } }, required: ["secretName"] } } },
   { type: "function", function: { name: "trace_request_apm", description: "Use the Aphura Distributed Tracing Engine (Jaeger, Apache 2.0) to inspect end-to-end execution paths, latency bottlenecks, and microservice call graphs in real time. Replaces IBM Instana and Dynatrace.", parameters: { type: "object", properties: { traceId: { type: "string" } }, required: ["traceId"] } } },
@@ -8880,6 +8885,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "query_semantic_layer": {
+          try {
+            const { CubeService } = await import("../data/cube.service.js");
+            const res = await CubeService.querySemanticMetric(args.metricName, args.dimensions, "Month");
+            return { output: "### Semantic Metric Result\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Semantic query failed: " + err.message };
+          }
+        }
+        case "publish_tenant_stream": {
+          try {
+            const { PulsarService } = await import("../data/pulsar.service.js");
+            const res = await PulsarService.publishTenantMessage(args.tenantId, args.topic, args.message);
+            return { output: "### Pulsar Multi-Tenant Stream\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Pulsar publish failed: " + err.message };
+          }
+        }
+        case "execute_inmemory_grid": {
+          try {
+            const { IgniteService } = await import("../data/ignite.service.js");
+            const res = await IgniteService.executeInMemoryCompute(args.cacheName, args.computeTask);
+            return { output: "### Ignite In-Memory Compute\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Ignite compute failed: " + err.message };
+          }
+        }
+        case "register_edge_route": {
+          try {
+            const { TraefikService } = await import("../devops/traefik.service.js");
+            const res = await TraefikService.registerDynamicRoute(args.serviceName, "websecure", args.rule);
+            return { output: "### Edge Route Configured\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Edge route failed: " + err.message };
+          }
+        }
+        case "extract_deep_metadata": {
+          try {
+            const { TikaService } = await import("../enterprise/tika.service.js");
+            const res = await TikaService.extractContentAndMetadata(args.filePath);
+            return { output: "### Deep Metadata & Content\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Metadata extraction failed: " + err.message };
+          }
+        }
         case "register_cdc_stream": {
           try {
             const { DebeziumService } = await import("../data/debezium.service.js");
