@@ -263,6 +263,18 @@ import {
   listEvaluationJobs,
   listSupportedEvaluationModels,
 } from './together.evaluations.js';
+import {
+  BATCH_LIMITS,
+  BATCH_SUPPORTED_ENDPOINTS,
+  BATCH_DISCOUNTED_MODELS,
+  BATCH_STATUSES,
+  getBatchOverview,
+  getBatchTutorialDocs,
+  getBatchManageDocs,
+  validateBatchRequest,
+  validateBatchJsonlLine,
+  validateBatchInputDataset,
+} from './together.batches.js';
 
 // ── Version & Metadata ───────────────────────────────────────────────────────
 export const CLI_VERSION = '2.21.0';
@@ -1147,9 +1159,147 @@ ${validation.error ? `Error: ${validation.error}` : ''}
 async function handleBatches(parsed) {
   const action = parsed.subcommand || 'list';
 
+  if (action === 'overview' || action === 'docs') {
+    const ov = getBatchOverview();
+    const text = `
+Together AI Batch Processing Overview:
+URL: ${ov.docs_url}
+Discount: ${ov.discount}
+Agent Skill: ${ov.agent_skill}
+
+Discounted Models (50% Off):
+${ov.discounted_models.map(m => `  - ${m.id} (${m.name}) -> ${m.discount}`).join('\n')}
+
+Batch Rate Limits:
+  - Max Requests: ${ov.rate_limits.max_requests_per_batch.toLocaleString()} requests/batch
+  - Max Input File Size: ${ov.rate_limits.max_input_file_size_mb} MB
+  - Max Line Size: ${ov.rate_limits.max_line_size_mb} MB
+  - Max Enqueued Tokens: ${(ov.rate_limits.max_enqueued_tokens_per_model / 1e9).toFixed(0)}B tokens
+  - Completion Window: ${ov.rate_limits.completion_window} (${ov.rate_limits.completion_window_hours} hours)
+
+Lifecycle Statuses:
+${Object.entries(ov.statuses).map(([k, v]) => `  - ${k}: ${v}`).join('\n')}
+`.trim();
+    return { ...ov, text };
+  }
+
+  if (action === 'tutorial' || action === 'guide') {
+    const tut = getBatchTutorialDocs();
+    const text = `
+Together AI Batch Processing Tutorial & Workflow:
+URL: ${tut.docs_url}
+
+5-Step Workflow:
+${tut.workflow_steps.map(s => `  ${s.step}. ${s.action}: ${s.description}`).join('\n')}
+
+CLI Commands:
+  Submit:   ${tut.code_snippets.cli_submit}
+  Poll:     ${tut.code_snippets.cli_poll}
+  Download: ${tut.code_snippets.cli_download}
+
+Audio Batch Requirement:
+  Audio batch requests require method="FILE" and body.file containing a public URL.
+  Example: ${tut.code_snippets.audio_batch_jsonl}
+`.trim();
+    return { ...tut, text };
+  }
+
+  if (action === 'manage' || action === 'reference' || action === 'ref') {
+    const mg = getBatchManageDocs();
+    const text = `
+Together AI Manage Batch Jobs Reference:
+URL: ${mg.docs_url}
+
+Endpoints:
+${Object.entries(mg.endpoints).map(([k, v]) => `  - ${k}: ${v}`).join('\n')}
+
+HTTP Error Codes:
+${mg.error_codes.map(e => `  - ${e.code}: ${e.description}`).join('\n')}
+
+Error JSONL File Format:
+  Schema:  ${mg.error_file_format.schema}
+  Example: ${mg.error_file_format.example}
+`.trim();
+    return { ...mg, text };
+  }
+
+  if (action === 'validate') {
+    const inputFile = parsed.flags['input-file'] || parsed.flags.inputFile || parsed.flags.file;
+    let endpoint = parsed.flags.endpoint;
+    const api = parsed.flags.api;
+    if (!endpoint && api) {
+      if (api === 'chat.completions') endpoint = '/v1/chat/completions';
+      else if (api === 'audio.transcriptions') endpoint = '/v1/audio/transcriptions';
+      else if (api === 'audio.translations') endpoint = '/v1/audio/translations';
+      else if (api === 'completions') endpoint = '/v1/completions';
+    }
+    const completionWindow = parsed.flags['completion-window'] || parsed.flags.completionWindow || '24h';
+
+    const result = validateBatchRequest({
+      input_file_id: inputFile,
+      endpoint: endpoint || '/v1/chat/completions',
+      completion_window: completionWindow,
+    });
+
+    const text = `
+Batch Parameter Validation:
+  Status: ${result.valid ? 'VALID ✅' : 'INVALID ❌'}
+  Input File ID: ${result.input_file_id || 'NONE'}
+  Endpoint: ${result.endpoint}
+  Completion Window: ${result.completion_window}
+${result.errors.length > 0 ? `  Errors: [${result.errors.join('; ')}]\n` : ''}${result.warnings.length > 0 ? `  Warnings: [${result.warnings.join('; ')}]\n` : ''}
+`.trim();
+    return { ...result, text };
+  }
+
+  if (action === 'validate-dataset') {
+    let records = [];
+    if (parsed.flags.records) {
+      try {
+        records = typeof parsed.flags.records === 'string' ? JSON.parse(parsed.flags.records) : parsed.flags.records;
+      } catch (e) {
+        records = [];
+      }
+    } else if (parsed.flags.json) {
+      try {
+        records = JSON.parse(parsed.flags.json);
+      } catch (e) {
+        records = [];
+      }
+    }
+
+    let endpoint = parsed.flags.endpoint;
+    const api = parsed.flags.api;
+    if (!endpoint && api) {
+      if (api === 'chat.completions') endpoint = '/v1/chat/completions';
+      else if (api === 'audio.transcriptions') endpoint = '/v1/audio/transcriptions';
+      else if (api === 'audio.translations') endpoint = '/v1/audio/translations';
+      else if (api === 'completions') endpoint = '/v1/completions';
+    }
+
+    const result = validateBatchInputDataset(records, endpoint || '/v1/chat/completions');
+    const text = `
+Batch Dataset Validation:
+  Status: ${result.valid ? 'VALID ✅' : 'INVALID ❌'}
+  Total Records: ${result.total_records || 0}
+  Unique custom_id: ${result.unique_ids || 0}
+${result.errors.length > 0 ? `  Errors: [${result.errors.join('; ')}]\n` : ''}${result.warnings.length > 0 ? `  Warnings: [${result.warnings.join('; ')}]\n` : ''}
+`.trim();
+    return { ...result, text };
+  }
+
   if (action === 'submit' || action === 'create') {
     const inputFile = parsed.flags['input-file'] || parsed.flags.inputFile || parsed.subsubcommand;
-    const endpoint = parsed.flags.endpoint || parsed.flags.model || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
+    let endpoint = parsed.flags.endpoint;
+    const api = parsed.flags.api;
+    if (!endpoint && api) {
+      if (api === 'chat.completions') endpoint = '/v1/chat/completions';
+      else if (api === 'audio.transcriptions') endpoint = '/v1/audio/transcriptions';
+      else if (api === 'audio.translations') endpoint = '/v1/audio/translations';
+      else if (api === 'completions') endpoint = '/v1/completions';
+    }
+    if (!endpoint) endpoint = '/v1/chat/completions';
+
     if (!inputFile) throw new Error('Missing required argument: --input-file');
     const batch = await llmCreateBatch({ input_file_id: inputFile, endpoint });
     return {
@@ -1200,8 +1350,9 @@ async function handleBatches(parsed) {
     return { batch: cancelled, text: `Batch ${id} cancelled.` };
   }
 
-  throw new Error(`Unknown batches command: ${action}`);
+  throw new Error(`Unknown batches command: ${action}. Use 'overview', 'tutorial', 'manage', 'validate', 'validate-dataset', 'submit', 'list', 'retrieve', 'download', or 'cancel'.`);
 }
+
 
 // ── Domain 9: Whoami ─────────────────────────────────────────────────────────
 async function handleWhoami(_parsed) {

@@ -2255,6 +2255,83 @@ evalsValidateDatasetRoutes.forEach((path) => {
   });
 });
 
+// ── Together AI Batch Processing Suite Documentation & Validation Routes ────
+
+// 1. Batch Overview
+const batchOverviewRoutes = [
+  '/together/inference/batch/overview',
+  '/v1/together/inference/batch/overview',
+  '/together/batch/overview',
+  '/v1/together/batch/overview',
+  '/inference/batch/overview',
+  '/v1/inference/batch/overview',
+];
+batchOverviewRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetBatchOverview(req, res);
+  });
+});
+
+// 2. Batch Tutorial
+const batchTutorialRoutes = [
+  '/together/inference/batch/tutorial',
+  '/v1/together/inference/batch/tutorial',
+  '/together/batch/tutorial',
+  '/v1/together/batch/tutorial',
+  '/inference/batch/tutorial',
+  '/v1/inference/batch/tutorial',
+];
+batchTutorialRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetBatchTutorialDocs(req, res);
+  });
+});
+
+// 3. Batch Manage Reference
+const batchManageRoutes = [
+  '/together/inference/batch/manage',
+  '/v1/together/inference/batch/manage',
+  '/together/batch/manage',
+  '/v1/together/batch/manage',
+  '/inference/batch/manage',
+  '/v1/inference/batch/manage',
+];
+batchManageRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetBatchManageDocs(req, res);
+  });
+});
+
+// 4. Validate Batch Creation Request
+const batchValidateRoutes = [
+  '/together/inference/batch/validate',
+  '/v1/together/inference/batch/validate',
+  '/together/batch/validate',
+  '/v1/together/batch/validate',
+  '/inference/batch/validate',
+  '/v1/inference/batch/validate',
+];
+batchValidateRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateBatchRequest(req, res);
+  });
+});
+
+// 5. Validate Batch Dataset
+const batchValidateDatasetRoutes = [
+  '/together/inference/batch/validate-dataset',
+  '/v1/together/inference/batch/validate-dataset',
+  '/together/batch/validate-dataset',
+  '/v1/together/batch/validate-dataset',
+  '/inference/batch/validate-dataset',
+  '/v1/inference/batch/validate-dataset',
+];
+batchValidateDatasetRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleValidateBatchDataset(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

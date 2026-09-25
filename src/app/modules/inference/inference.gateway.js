@@ -214,6 +214,14 @@ import {
   validateEvaluationParams,
   validateDatasetColumns,
 } from '../../services/together.evaluations.js';
+import {
+  getBatchOverview,
+  getBatchTutorialDocs,
+  getBatchManageDocs,
+  validateBatchRequest,
+  validateBatchJsonlLine,
+  validateBatchInputDataset,
+} from '../../services/together.batches.js';
 
 
 
@@ -4270,6 +4278,72 @@ export const InferenceGateway = {
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({ error: error.message || 'Error validating dataset columns.' });
+    }
+  },
+  /**
+   * Retrieves Together AI Batch Processing Overview & Rate Limits
+   * (GET /together/inference/batch/overview, GET /v1/together/inference/batch/overview, GET /together/batch/overview, GET /v1/together/batch/overview)
+   */
+  async handleGetBatchOverview(req, res) {
+    try {
+      const data = getBatchOverview();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving batch overview.' });
+    }
+  },
+
+  /**
+   * Retrieves Together AI Batch Processing Tutorial & Audio Batch Guides
+   * (GET /together/inference/batch/tutorial, GET /v1/together/inference/batch/tutorial, GET /together/batch/tutorial, GET /v1/together/batch/tutorial)
+   */
+  async handleGetBatchTutorialDocs(req, res) {
+    try {
+      const data = getBatchTutorialDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving batch tutorial docs.' });
+    }
+  },
+
+  /**
+   * Retrieves Together AI Batch Management & Error Code Reference
+   * (GET /together/inference/batch/manage, GET /v1/together/inference/batch/manage, GET /together/batch/manage, GET /v1/together/batch/manage)
+   */
+  async handleGetBatchManageDocs(req, res) {
+    try {
+      const data = getBatchManageDocs();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error retrieving batch manage docs.' });
+    }
+  },
+
+  /**
+   * Validates Batch Creation Request Parameters
+   * (POST /together/inference/batch/validate, POST /v1/together/inference/batch/validate, POST /together/batch/validate, POST /v1/together/batch/validate)
+   */
+  async handleValidateBatchRequest(req, res) {
+    try {
+      const payload = req.body || {};
+      const result = validateBatchRequest(payload);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating batch request.' });
+    }
+  },
+
+  /**
+   * Validates Batch Dataset (Array of Requests or JSONL Lines)
+   * (POST /together/inference/batch/validate-dataset, POST /v1/together/inference/batch/validate-dataset, POST /together/batch/validate-dataset, POST /v1/together/batch/validate-dataset)
+   */
+  async handleValidateBatchDataset(req, res) {
+    try {
+      const { records = [], endpoint = '/v1/chat/completions' } = req.body || {};
+      const result = validateBatchInputDataset(records, endpoint);
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error validating batch dataset.' });
     }
   },
 };
