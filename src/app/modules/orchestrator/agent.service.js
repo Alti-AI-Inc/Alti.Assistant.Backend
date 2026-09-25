@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicmesh_xp9l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicMesh) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensemanticcore_fh0q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSemanticCore) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicchain_fzbl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicChain) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedrouter_hraq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedRouter) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterlayer_5twd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterLayer) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opengpuring_loi8_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenGPURing) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25452,6 +25492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicmesh_xp9l_logic": {
+          try {
+            const { OpenHomomorphicMeshService } = await import("../liberty/openhomomorphicmesh_xp9l.service.js");
+            const res = await OpenHomomorphicMeshService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opensemanticcore_fh0q_logic": {
+          try {
+            const { OpenSemanticCoreService } = await import("../liberty/opensemanticcore_fh0q.service.js");
+            const res = await OpenSemanticCoreService.execute(args.target || "system");
+            return { output: `### OpenSemanticCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSemanticCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicchain_fzbl_logic": {
+          try {
+            const { OpenHomomorphicChainService } = await import("../liberty/openhomomorphicchain_fzbl.service.js");
+            const res = await OpenHomomorphicChainService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedrouter_hraq_logic": {
+          try {
+            const { OpenFederatedRouterService } = await import("../liberty/openfederatedrouter_hraq.service.js");
+            const res = await OpenFederatedRouterService.execute(args.target || "system");
+            return { output: `### OpenFederatedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterlayer_5twd_logic": {
+          try {
+            const { OpenCrossClusterLayerService } = await import("../liberty/opencross-clusterlayer_5twd.service.js");
+            const res = await OpenCrossClusterLayerService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterLayer failed: ${err.message}` };
+          }
+        }
         case "execute_opengpuring_loi8_logic": {
           try {
             const { OpenGPURingService } = await import("../liberty/opengpuring_loi8.service.js");
