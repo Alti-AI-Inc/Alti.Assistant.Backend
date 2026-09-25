@@ -16,6 +16,9 @@ export const SupervisorService = {
     } else if (promptLower.includes('book') || promptLower.includes('email') || promptLower.includes('github')) {
       route = 'composio';
       logger.info(`[LangChain Supervisor] ➡️ Routing to Composio.dev Action Executor`);
+    } else if (promptLower.includes("workflow") || promptLower.includes("manage agent") || promptLower.includes("paperclip")) {
+      route = "paperclip";
+      logger.info(`[LangChain Supervisor] ➡️ Routing to Paperclip AI Agent Manager`);
     } else if (promptLower.includes('click') || promptLower.includes('desktop')) {
       route = 'computer_use';
       logger.info(`[LangChain Supervisor] ➡️ Routing to Desktop GUI Automation`);

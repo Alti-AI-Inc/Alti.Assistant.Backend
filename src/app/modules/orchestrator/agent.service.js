@@ -5209,3 +5209,9 @@ export const deployArtifactToLiveUrl = async (artifactCode, projectId) => {
   const { PromptCompilerService } = await import('../devops/compiler.service.js');
   return await PromptCompilerService.deployReactArtifact(artifactCode, projectId);
 };
+
+// Appended: Paperclip AI Platform Integration
+export const runPaperclipWorkflow = async (workflowName, payload) => {
+  const { PaperclipService } = await import('./paperclip.service.js');
+  return await PaperclipService.dispatchWorkflow(workflowName, payload);
+};
