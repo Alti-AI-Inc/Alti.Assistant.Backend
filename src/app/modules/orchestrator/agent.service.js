@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicplane_zgj4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicPlane) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessgrid_sgke_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessGrid) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatadaemon_yeg8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataDaemon) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustcompiler_hrfa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustCompiler) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributednet_aaf2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedNet) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventring_4dhx_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventRing) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24252,6 +24292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicplane_zgj4_logic": {
+          try {
+            const { OpenHomomorphicPlaneService } = await import("../liberty/openhomomorphicplane_zgj4.service.js");
+            const res = await OpenHomomorphicPlaneService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessgrid_sgke_logic": {
+          try {
+            const { OpenHeadlessGridService } = await import("../liberty/openheadlessgrid_sgke.service.js");
+            const res = await OpenHeadlessGridService.execute(args.target || "system");
+            return { output: `### OpenHeadlessGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatadaemon_yeg8_logic": {
+          try {
+            const { OpenDataDaemonService } = await import("../liberty/opendatadaemon_yeg8.service.js");
+            const res = await OpenDataDaemonService.execute(args.target || "system");
+            return { output: `### OpenDataDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustcompiler_hrfa_logic": {
+          try {
+            const { OpenZeroTrustCompilerService } = await import("../liberty/openzero-trustcompiler_hrfa.service.js");
+            const res = await OpenZeroTrustCompilerService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributednet_aaf2_logic": {
+          try {
+            const { OpenDistributedNetService } = await import("../liberty/opendistributednet_aaf2.service.js");
+            const res = await OpenDistributedNetService.execute(args.target || "system");
+            return { output: `### OpenDistributedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedNet failed: ${err.message}` };
+          }
+        }
         case "execute_openeventring_4dhx_logic": {
           try {
             const { OpenEventRingService } = await import("../liberty/openeventring_4dhx.service.js");
