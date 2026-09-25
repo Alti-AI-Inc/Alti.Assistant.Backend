@@ -102,7 +102,7 @@ const REQUIRED_ENV = {
   JWT_ACCESS_TOKEN: 'JWT access token secret',
   JWT_REFRESH_REFRESH_TOKEN: 'JWT refresh token secret',
   REDIS_URL: 'Redis connection URL',
-  GROQ_API_KEY: 'Groq AI API key',
+  TOGETHER_API_KEY: 'Together AI inference API key',
 };
 
 const RECOMMENDED_ENV = {
@@ -115,8 +115,6 @@ const RECOMMENDED_ENV = {
   SMTP_PASSWORD: 'OTP email delivery',
   // Search
   EXA_API_KEY: 'Exa search integration',
-  // AI
-  TOGETHER_API_KEY: 'Together AI inference (LLM, images, audio)',
   // Integrations
   COMPOSIO_API_KEY: 'Composio agentic tool execution (Gmail, Slack, GitHub, etc.)',
   // Liberty Center One

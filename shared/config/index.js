@@ -55,12 +55,12 @@ const config = {
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1h',
   },
 
-  // ── Groq Inference ──────────────────────────────────────────────────────────
-  groq: {
-    apiKey: process.env.GROQ_API_KEY,
-    model: process.env.GROQ_MODEL || 'gpt-oss-120b',
-    sttModel: process.env.GROQ_STT_MODEL || 'whisper-large-v3-turbo',
-    temperature: parseFloat(process.env.GROQ_TEMPERATURE) || 0.2,
+  // ── Together.ai Inference ───────────────────────────────────────────────────
+  together: {
+    apiKey: process.env.TOGETHER_API_KEY,
+    model: process.env.TOGETHER_MODEL || 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+    sttModel: process.env.TOGETHER_STT_MODEL || 'whisper-large-v3-turbo',
+    temperature: parseFloat(process.env.TOGETHER_TEMPERATURE) || 0.2,
   },
 
   // ── Internal Service Auth ───────────────────────────────────────────────────
@@ -92,10 +92,10 @@ export async function loadMissingSecrets() {
         config.internal.serviceSecret = secret;
       }
     }
-    if (!config.groq.apiKey) {
-      const key = await getSecret('GROQ_API_KEY');
+    if (!config.together.apiKey) {
+      const key = await getSecret('TOGETHER_API_KEY');
       if (key) {
-        config.groq.apiKey = key;
+        config.together.apiKey = key;
       }
     }
     if (!config.jwt.accessToken) {

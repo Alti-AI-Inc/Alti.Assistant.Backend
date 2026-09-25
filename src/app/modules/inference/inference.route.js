@@ -28,6 +28,15 @@ router.post('/v1/completions', async (req, res) => {
   await InferenceGateway.handleTextCompletion(req.body, res);
 });
 
+// ── Image Generations (Official: https://docs.together.ai/reference/post-images-generations)
+router.post('/images/generations', async (req, res) => {
+  await InferenceGateway.handleImageGeneration(req.body, res);
+});
+
+router.post('/v1/images/generations', async (req, res) => {
+  await InferenceGateway.handleImageGeneration(req.body, res);
+});
+
 // ── Models Discovery (OpenAI/Together SDK compatible format) ───────────────
 const modelsHandler = async (req, res) => {
   try {
