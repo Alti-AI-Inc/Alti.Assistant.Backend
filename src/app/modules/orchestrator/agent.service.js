@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openadvancedrouter_1pgw_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedRouter) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openebpfvortex_u83u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFVortex) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesnexus_9odj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNexus) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedsync_6eea_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedSync) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessvortex_z40w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessVortex) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openhardwaremesh_beno_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenHardwareMesh) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -21892,6 +21932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openadvancedrouter_1pgw_logic": {
+          try {
+            const { OpenAdvancedRouterService } = await import("../liberty/openadvancedrouter_1pgw.service.js");
+            const res = await OpenAdvancedRouterService.execute(args.target || "system");
+            return { output: `### OpenAdvancedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openebpfvortex_u83u_logic": {
+          try {
+            const { OpeneBPFVortexService } = await import("../liberty/openebpfvortex_u83u.service.js");
+            const res = await OpeneBPFVortexService.execute(args.target || "system");
+            return { output: `### OpeneBPFVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesnexus_9odj_logic": {
+          try {
+            const { OpenTimeSeriesNexusService } = await import("../liberty/opentime-seriesnexus_9odj.service.js");
+            const res = await OpenTimeSeriesNexusService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedsync_6eea_logic": {
+          try {
+            const { OpenFederatedSyncService } = await import("../liberty/openfederatedsync_6eea.service.js");
+            const res = await OpenFederatedSyncService.execute(args.target || "system");
+            return { output: `### OpenFederatedSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessvortex_z40w_logic": {
+          try {
+            const { OpenServerlessVortexService } = await import("../liberty/openserverlessvortex_z40w.service.js");
+            const res = await OpenServerlessVortexService.execute(args.target || "system");
+            return { output: `### OpenServerlessVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openhardwaremesh_beno_logic": {
           try {
             const { OpenHardwareMeshService } = await import("../liberty/openhardwaremesh_beno.service.js");
