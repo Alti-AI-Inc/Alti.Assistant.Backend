@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "parse_codebase_ast", description: "Use the Aphura Code Intelligence Engine (Tree-sitter, 18k stars, MIT) to build concrete syntax trees (CSTs) for 40+ programming languages with sub-millisecond semantic navigation. Beats Cursor and GitHub Copilot.", parameters: { type: "object", properties: { sourceCode: { type: "string" }, language: { type: "string" } }, required: ["sourceCode", "language"] } } },
+  { type: "function", function: { name: "deep_crawl_research", description: "Use the Aphura Deep Web Crawling Engine (Crawlee, 17k stars, Apache 2.0) to scrape dynamic websites with anti-bot bypass, JavaScript SPA execution, and empirical citation extraction. Beats Perplexity Pro.", parameters: { type: "object", properties: { startUrl: { type: "string" }, crawlDepth: { type: "number" } }, required: ["startUrl"] } } },
+  { type: "function", function: { name: "manage_cognitive_memory", description: "Use the Aphura Cognitive Memory Layer (Mem0, 25k stars, Apache 2.0) to store and recall long-term user preferences, decisions, and facts across all sessions and platforms. Beats ChatGPT Memory.", parameters: { type: "object", properties: { userId: { type: "string" }, sessionFact: { type: "string" } }, required: ["userId", "sessionFact"] } } },
+  { type: "function", function: { name: "query_graphrag_synthesis", description: "Use the Aphura Hierarchical Knowledge Graph Engine (Microsoft GraphRAG, 21k stars, MIT) to synthesize holistic insights across thousands of multi-page documents without context window bottlenecks. Beats standard RAG.", parameters: { type: "object", properties: { corpusName: { type: "string" }, holisticQuestion: { type: "string" } }, required: ["corpusName", "holisticQuestion"] } } },
+  { type: "function", function: { name: "compile_dspy_program", description: "Use the Aphura Prompt Compilation Engine (Stanford DSPy, 22k stars, MIT) to mathematically optimize prompt prefixes, few-shot examples, and agent logic against accuracy benchmarks. Replaces fragile prompt engineering.", parameters: { type: "object", properties: { programSignature: { type: "string" }, metricGoal: { type: "string" } }, required: ["programSignature"] } } },
   { type: "function", function: { name: "scale_ray_compute", description: "Use the Aphura Distributed Cluster Engine (Ray, 34k stars, Apache 2.0) to distribute heavy Python tasks, simulations, and parallel processing across Liberty Center One bare-metal nodes. Replaces Azure Batch.", parameters: { type: "object", properties: { taskName: { type: "string" }, taskCount: { type: "number" } }, required: ["taskName"] } } },
   { type: "function", function: { name: "invoke_dapr_service", description: "Use the Aphura Microservice Runtime (Microsoft Dapr, 25k stars, Apache 2.0) for resilient service-to-service gRPC invocation, distributed state, and virtual actors. Replaces Microsoft Service Fabric.", parameters: { type: "object", properties: { appId: { type: "string" }, methodName: { type: "string" } }, required: ["appId", "methodName"] } } },
   { type: "function", function: { name: "write_cassandra_batch", description: "Use the Aphura Masterless NoSQL Database (Apache Cassandra, 9.5k stars, Apache 2.0) to execute high-velocity, multi-rack distributed writes with zero single point of failure. Replaces Oracle NoSQL and Azure Cosmos DB.", parameters: { type: "object", properties: { keyspace: { type: "string" }, table: { type: "string" } }, required: ["keyspace", "table"] } } },
@@ -8910,6 +8915,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "parse_codebase_ast": {
+          try {
+            const { TreeSitterService } = await import("../ide/treesitter.service.js");
+            const res = await TreeSitterService.parseCodebaseAST(args.sourceCode, args.language);
+            return { output: "### Tree-sitter Code Intelligence\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Tree-sitter parse failed: " + err.message };
+          }
+        }
+        case "deep_crawl_research": {
+          try {
+            const { CrawleeService } = await import("../search/crawlee.service.js");
+            const res = await CrawleeService.deepCrawlAndExtract(args.startUrl, args.crawlDepth);
+            return { output: "### Crawlee Research Result\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Crawl research failed: " + err.message };
+          }
+        }
+        case "manage_cognitive_memory": {
+          try {
+            const { Mem0Service } = await import("../ai/mem0.service.js");
+            const res = await Mem0Service.recallAndStoreMemory(args.userId, args.sessionFact);
+            return { output: "### Mem0 Cognitive Memory\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Memory operation failed: " + err.message };
+          }
+        }
+        case "query_graphrag_synthesis": {
+          try {
+            const { GraphRAGService } = await import("../ai/graphrag.service.js");
+            const res = await GraphRAGService.executeGlobalSynthesisQuery(args.corpusName, args.holisticQuestion);
+            return { output: "### GraphRAG Global Synthesis\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "GraphRAG synthesis failed: " + err.message };
+          }
+        }
+        case "compile_dspy_program": {
+          try {
+            const { DSPyService } = await import("../ai/dspy.service.js");
+            const res = await DSPyService.compileOptimizedProgram(args.programSignature, args.metricGoal);
+            return { output: "### DSPy Program Compiled\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "DSPy compilation failed: " + err.message };
+          }
+        }
         case "scale_ray_compute": {
           try {
             const { RayService } = await import("../compute/ray.service.js");
