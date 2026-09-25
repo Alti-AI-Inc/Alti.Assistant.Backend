@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengraphengine_n0zi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphEngine) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalnode_bo8v_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalNode) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgesync_gxni_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSync) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosproxy_8o6w_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosProxy) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractpipeline_b2eu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractPipeline) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfcompiler_62w9_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFCompiler) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -27332,6 +27372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengraphengine_n0zi_logic": {
+          try {
+            const { OpenGraphEngineService } = await import("../liberty/opengraphengine_n0zi.service.js");
+            const res = await OpenGraphEngineService.execute(args.target || "system");
+            return { output: `### OpenGraphEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalnode_bo8v_logic": {
+          try {
+            const { OpenHyperDimensionalNodeService } = await import("../liberty/openhyper-dimensionalnode_bo8v.service.js");
+            const res = await OpenHyperDimensionalNodeService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgesync_gxni_logic": {
+          try {
+            const { OpenEdgeSyncService } = await import("../liberty/openedgesync_gxni.service.js");
+            const res = await OpenEdgeSyncService.execute(args.target || "system");
+            return { output: `### OpenEdgeSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosproxy_8o6w_logic": {
+          try {
+            const { OpenChaosProxyService } = await import("../liberty/openchaosproxy_8o6w.service.js");
+            const res = await OpenChaosProxyService.execute(args.target || "system");
+            return { output: `### OpenChaosProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractpipeline_b2eu_logic": {
+          try {
+            const { OpenAbstractPipelineService } = await import("../liberty/openabstractpipeline_b2eu.service.js");
+            const res = await OpenAbstractPipelineService.execute(args.target || "system");
+            return { output: `### OpenAbstractPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractPipeline failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfcompiler_62w9_logic": {
           try {
             const { OpeneBPFCompilerService } = await import("../liberty/openebpfcompiler_62w9.service.js");
