@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablecluster_wqmm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableCluster) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalvault_9rro_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalVault) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarevault_5tob_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareVault) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlesscluster_cxdm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessCluster) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticchain_rfno_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticChain) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarycluster_sk83_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryCluster) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28732,6 +28772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablecluster_wqmm_logic": {
+          try {
+            const { OpenImmutableClusterService } = await import("../liberty/openimmutablecluster_wqmm.service.js");
+            const res = await OpenImmutableClusterService.execute(args.target || "system");
+            return { output: `### OpenImmutableCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalvault_9rro_logic": {
+          try {
+            const { OpenHyperDimensionalVaultService } = await import("../liberty/openhyper-dimensionalvault_9rro.service.js");
+            const res = await OpenHyperDimensionalVaultService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarevault_5tob_logic": {
+          try {
+            const { OpenHardwareVaultService } = await import("../liberty/openhardwarevault_5tob.service.js");
+            const res = await OpenHardwareVaultService.execute(args.target || "system");
+            return { output: `### OpenHardwareVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlesscluster_cxdm_logic": {
+          try {
+            const { OpenHeadlessClusterService } = await import("../liberty/openheadlesscluster_cxdm.service.js");
+            const res = await OpenHeadlessClusterService.execute(args.target || "system");
+            return { output: `### OpenHeadlessCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticchain_rfno_logic": {
+          try {
+            const { OpenStaticChainService } = await import("../liberty/openstaticchain_rfno.service.js");
+            const res = await OpenStaticChainService.execute(args.target || "system");
+            return { output: `### OpenStaticChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticChain failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarycluster_sk83_logic": {
           try {
             const { OpenPlanetaryClusterService } = await import("../liberty/openplanetarycluster_sk83.service.js");
