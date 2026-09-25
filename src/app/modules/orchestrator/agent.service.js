@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlesschain_d07s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessChain) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorysync_zib2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemorySync) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpchain_ixzz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPChain) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectormesh_lz6s_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorMesh) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatacompiler_m7ag_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataCompiler) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondnode_848n_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondNode) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22972,6 +23012,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlesschain_d07s_logic": {
+          try {
+            const { OpenServerlessChainService } = await import("../liberty/openserverlesschain_d07s.service.js");
+            const res = await OpenServerlessChainService.execute(args.target || "system");
+            return { output: `### OpenServerlessChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorysync_zib2_logic": {
+          try {
+            const { OpenInMemorySyncService } = await import("../liberty/openin-memorysync_zib2.service.js");
+            const res = await OpenInMemorySyncService.execute(args.target || "system");
+            return { output: `### OpenIn-MemorySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemorySync failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpchain_ixzz_logic": {
+          try {
+            const { OpenBGPChainService } = await import("../liberty/openbgpchain_ixzz.service.js");
+            const res = await OpenBGPChainService.execute(args.target || "system");
+            return { output: `### OpenBGPChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectormesh_lz6s_logic": {
+          try {
+            const { OpenVectorMeshService } = await import("../liberty/openvectormesh_lz6s.service.js");
+            const res = await OpenVectorMeshService.execute(args.target || "system");
+            return { output: `### OpenVectorMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatacompiler_m7ag_logic": {
+          try {
+            const { OpenDataCompilerService } = await import("../liberty/opendatacompiler_m7ag.service.js");
+            const res = await OpenDataCompilerService.execute(args.target || "system");
+            return { output: `### OpenDataCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataCompiler failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondnode_848n_logic": {
           try {
             const { OpenSubMillisecondNodeService } = await import("../liberty/opensub-millisecondnode_848n.service.js");
