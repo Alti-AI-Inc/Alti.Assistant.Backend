@@ -62121,15 +62121,7 @@ export const AgentService = {
           } catch (err) {
             return { output: `LlamaIndex failed: ${err.message}` };
           }
-        }        case "wire_langchain_graph": {
-          try {
-            const { LangChainService } = await import("../ai/langchain.service.js");
-            const res = await LangChainService.chainAgents(args.taskGoal, args.agentNodes);
-            return { output: `### AI Graph Wired\\n\\n```text\\n${res.report}\\n```` };
-          } catch (err) {
-            return { output: `LangChain error: ${err.message}` };
-          }
-        }        case "orchestrate_vllm_engine": {
+        }                case "orchestrate_vllm_engine": {
           try {
             const { VllmService } = await import("../ai/vllm.service.js");
             const res = await VllmService.orchestratePagedAttention(args.modelName, args.batchSize || 1024);
@@ -62281,15 +62273,7 @@ export const AgentService = {
           } catch (err) {
             return { output: `Bridge injection failed: ${err.message}` };
           }
-        }        case "compile_desktop_app": {
-          try {
-            const { TauriService } = await import("../desktop/tauri.service.js");
-            const res = await TauriService.compileDesktopApp(args.webAppPath, args.osTarget);
-            return { output: `### Native Desktop Build\\n\\n```text\\n${res.report}\\n```` };
-          } catch (err) {
-            return { output: `Desktop compilation failed: ${err.message}` };
-          }
-        }        case "compile_mobile_app": {
+        }                case "compile_mobile_app": {
           try {
             const { ReactNativeService } = await import("../mobile/reactnative.service.js");
             const res = await ReactNativeService.compileMobileApp(args.projectName, args.targetOs);
@@ -62409,15 +62393,7 @@ export const AgentService = {
           } catch (err) {
             return { output: `Encryption failed: ${err.message}` };
           }
-        }        case "pin_to_ipfs": {
-          try {
-            const { IPFSService } = await import("../web3/ipfs.service.js");
-            const res = await IPFSService.pinFile(args.filePath);
-            return { output: `### Decentralized IPFS Upload\\n\\nCID Hash: ${res.cid}\\nNetwork URL: ${res.url}` };
-          } catch (err) {
-            return { output: `IPFS upload failed: ${err.message}` };
-          }
-        }        case "compress_to_parquet": {
+        }                case "compress_to_parquet": {
           try {
             const { ParquetService } = await import("../data/parquet.service.js");
             const res = await ParquetService.compressDataset(args.datasetPath);
@@ -62689,15 +62665,7 @@ export const AgentService = {
           } catch (err) {
             return { output: `Deployment failed: ${err.message}` };
           }
-        }        case "generate_browser_trace": {
-          try {
-            const { BrowserService } = await import("../browser/browser.service.js");
-            const res = await BrowserService.generateTrace(args.url);
-            return { output: `### Deep Trace Generated\\n\\n[View Trace](${res.traceUrl})` };
-          } catch (err) {
-            return { output: `Trace failed: ${err.message}` };
-          }
-        }        case "decompile_binary": {
+        }                case "decompile_binary": {
           try {
             const { ReverseEngService } = await import("../security/reverse.service.js");
             const res = await ReverseEngService.decompileBinary(args.binaryPath);
@@ -62757,15 +62725,7 @@ export const AgentService = {
           } catch (err) {
             return { output: `Audio generation failed: ${err.message}` };
           }
-        }        case "run_security_audit": {
-          try {
-            const { SemgrepService } = await import("../security/semgrep.service.js");
-            const res = await SemgrepService.scanRepository(args.repoPath);
-            return { output: `### Security Audit Complete\\n\\n```text\\n${res.report}\\n```` };
-          } catch (err) {
-            return { output: `Security audit failed: ${err.message}` };
-          }
-        }        case "query_financial_terminal": {
+        }                case "query_financial_terminal": {
           try {
             const { OpenBBService } = await import("../finance/openbb.service.js");
             const res = await OpenBBService.queryMarketData(args.ticker, args.dataClass);
@@ -62822,15 +62782,7 @@ export const AgentService = {
           } catch (err) {
             return { output: `OmniParser failed: ${err.message}` };
           }
-        }        case "execute_python_code": {
-          try {
-            const { JupyterService } = await import("../compute/jupyter.service.js");
-            const res = await JupyterService.executeCode(args.code);
-            return { output: `### Python Execution Result\\n\\n```text\\n${res.stdout}\\n```` };
-          } catch (err) {
-            return { output: `Python execution failed: ${err.message}` };
-          }
-        }        case "process_complex_document": {
+        }                case "process_complex_document": {
           try {
             const { DoclingService } = await import("../rag/docling.service.js");
             const parseRes = await DoclingService.parseDocument(args.filePath);
@@ -62839,33 +62791,9 @@ export const AgentService = {
           } catch (err) {
             return { output: `Document processing failed: ${err.message}` };
           }
-        }        case "swe_execute_command": {
-          try {
-            const { SWEService } = await import("../agents/swe.service.js");
-            const res = await SWEService.executeCommand(args.command);
-            return { output: `Execution Result:\\n${res.output}` };
-          } catch (err) {
-            return { output: `Command failed: ${err.message}` };
-          }
-        }
-        case "swe_edit_file": {
-          try {
-            const { SWEService } = await import("../agents/swe.service.js");
-            const res = await SWEService.editFile(args.targetFile, args.searchString, args.replacementString);
-            return { output: `Edit Result:\\n${res.output}` };
-          } catch (err) {
-            return { output: `Edit failed: ${err.message}` };
-          }
-        }
-        case "swe_view_file": {
-          try {
-            const { SWEService } = await import("../agents/swe.service.js");
-            const res = await SWEService.viewFile(args.targetFile, args.startLine, args.endLine);
-            return { output: `File Contents (Lines ${args.startLine || 1}-${args.endLine || 100}):\\n${res.output}` };
-          } catch (err) {
-            return { output: `View failed: ${err.message}` };
-          }
-        }        case "provision_cloud_ide": {
+        }        
+        
+                case "provision_cloud_ide": {
           try {
             const { VSCodeService } = await import("../ide/vscode.service.js");
             const res = await VSCodeService.provisionWorkspace("admin_user", args.workspaceName);
@@ -62881,52 +62809,8 @@ export const AgentService = {
           } catch (err) {
             return { output: `SaaS Action failed: ${err.message}` };
           }
-        }        case "delegate_to_aphura_sovereign_agent": {
-          try {
-            const { HermesAgentService } = await import("../agents/hermes.service.js");
-            const res = await HermesAgentService.executeTask(args.prompt);
-            return { output: `Aphura Sovereign Agent Output:\n${res.content}` };
-          } catch (err) {
-            return { output: `Agent failure: ${err.message}` };
-          }
-        }
-        case "analyze_legal_contract": {
-          try {
-            const { OpenClawService } = await import("../agents/openclaw.service.js");
-            const res = await OpenClawService.analyzeContract(args.contract_text);
-            return { output: `Aphura Legal Engine Output:\n${res.content}` };
-          } catch (err) {
-            return { output: `Legal scan failure: ${err.message}` };
-          }
-        }        case "browser_use_action": {
-          try {
-            const { BrowserUseService } = await import("../browser/browser.service.js");
-            if (args.action === "launch") {
-              const res = await BrowserUseService.launchBrowser(args.sessionId, args.url_or_target);
-              return { output: `Browser launched at ${args.url_or_target}. DOM loaded.` };
-            } else if (args.action === "close") {
-              await BrowserUseService.closeBrowser(args.sessionId);
-              return { output: "Browser closed." };
-            } else {
-              const res = await BrowserUseService.executeAction(args.sessionId, args.action, args.url_or_target);
-              return { output: `Action ${args.action} completed. New DOM state observed.` };
-            }
-          } catch (err) {
-            return { output: `Browser action failed: ${err.message}` };
-          }
-        }        case "query_knowledgebase": {
-          try {
-            const { VectorStoreService } = await import("../rag/vectorstore.service.js");
-            const { llmEmbed } = await import("../../services/llm.client.js");
-            const embedding = await llmEmbed(args.query);
-            const collectionId = args.collectionId || "default_tenant_collection";
-            const results = await VectorStoreService.search(embedding, { collectionId, topK: 10 });
-            const context = results.map(r => `[Source: ${r.document_title || "Unknown"}]n${r.content}`).join("\n\n");
-            return { output: `RAG Context Retrieved:\n${context}`, references: results.map(r => ({ title: r.document_title, url: r.document_source, snippet: r.content.substring(0, 100), source: "Enterprise Memory" })) };
-          } catch (err) {
-            return { output: `RAG query failed: ${err.message}`, references: [] };
-          }
-        }        case 'execute_edge_command': {
+        }        
+                                case 'execute_edge_command': {
           const res = await OpenClawService.queueEdgeCommand(args.machineId, args.command, args.payload);
           return {
             output: `Command successfully queued to edge node ${args.machineId}. Command ID: ${res.commandId}. Status: ${res.status}. Note: Execution is async, awaiting results via polling.`,

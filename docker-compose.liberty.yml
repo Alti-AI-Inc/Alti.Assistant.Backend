@@ -32,103 +32,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-contents:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=CONTENTS
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-exaDeepResearch:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=EXADEEPRESEARCH
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-monitor:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=MONITOR
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-exaResearch:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=EXARESEARCH
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-exaSearch:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=EXASEARCH
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-space:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=SPACE
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-admin:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=ADMIN
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-agents:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=AGENTS
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-crewai:
     build:
       context: .
@@ -140,55 +43,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-hermes:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=HERMES
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-openclaw:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=OPENCLAW
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-swe:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=SWE
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-langchain:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=LANGCHAIN
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-mediapipe:
     build:
       context: .
@@ -284,43 +138,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-apikey:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=APIKEY
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-apisports:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=APISPORTS
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-arxiv:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=ARXIV
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-musicgen:
     build:
       context: .
@@ -332,43 +149,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-auth:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=AUTH
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-aviationstack:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=AVIATIONSTACK
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-browser:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=BROWSER
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-crawler:
     build:
       context: .
@@ -380,67 +160,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-census:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=CENSUS
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-chat:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=CHAT
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-cloudflare:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=CLOUDFLARE
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-codex:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=CODEX
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-coinapi:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=COINAPI
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-yjs:
     build:
       context: .
@@ -464,19 +183,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-composio:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=COMPOSIO
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-arrow:
     build:
       context: .
@@ -500,19 +206,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-jupyter:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=JUPYTER
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-qiskit:
     build:
       context: .
@@ -548,19 +241,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-congress:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=CONGRESS
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-activemq:
     build:
       context: .
@@ -908,19 +588,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-tauri:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=TAURI
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-airflow:
     build:
       context: .
@@ -1556,31 +1223,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-evaluator:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=EVALUATOR
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-explorium:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=EXPLORIUM
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-openbb:
     build:
       context: .
@@ -1592,19 +1234,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-fred:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=FRED
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-godot:
     build:
       context: .
@@ -1748,19 +1377,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-invoice:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=INVOICE
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-freertos:
     build:
       context: .
@@ -1796,115 +1412,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-langchain-callbacks:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=LANGCHAIN.CALLBACKS
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-langchain-community:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=LANGCHAIN.COMMUNITY
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-langchain-langgraph:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=LANGCHAIN.LANGGRAPH
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-langchain-lcel:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=LANGCHAIN.LCEL
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-langchain:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=LANGCHAIN
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-langsmith:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=LANGSMITH
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-liberty:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=LIBERTY
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-llm:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=LLM
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-mapbox:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=MAPBOX
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-email:
     build:
       context: .
@@ -1916,19 +1423,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-massive:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=MASSIVE
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-livekit:
     build:
       context: .
@@ -1976,67 +1470,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-proactiveMonitor:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=PROACTIVEMONITOR
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-newsapi:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=NEWSAPI
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-notification:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=NOTIFICATION
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-openclaw:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=OPENCLAW
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-openfda:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=OPENFDA
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-dspy:
     build:
       context: .
@@ -2048,55 +1481,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-orchestrator:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=ORCHESTRATOR
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-sovereignRouter:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=SOVEREIGNROUTER
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-predictiondata:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=PREDICTIONDATA
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-promptforge:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=PROMPTFORGE
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-appium:
     build:
       context: .
@@ -2108,19 +1492,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-chunker:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=CHUNKER
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-docling:
     build:
       context: .
@@ -2132,19 +1503,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-embedding:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=EMBEDDING
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-graphrag:
     build:
       context: .
@@ -2168,19 +1526,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-rag:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=RAG
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-tika:
     build:
       context: .
@@ -2192,55 +1537,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-vectorstore:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=VECTORSTORE
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-realestateapi:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=REALESTATEAPI
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-deepResearch:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=DEEPRESEARCH
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-sec:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=SEC
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-calico:
     build:
       context: .
@@ -2300,19 +1596,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-semgrep:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=SEMGREP
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-jolt:
     build:
       context: .
@@ -2336,163 +1619,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-stripe:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=STRIPE
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-paymentMethod:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=PAYMENTMETHOD
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-product:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=PRODUCT
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-subscription:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=SUBSCRIPTION
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-subscription:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=SUBSCRIPTION
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-support:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=SUPPORT
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-templates:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=TEMPLATES
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-temporal:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=TEMPORAL
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-tenant-usage:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=TENANT-USAGE
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-tenant:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=TENANT
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-tenantInvitation:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=TENANTINVITATION
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-traces:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=TRACES
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-triggers:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=TRIGGERS
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-babylon:
     build:
       context: .
@@ -2564,31 +1690,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-usage:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=USAGE
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-usageLog:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=USAGELOG
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-videogen:
     build:
       context: .
@@ -2636,19 +1737,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-visualcrossing:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=VISUALCROSSING
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-speech:
     build:
       context: .
@@ -2696,19 +1784,6 @@ services:
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
     restart: always
-
-  engine-ipfs:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=IPFS
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
   engine-rpc:
     build:
       context: .
@@ -2731,20 +1806,7 @@ services:
       - ENGINE_ROLE=ACTIVEPIECES
       - ISOLATION_LEVEL=MAX
       - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-
-  engine-workflows:
-    build:
-      context: .
-      dockerfile: Dockerfile.liberty-engine
-    networks:
-      - liberty-mesh
-    environment:
-      - ENGINE_ROLE=WORKFLOWS
-      - ISOLATION_LEVEL=MAX
-      - COMPUTE_NODE="Liberty Center One - Alpha"
-    restart: always
-  engine-opendecentralizedcore:
+    restart: always  engine-opendecentralizedcore:
     build:
       context: .
       dockerfile: Dockerfile.liberty-engine
