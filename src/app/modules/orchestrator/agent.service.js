@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativeplane_76xo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativePlane) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepplane_s7al_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepPlane) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphiccontroller_usbk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicController) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecontroller_8n3j_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeController) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partynode_tsbg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyNode) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendistributedbroker_s6qm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDistributedBroker) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28812,6 +28852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativeplane_76xo_logic": {
+          try {
+            const { OpenCloudNativePlaneService } = await import("../liberty/opencloud-nativeplane_76xo.service.js");
+            const res = await OpenCloudNativePlaneService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativePlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativePlane failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepplane_s7al_logic": {
+          try {
+            const { OpenDeepPlaneService } = await import("../liberty/opendeepplane_s7al.service.js");
+            const res = await OpenDeepPlaneService.execute(args.target || "system");
+            return { output: `### OpenDeepPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphiccontroller_usbk_logic": {
+          try {
+            const { OpenHomomorphicControllerService } = await import("../liberty/openhomomorphiccontroller_usbk.service.js");
+            const res = await OpenHomomorphicControllerService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicController failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecontroller_8n3j_logic": {
+          try {
+            const { OpenZeroKnowledgeControllerService } = await import("../liberty/openzero-knowledgecontroller_8n3j.service.js");
+            const res = await OpenZeroKnowledgeControllerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeController failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partynode_tsbg_logic": {
+          try {
+            const { OpenMultiPartyNodeService } = await import("../liberty/openmulti-partynode_tsbg.service.js");
+            const res = await OpenMultiPartyNodeService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyNode failed: ${err.message}` };
+          }
+        }
         case "execute_opendistributedbroker_s6qm_logic": {
           try {
             const { OpenDistributedBrokerService } = await import("../liberty/opendistributedbroker_s6qm.service.js");
