@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "generate_whiteboard_canvas", description: "Use the Aphura Interactive Whiteboard Engine (Excalidraw, 85k stars, MIT) to compile editable, hand-drawn architecture diagrams, UI mockups, and database schemas directly inside the chat. Beats FigJam and Miro.", parameters: { type: "object", properties: { promptDescription: { type: "string" }, layoutTheme: { type: "string" } }, required: ["promptDescription"] } } },
+  { type: "function", function: { name: "audit_web_performance", description: "Use the Aphura Web Performance Auditor (Google Lighthouse, 28k stars, Apache 2.0) to evaluate Core Web Vitals, accessibility, SEO, and security headers with automated remediation advice.", parameters: { type: "object", properties: { targetUrl: { type: "string" } }, required: ["targetUrl"] } } },
+  { type: "function", function: { name: "scan_repo_secrets", description: "Use the Aphura Secret Leak Detection Engine (Gitleaks, 18k stars, MIT) to audit git repositories and codebases for leaked tokens, API keys, and private credentials. Replaces GitHub Advanced Security.", parameters: { type: "object", properties: { repoPath: { type: "string" } }, required: ["repoPath"] } } },
+  { type: "function", function: { name: "parse_nlp_entities", description: "Use the Aphura Client-Side NLP Engine (Compromise, 12k stars, MIT) to parse sentence syntax, extract named entities, and normalize dates and currencies in under 2ms without cloud latency.", parameters: { type: "object", properties: { inputText: { type: "string" } }, required: ["inputText"] } } },
+  { type: "function", function: { name: "access_unified_storage", description: "Use the Aphura Universal Storage Layer (Apache OpenDAL, Apache 2.0) to read, write, and stream data across 30+ storage backends (MinIO, S3, Azure Blob, HDFS, Redis) with a single unified async API.", parameters: { type: "object", properties: { storageBackend: { type: "string" }, objectPath: { type: "string" } }, required: ["storageBackend", "objectPath"] } } },
   { type: "function", function: { name: "generate_prisma_orm", description: "Use the Aphura Type-Safe Database Engine (Prisma, 39k stars, Apache 2.0) to generate end-to-end type-safe database queries and declarative migrations for PostgreSQL, MySQL, and SQLite.", parameters: { type: "object", properties: { schemaPath: { type: "string" }, databaseEngine: { type: "string" } }, required: ["schemaPath"] } } },
   { type: "function", function: { name: "register_dubbo_rpc", description: "Use the Aphura Enterprise RPC Governance Framework (Apache Dubbo, 40k stars, Apache 2.0) to route microservices with dynamic discovery, load balancing, and multi-protocol Triple/gRPC transport. Replaces IBM WebSphere RPC.", parameters: { type: "object", properties: { serviceInterface: { type: "string" }, protocol: { type: "string" } }, required: ["serviceInterface"] } } },
   { type: "function", function: { name: "explain_ai_decision_shap", description: "Use the Aphura Explainable AI Engine (SHAP, 24k stars, MIT) to compute exact game-theoretic Shapley feature attributions, explaining AI decisions for regulatory compliance in finance and healthcare.", parameters: { type: "object", properties: { modelOutput: { type: "string" }, featureValues: { type: "string" } }, required: ["modelOutput"] } } },
@@ -8931,6 +8936,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "generate_whiteboard_canvas": {
+          try {
+            const { ExcalidrawService } = await import("../ui/excalidraw.service.js");
+            const res = await ExcalidrawService.generateWhiteboardScene(args.promptDescription, args.layoutTheme);
+            return { output: "### Excalidraw Whiteboard Canvas\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Whiteboard generation failed: " + err.message };
+          }
+        }
+        case "audit_web_performance": {
+          try {
+            const { LighthouseService } = await import("../testing/lighthouse.service.js");
+            const res = await LighthouseService.auditWebApp(args.targetUrl);
+            return { output: "### Google Lighthouse Audit\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Lighthouse audit failed: " + err.message };
+          }
+        }
+        case "scan_repo_secrets": {
+          try {
+            const { GitleaksService } = await import("../security/gitleaks.service.js");
+            const res = await GitleaksService.scanRepositorySecrets(args.repoPath);
+            return { output: "### Gitleaks Secret Audit\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Secret scan failed: " + err.message };
+          }
+        }
+        case "parse_nlp_entities": {
+          try {
+            const { CompromiseService } = await import("../ai/compromise.service.js");
+            const res = await CompromiseService.parseLinguisticEntities(args.inputText);
+            return { output: "### Compromise NLP Results\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "NLP parsing failed: " + err.message };
+          }
+        }
+        case "access_unified_storage": {
+          try {
+            const { OpenDALService } = await import("../data/opendal.service.js");
+            const res = await OpenDALService.readWriteUnifiedStorage(args.storageBackend, args.objectPath, "READ_WRITE");
+            return { output: "### OpenDAL Storage Result\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Storage access failed: " + err.message };
+          }
+        }
         case "generate_prisma_orm": {
           try {
             const { PrismaService } = await import("../data/prisma.service.js");
