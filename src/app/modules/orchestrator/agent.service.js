@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentgraph_ikf9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentGraph) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisenode_y768_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseNode) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterstream_6pbm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterStream) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencymesh_7jwp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyMesh) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventledger_jfjk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventLedger) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencross-clusterplane_j11l_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterPlane) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -22732,6 +22772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentgraph_ikf9_logic": {
+          try {
+            const { OpenPersistentGraphService } = await import("../liberty/openpersistentgraph_ikf9.service.js");
+            const res = await OpenPersistentGraphService.execute(args.target || "system");
+            return { output: `### OpenPersistentGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisenode_y768_logic": {
+          try {
+            const { OpenEnterpriseNodeService } = await import("../liberty/openenterprisenode_y768.service.js");
+            const res = await OpenEnterpriseNodeService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterstream_6pbm_logic": {
+          try {
+            const { OpenCrossClusterStreamService } = await import("../liberty/opencross-clusterstream_6pbm.service.js");
+            const res = await OpenCrossClusterStreamService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencymesh_7jwp_logic": {
+          try {
+            const { OpenHighFrequencyMeshService } = await import("../liberty/openhigh-frequencymesh_7jwp.service.js");
+            const res = await OpenHighFrequencyMeshService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventledger_jfjk_logic": {
+          try {
+            const { OpenEventLedgerService } = await import("../liberty/openeventledger_jfjk.service.js");
+            const res = await OpenEventLedgerService.execute(args.target || "system");
+            return { output: `### OpenEventLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventLedger failed: ${err.message}` };
+          }
+        }
         case "execute_opencross-clusterplane_j11l_logic": {
           try {
             const { OpenCrossClusterPlaneService } = await import("../liberty/opencross-clusterplane_j11l.service.js");
