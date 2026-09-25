@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfinancialvault_hn1c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialVault) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractnexus_uu8a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractNexus) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustermesh_okd3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterMesh) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgedaemon_pnav_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeDaemon) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessdaemon_6jcy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessDaemon) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlessvault_p5id_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessVault) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24492,6 +24532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfinancialvault_hn1c_logic": {
+          try {
+            const { OpenFinancialVaultService } = await import("../liberty/openfinancialvault_hn1c.service.js");
+            const res = await OpenFinancialVaultService.execute(args.target || "system");
+            return { output: `### OpenFinancialVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractnexus_uu8a_logic": {
+          try {
+            const { OpenAbstractNexusService } = await import("../liberty/openabstractnexus_uu8a.service.js");
+            const res = await OpenAbstractNexusService.execute(args.target || "system");
+            return { output: `### OpenAbstractNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustermesh_okd3_logic": {
+          try {
+            const { OpenCrossClusterMeshService } = await import("../liberty/opencross-clustermesh_okd3.service.js");
+            const res = await OpenCrossClusterMeshService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgedaemon_pnav_logic": {
+          try {
+            const { OpenZeroKnowledgeDaemonService } = await import("../liberty/openzero-knowledgedaemon_pnav.service.js");
+            const res = await OpenZeroKnowledgeDaemonService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessdaemon_6jcy_logic": {
+          try {
+            const { OpenHeadlessDaemonService } = await import("../liberty/openheadlessdaemon_6jcy.service.js");
+            const res = await OpenHeadlessDaemonService.execute(args.target || "system");
+            return { output: `### OpenHeadlessDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessDaemon failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlessvault_p5id_logic": {
           try {
             const { OpenServerlessVaultService } = await import("../liberty/openserverlessvault_p5id.service.js");
