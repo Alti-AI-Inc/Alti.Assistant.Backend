@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicengine_oi16_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicEngine) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelstream_uvtp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelStream) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicstream_h4ef_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicStream) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialcluster_e6g5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialCluster) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfederatedledger_xkaa_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedLedger) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondmesh_gggr_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondMesh) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26172,6 +26212,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicengine_oi16_logic": {
+          try {
+            const { OpenHomomorphicEngineService } = await import("../liberty/openhomomorphicengine_oi16.service.js");
+            const res = await OpenHomomorphicEngineService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelstream_uvtp_logic": {
+          try {
+            const { OpenMicroKernelStreamService } = await import("../liberty/openmicro-kernelstream_uvtp.service.js");
+            const res = await OpenMicroKernelStreamService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicstream_h4ef_logic": {
+          try {
+            const { OpenNeuromorphicStreamService } = await import("../liberty/openneuromorphicstream_h4ef.service.js");
+            const res = await OpenNeuromorphicStreamService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialcluster_e6g5_logic": {
+          try {
+            const { OpenFinancialClusterService } = await import("../liberty/openfinancialcluster_e6g5.service.js");
+            const res = await OpenFinancialClusterService.execute(args.target || "system");
+            return { output: `### OpenFinancialCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openfederatedledger_xkaa_logic": {
+          try {
+            const { OpenFederatedLedgerService } = await import("../liberty/openfederatedledger_xkaa.service.js");
+            const res = await OpenFederatedLedgerService.execute(args.target || "system");
+            return { output: `### OpenFederatedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedLedger failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondmesh_gggr_logic": {
           try {
             const { OpenSubMillisecondMeshService } = await import("../liberty/opensub-millisecondmesh_gggr.service.js");
