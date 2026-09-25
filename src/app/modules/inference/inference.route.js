@@ -927,6 +927,14 @@ getQueueMetricsRoutes.forEach((path) => {
   });
 });
 
+// ── Together.ai Account & Identity (Official: https://docs.together.ai/reference/whoami)
+const whoamiRoutes = ['/whoami', '/v1/whoami'];
+whoamiRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleWhoami(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');

@@ -86,6 +86,7 @@ import {
   llmCancelQueueJob,
   llmClearQueue,
   llmGetQueueMetrics,
+  llmWhoami,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -2735,6 +2736,24 @@ export const InferenceGateway = {
       return res.status(500).json({
         error: {
           message: error.message || 'Error retrieving queue metrics.',
+          type: 'api_error',
+        },
+      });
+    }
+  },
+
+  /**
+   * Retrieves API key identity information (GET /whoami & /v1/whoami)
+   * Official Reference: https://docs.together.ai/reference/whoami
+   */
+  async handleWhoami(req, res) {
+    try {
+      const data = await llmWhoami();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error: {
+          message: error.message || 'Error retrieving identity information.',
           type: 'api_error',
         },
       });
