@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencross-clusterswarm_b873_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterSwarm) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openserverlessengine_buhe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessEngine) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogswarm_8wfs_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogSwarm) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedcompiler_nzic_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedCompiler) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicnet_donk_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNet) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-knowledgeswarm_a59q_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeSwarm) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28452,6 +28492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencross-clusterswarm_b873_logic": {
+          try {
+            const { OpenCrossClusterSwarmService } = await import("../liberty/opencross-clusterswarm_b873.service.js");
+            const res = await OpenCrossClusterSwarmService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openserverlessengine_buhe_logic": {
+          try {
+            const { OpenServerlessEngineService } = await import("../liberty/openserverlessengine_buhe.service.js");
+            const res = await OpenServerlessEngineService.execute(args.target || "system");
+            return { output: `### OpenServerlessEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogswarm_8wfs_logic": {
+          try {
+            const { OpenLogSwarmService } = await import("../liberty/openlogswarm_8wfs.service.js");
+            const res = await OpenLogSwarmService.execute(args.target || "system");
+            return { output: `### OpenLogSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedcompiler_nzic_logic": {
+          try {
+            const { OpenDecentralizedCompilerService } = await import("../liberty/opendecentralizedcompiler_nzic.service.js");
+            const res = await OpenDecentralizedCompilerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicnet_donk_logic": {
+          try {
+            const { OpenHomomorphicNetService } = await import("../liberty/openhomomorphicnet_donk.service.js");
+            const res = await OpenHomomorphicNetService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicNet failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-knowledgeswarm_a59q_logic": {
           try {
             const { OpenZeroKnowledgeSwarmService } = await import("../liberty/openzero-knowledgeswarm_a59q.service.js");
