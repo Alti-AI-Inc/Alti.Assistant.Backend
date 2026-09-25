@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "validate_data_schema",
+      description: "Use the Aphura Schema Validation Engine (Zod) to validate any payload against a TypeScript-first schema — ensuring type safety across web, mobile, desktop, and API at both compile-time and runtime.",
+      parameters: { type: "object", properties: { schemaName: { type: "string" }, payload: { type: "string" } }, required: ["schemaName", "payload"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "configure_cross_platform_cache",
+      description: "Use the Aphura Async State Engine (TanStack Query) to configure stale-while-revalidate caching, optimistic mutations, infinite scroll, and offline sync across the React website, React Native mobile app, and Tauri desktop app.",
+      parameters: { type: "object", properties: { staleTime: { type: "string" }, cacheTime: { type: "string" } }, required: ["staleTime"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "build_native_mobile_app",
+      description: "Use the Aphura Mobile Framework (Expo) to build production iOS and Android apps with OTA updates, push notifications, biometrics, camera, and secure storage — all from JavaScript without writing Swift or Kotlin.",
+      parameters: { type: "object", properties: { platform: { type: "string" } }, required: ["platform"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_realtime_channel",
+      description: "Use the Aphura Real-Time Engine (Socket.IO) to create WebSocket namespaces for token streaming, instant notifications, typing indicators, presence detection, and binary file transfer across web, mobile, and desktop.",
+      parameters: { type: "object", properties: { namespacePath: { type: "string" } }, required: ["namespacePath"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "load_translations",
+      description: "Use the Aphura Internationalization Engine (i18next) to load translations for 70+ languages with pluralization, RTL support, and dynamic lazy loading — unified across all platforms.",
+      parameters: { type: "object", properties: { language: { type: "string" }, namespace: { type: "string" } }, required: ["language", "namespace"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "store_object_sovereign",
       description: "Use the Aphura Sovereign Object Storage (MinIO) to store files, images, PDFs, datasets, and model checkpoints in an S3-compatible bucket that runs 100% on Liberty Center One. Zero AWS dependency.",
       parameters: { type: "object", properties: { bucketName: { type: "string" }, objectKey: { type: "string" } }, required: ["bucketName", "objectKey"] }
@@ -8759,7 +8799,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "store_object_sovereign": {
+        case "validate_data_schema": {
+          try {
+            const { ZodService } = await import("../api/zod.service.js");
+            const res = await ZodService.validatePayload(args.schemaName, args.payload);
+            return { output: "### Schema Validation\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Validation failed: " + err.message };
+          }
+        }
+        case "configure_cross_platform_cache": {
+          try {
+            const { TanStackService } = await import("../api/tanstack.service.js");
+            const res = await TanStackService.configureQueryClient({ staleTime: args.staleTime, cacheTime: args.cacheTime });
+            return { output: "### Cross-Platform Cache Configured\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Cache config failed: " + err.message };
+          }
+        }
+        case "build_native_mobile_app": {
+          try {
+            const { ExpoService } = await import("../mobile/expo.service.js");
+            const res = await ExpoService.buildMobileApp(args.platform, {});
+            return { output: "### Mobile App Built\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Build failed: " + err.message };
+          }
+        }
+        case "create_realtime_channel": {
+          try {
+            const { SocketIOService } = await import("../comms/socketio.service.js");
+            const res = await SocketIOService.createNamespace(args.namespacePath);
+            return { output: "### Real-Time Channel Created\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Socket creation failed: " + err.message };
+          }
+        }
+        case "load_translations": {
+          try {
+            const { I18nextService } = await import("../ui/i18next.service.js");
+            const res = await I18nextService.loadTranslations(args.language, args.namespace);
+            return { output: "### Translations Loaded\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Translation load failed: " + err.message };
+          }
+        }        case "store_object_sovereign": {
           try {
             const { MinIOService } = await import("../data/minio.service.js");
             const res = await MinIOService.putObject(args.bucketName, args.objectKey, 0);
