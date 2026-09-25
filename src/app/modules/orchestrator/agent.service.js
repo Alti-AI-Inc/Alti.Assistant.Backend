@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendeepfabric_izu0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepFabric) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaoscluster_kkf4_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosCluster) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnexus_xsih_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNexus) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedmatrix_x03l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedMatrix) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticvortex_rmj0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticVortex) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentnet_7r8h_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentNet) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25012,6 +25052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendeepfabric_izu0_logic": {
+          try {
+            const { OpenDeepFabricService } = await import("../liberty/opendeepfabric_izu0.service.js");
+            const res = await OpenDeepFabricService.execute(args.target || "system");
+            return { output: `### OpenDeepFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaoscluster_kkf4_logic": {
+          try {
+            const { OpenChaosClusterService } = await import("../liberty/openchaoscluster_kkf4.service.js");
+            const res = await OpenChaosClusterService.execute(args.target || "system");
+            return { output: `### OpenChaosCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnexus_xsih_logic": {
+          try {
+            const { OpenGraphNexusService } = await import("../liberty/opengraphnexus_xsih.service.js");
+            const res = await OpenGraphNexusService.execute(args.target || "system");
+            return { output: `### OpenGraphNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedmatrix_x03l_logic": {
+          try {
+            const { OpenDistributedMatrixService } = await import("../liberty/opendistributedmatrix_x03l.service.js");
+            const res = await OpenDistributedMatrixService.execute(args.target || "system");
+            return { output: `### OpenDistributedMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticvortex_rmj0_logic": {
+          try {
+            const { OpenStaticVortexService } = await import("../liberty/openstaticvortex_rmj0.service.js");
+            const res = await OpenStaticVortexService.execute(args.target || "system");
+            return { output: `### OpenStaticVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticVortex failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentnet_7r8h_logic": {
           try {
             const { OpenPersistentNetService } = await import("../liberty/openpersistentnet_7r8h.service.js");
