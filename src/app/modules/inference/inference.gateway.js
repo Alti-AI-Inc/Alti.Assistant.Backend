@@ -58,6 +58,12 @@ import {
   llmGetClusterStorage,
   llmUpdateClusterStorage,
   llmDeleteClusterStorage,
+  llmCreateRemediation,
+  llmListRemediations,
+  llmGetRemediation,
+  llmApproveRemediation,
+  llmCancelRemediation,
+  llmRejectRemediation,
 } from '../../services/llm.client.js';
 
 // The full Together AI Serverless Library available to Aphura
@@ -1983,6 +1989,157 @@ export const InferenceGateway = {
     }
     try {
       const data = await llmDeleteClusterStorage(volumeId);
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Creates instance remediation (POST .../remediations & aliases)
+   * Official Reference: https://docs.together.ai/reference/remediation-create
+   */
+  async handleCreateRemediation(req, res) {
+    const instanceId = req.params?.instance_id || req.body?.instance_id;
+    const clusterId = req.params?.cluster_id || req.body?.cluster_id;
+    try {
+      const data = await llmCreateRemediation(instanceId, {
+        cluster_id: clusterId,
+        remediation_id: req.query?.remediation_id,
+        ...req.body,
+      });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Lists instance remediations (GET .../remediations & aliases)
+   * Official Reference: https://docs.together.ai/reference/remediation-list
+   */
+  async handleListRemediations(req, res) {
+    const instanceId = req.params?.instance_id || req.query?.instance_id;
+    const clusterId = req.params?.cluster_id || req.query?.cluster_id;
+    try {
+      const data = await llmListRemediations(instanceId, {
+        cluster_id: clusterId,
+        ...req.query,
+      });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Retrieves remediation details (GET .../remediations/:id & aliases)
+   * Official Reference: https://docs.together.ai/reference/remediation-get
+   */
+  async handleGetRemediation(req, res) {
+    const remediationId = req.params?.remediation_id || req.params?.id;
+    const instanceId = req.params?.instance_id || req.query?.instance_id;
+    const clusterId = req.params?.cluster_id || req.query?.cluster_id;
+    if (!remediationId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'remediation_id'.",
+          type: 'invalid_request_error',
+          param: 'remediation_id',
+        },
+      });
+    }
+    try {
+      const data = await llmGetRemediation(remediationId, {
+        cluster_id: clusterId,
+        instance_id: instanceId,
+      });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Approves pending remediation (POST .../remediations/:id/approve & aliases)
+   * Official Reference: https://docs.together.ai/reference/remediation-approve
+   */
+  async handleApproveRemediation(req, res) {
+    const remediationId = req.params?.remediation_id || req.params?.id;
+    const instanceId = req.params?.instance_id || req.body?.instance_id;
+    const clusterId = req.params?.cluster_id || req.body?.cluster_id;
+    if (!remediationId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'remediation_id'.",
+          type: 'invalid_request_error',
+          param: 'remediation_id',
+        },
+      });
+    }
+    try {
+      const data = await llmApproveRemediation(remediationId, {
+        cluster_id: clusterId,
+        instance_id: instanceId,
+        ...req.body,
+      });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Cancels remediation (POST .../remediations/:id/cancel & aliases)
+   * Official Reference: https://docs.together.ai/reference/remediation-cancel
+   */
+  async handleCancelRemediation(req, res) {
+    const remediationId = req.params?.remediation_id || req.params?.id;
+    const instanceId = req.params?.instance_id || req.body?.instance_id;
+    const clusterId = req.params?.cluster_id || req.body?.cluster_id;
+    if (!remediationId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'remediation_id'.",
+          type: 'invalid_request_error',
+          param: 'remediation_id',
+        },
+      });
+    }
+    try {
+      const data = await llmCancelRemediation(remediationId, {
+        cluster_id: clusterId,
+        instance_id: instanceId,
+      });
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Rejects remediation (POST .../remediations/:id/reject & aliases)
+   * Official Reference: https://docs.together.ai/reference/remediation-reject
+   */
+  async handleRejectRemediation(req, res) {
+    const remediationId = req.params?.remediation_id || req.params?.id;
+    const instanceId = req.params?.instance_id || req.body?.instance_id;
+    const clusterId = req.params?.cluster_id || req.body?.cluster_id;
+    if (!remediationId) {
+      return res.status(400).json({
+        error: {
+          message: "Missing required parameter 'remediation_id'.",
+          type: 'invalid_request_error',
+          param: 'remediation_id',
+        },
+      });
+    }
+    try {
+      const data = await llmRejectRemediation(remediationId, {
+        cluster_id: clusterId,
+        instance_id: instanceId,
+        ...req.body,
+      });
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });

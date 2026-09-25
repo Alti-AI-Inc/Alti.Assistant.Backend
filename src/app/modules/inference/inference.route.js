@@ -638,6 +638,97 @@ deleteClusterRoutes.forEach((path) => {
   });
 });
 
+// ── Cluster Remediations (Official: https://docs.together.ai/reference/remediation)
+// 1. Create remediation (POST)
+const createRemediationRoutes = [
+  '/compute/clusters/:cluster_id/instances/:instance_id/remediations',
+  '/v1/compute/clusters/:cluster_id/instances/:instance_id/remediations',
+  '/clusters/:cluster_id/instances/:instance_id/remediations',
+  '/v1/clusters/:cluster_id/instances/:instance_id/remediations',
+  '/remediations',
+  '/v1/remediations',
+];
+createRemediationRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleCreateRemediation(req, res);
+  });
+});
+
+// 2. List remediations (GET)
+const listRemediationRoutes = [
+  '/compute/clusters/:cluster_id/instances/:instance_id/remediations',
+  '/v1/compute/clusters/:cluster_id/instances/:instance_id/remediations',
+  '/clusters/:cluster_id/instances/:instance_id/remediations',
+  '/v1/clusters/:cluster_id/instances/:instance_id/remediations',
+  '/remediations',
+  '/v1/remediations',
+];
+listRemediationRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleListRemediations(req, res);
+  });
+});
+
+// 3. Approve remediation (POST .../approve)
+const approveRemediationRoutes = [
+  '/compute/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/approve',
+  '/v1/compute/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/approve',
+  '/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/approve',
+  '/v1/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/approve',
+  '/remediations/:id/approve',
+  '/v1/remediations/:id/approve',
+];
+approveRemediationRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleApproveRemediation(req, res);
+  });
+});
+
+// 4. Cancel remediation (POST .../cancel)
+const cancelRemediationRoutes = [
+  '/compute/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/cancel',
+  '/v1/compute/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/cancel',
+  '/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/cancel',
+  '/v1/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/cancel',
+  '/remediations/:id/cancel',
+  '/v1/remediations/:id/cancel',
+];
+cancelRemediationRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleCancelRemediation(req, res);
+  });
+});
+
+// 5. Reject remediation (POST .../reject)
+const rejectRemediationRoutes = [
+  '/compute/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/reject',
+  '/v1/compute/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/reject',
+  '/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/reject',
+  '/v1/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id/reject',
+  '/remediations/:id/reject',
+  '/v1/remediations/:id/reject',
+];
+rejectRemediationRoutes.forEach((path) => {
+  router.post(path, async (req, res) => {
+    await InferenceGateway.handleRejectRemediation(req, res);
+  });
+});
+
+// 6. Get remediation details (GET)
+const getRemediationRoutes = [
+  '/compute/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id',
+  '/v1/compute/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id',
+  '/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id',
+  '/v1/clusters/:cluster_id/instances/:instance_id/remediations/:remediation_id',
+  '/remediations/:id',
+  '/v1/remediations/:id',
+];
+getRemediationRoutes.forEach((path) => {
+  router.get(path, async (req, res) => {
+    await InferenceGateway.handleGetRemediation(req, res);
+  });
+});
+
 // ── Desktop Integration Status ─────────────────────────────────────────────
 router.get('/desktop/status', (req, res) => {
   const isConnected = DesktopGateway.clients.has('admin_user');
