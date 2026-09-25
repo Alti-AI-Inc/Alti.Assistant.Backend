@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openvectorrouter_kqlh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorRouter) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivebroker_ifyj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveBroker) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablerouter_6s4h_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableRouter) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicswarm_kg1g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicSwarm) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyfabric_orty_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyFabric) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openstaticbroker_uaid_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenStaticBroker) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23772,6 +23812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openvectorrouter_kqlh_logic": {
+          try {
+            const { OpenVectorRouterService } = await import("../liberty/openvectorrouter_kqlh.service.js");
+            const res = await OpenVectorRouterService.execute(args.target || "system");
+            return { output: `### OpenVectorRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivebroker_ifyj_logic": {
+          try {
+            const { OpenPredictiveBrokerService } = await import("../liberty/openpredictivebroker_ifyj.service.js");
+            const res = await OpenPredictiveBrokerService.execute(args.target || "system");
+            return { output: `### OpenPredictiveBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablerouter_6s4h_logic": {
+          try {
+            const { OpenImmutableRouterService } = await import("../liberty/openimmutablerouter_6s4h.service.js");
+            const res = await OpenImmutableRouterService.execute(args.target || "system");
+            return { output: `### OpenImmutableRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicswarm_kg1g_logic": {
+          try {
+            const { OpenHomomorphicSwarmService } = await import("../liberty/openhomomorphicswarm_kg1g.service.js");
+            const res = await OpenHomomorphicSwarmService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyfabric_orty_logic": {
+          try {
+            const { OpenMultiPartyFabricService } = await import("../liberty/openmulti-partyfabric_orty.service.js");
+            const res = await OpenMultiPartyFabricService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openstaticbroker_uaid_logic": {
           try {
             const { OpenStaticBrokerService } = await import("../liberty/openstaticbroker_uaid.service.js");
