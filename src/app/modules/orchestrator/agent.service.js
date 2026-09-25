@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openebpfrouter_nu4l_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpeneBPFRouter) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeeplayer_3342_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepLayer) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendeepmesh_1720_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDeepMesh) to Autonomously deploy limitless Deep Neural Compilers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedgrid_9u8i_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGrid) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogcluster_iuys_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogCluster) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openplanetarymatrix_0rqa_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryMatrix) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23372,6 +23412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openebpfrouter_nu4l_logic": {
+          try {
+            const { OpeneBPFRouterService } = await import("../liberty/openebpfrouter_nu4l.service.js");
+            const res = await OpeneBPFRouterService.execute(args.target || "system");
+            return { output: `### OpeneBPFRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpeneBPFRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeeplayer_3342_logic": {
+          try {
+            const { OpenDeepLayerService } = await import("../liberty/opendeeplayer_3342.service.js");
+            const res = await OpenDeepLayerService.execute(args.target || "system");
+            return { output: `### OpenDeepLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendeepmesh_1720_logic": {
+          try {
+            const { OpenDeepMeshService } = await import("../liberty/opendeepmesh_1720.service.js");
+            const res = await OpenDeepMeshService.execute(args.target || "system");
+            return { output: `### OpenDeepMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDeepMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedgrid_9u8i_logic": {
+          try {
+            const { OpenDecentralizedGridService } = await import("../liberty/opendecentralizedgrid_9u8i.service.js");
+            const res = await OpenDecentralizedGridService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogcluster_iuys_logic": {
+          try {
+            const { OpenLogClusterService } = await import("../liberty/openlogcluster_iuys.service.js");
+            const res = await OpenLogClusterService.execute(args.target || "system");
+            return { output: `### OpenLogCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogCluster failed: ${err.message}` };
+          }
+        }
         case "execute_openplanetarymatrix_0rqa_logic": {
           try {
             const { OpenPlanetaryMatrixService } = await import("../liberty/openplanetarymatrix_0rqa.service.js");
