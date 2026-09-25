@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriescore_lomd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesCore) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlognexus_ofqu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogNexus) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterswarm_46c5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterSwarm) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogcompiler_fjmx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogCompiler) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogoracle_vgy9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogOracle) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openserverlesschain_d07s_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenServerlessChain) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23012,6 +23052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriescore_lomd_logic": {
+          try {
+            const { OpenTimeSeriesCoreService } = await import("../liberty/opentime-seriescore_lomd.service.js");
+            const res = await OpenTimeSeriesCoreService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesCore failed: ${err.message}` };
+          }
+        }
+        case "execute_openlognexus_ofqu_logic": {
+          try {
+            const { OpenLogNexusService } = await import("../liberty/openlognexus_ofqu.service.js");
+            const res = await OpenLogNexusService.execute(args.target || "system");
+            return { output: `### OpenLogNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterswarm_46c5_logic": {
+          try {
+            const { OpenCrossClusterSwarmService } = await import("../liberty/opencross-clusterswarm_46c5.service.js");
+            const res = await OpenCrossClusterSwarmService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogcompiler_fjmx_logic": {
+          try {
+            const { OpenLogCompilerService } = await import("../liberty/openlogcompiler_fjmx.service.js");
+            const res = await OpenLogCompilerService.execute(args.target || "system");
+            return { output: `### OpenLogCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogoracle_vgy9_logic": {
+          try {
+            const { OpenLogOracleService } = await import("../liberty/openlogoracle_vgy9.service.js");
+            const res = await OpenLogOracleService.execute(args.target || "system");
+            return { output: `### OpenLogOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openserverlesschain_d07s_logic": {
           try {
             const { OpenServerlessChainService } = await import("../liberty/openserverlesschain_d07s.service.js");
