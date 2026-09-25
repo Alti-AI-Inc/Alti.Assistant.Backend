@@ -5215,3 +5215,24 @@ export const runPaperclipWorkflow = async (workflowName, payload) => {
   const { PaperclipService } = await import('./paperclip.service.js');
   return await PaperclipService.dispatchWorkflow(workflowName, payload);
 };
+
+// Appended: Advanced Backend Agents
+export const verifyShadowCompilation = async (codeSnippet, filePath) => {
+  const { ShadowCompilerAgent } = await import('../ai/agents/shadow_compiler.agent.js');
+  return await ShadowCompilerAgent.predictAndVerify(codeSnippet, filePath);
+};
+
+export const traverseASTGraph = async (query, workspaceRoot) => {
+  const { ASTGraphAgent } = await import('../ai/agents/ast_graph.agent.js');
+  return await ASTGraphAgent.traverseCodebase(query, workspaceRoot);
+};
+
+export const runDebateSwarm = async (prompt) => {
+  const { DebateSwarmAgent } = await import('../ai/agents/debate_swarm.agent.js');
+  return await DebateSwarmAgent.executeDebate(prompt);
+};
+
+export const runCodeInterpreter = async (datasetUrl, instructions) => {
+  const { CodeInterpreterAgent } = await import('../ai/agents/code_interpreter.agent.js');
+  return await CodeInterpreterAgent.executePythonDataAnalysis(datasetUrl, instructions);
+};
