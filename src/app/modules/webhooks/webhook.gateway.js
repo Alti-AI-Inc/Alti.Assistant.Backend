@@ -4,6 +4,7 @@ import { GitHubWebhookService } from './github.webhook.js';
 import { StripeWebhookService } from './stripe.webhook.js';
 import { TwilioWebhookService } from './twilio.webhook.js';
 import { VoicePlatformWebhookService } from './voice_platform.webhook.js';
+import { VoicePlatformPayloadSchema } from '../../shared/validators/voice_payload.schema.js';
 
 export const WebhookGateway = {
   verifySignature(req, secret, signatureHeader) {
@@ -29,7 +30,12 @@ export const WebhookGateway = {
         res.setHeader("Content-Type", "text/xml");
         return res.status(200).send(xmlResponse);
       } else if (source === "voice_platform") {
-        const result = await VoicePlatformWebhookService.handleVoiceIntent(req.body);
+        const validationResult = VoicePlatformPayloadSchema.safeParse(req.body);
+        if (!validationResult.success) {
+          logger.warn(`[Webhook Gateway] Voice payload schema validation failed.`);
+          return res.status(400).json({ error: "Invalid Payload", details: validationResult.error.errors });
+        }
+        const result = await VoicePlatformWebhookService.handleVoiceIntent(validationResult.data);
         return res.status(200).json(result);
         const result = await StripeWebhookService.handlePaymentIntent(req.body);
         return res.status(200).json(result);
