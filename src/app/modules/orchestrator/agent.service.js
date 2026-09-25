@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-knowledgechain_c8t1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeChain) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivevault_wn65_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveVault) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelledger_23pe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelLedger) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicledger_0urd_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicLedger) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessledger_z3u7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessLedger) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openchaosmatrix_qeby_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenChaosMatrix) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -25532,6 +25572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-knowledgechain_c8t1_logic": {
+          try {
+            const { OpenZeroKnowledgeChainService } = await import("../liberty/openzero-knowledgechain_c8t1.service.js");
+            const res = await OpenZeroKnowledgeChainService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivevault_wn65_logic": {
+          try {
+            const { OpenPredictiveVaultService } = await import("../liberty/openpredictivevault_wn65.service.js");
+            const res = await OpenPredictiveVaultService.execute(args.target || "system");
+            return { output: `### OpenPredictiveVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelledger_23pe_logic": {
+          try {
+            const { OpenMicroKernelLedgerService } = await import("../liberty/openmicro-kernelledger_23pe.service.js");
+            const res = await OpenMicroKernelLedgerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicledger_0urd_logic": {
+          try {
+            const { OpenNeuromorphicLedgerService } = await import("../liberty/openneuromorphicledger_0urd.service.js");
+            const res = await OpenNeuromorphicLedgerService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessledger_z3u7_logic": {
+          try {
+            const { OpenHeadlessLedgerService } = await import("../liberty/openheadlessledger_z3u7.service.js");
+            const res = await OpenHeadlessLedgerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessLedger failed: ${err.message}` };
+          }
+        }
         case "execute_openchaosmatrix_qeby_logic": {
           try {
             const { OpenChaosMatrixService } = await import("../liberty/openchaosmatrix_qeby.service.js");
