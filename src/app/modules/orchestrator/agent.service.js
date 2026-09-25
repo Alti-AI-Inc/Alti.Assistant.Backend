@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendatavortex_h5pe_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataVortex) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancednet_n04x_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedNet) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativevault_whwf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVault) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphoracle_850c_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphOracle) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictiveledger_4sew_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveLedger) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustengine_erjb_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustEngine) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24132,6 +24172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendatavortex_h5pe_logic": {
+          try {
+            const { OpenDataVortexService } = await import("../liberty/opendatavortex_h5pe.service.js");
+            const res = await OpenDataVortexService.execute(args.target || "system");
+            return { output: `### OpenDataVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancednet_n04x_logic": {
+          try {
+            const { OpenAdvancedNetService } = await import("../liberty/openadvancednet_n04x.service.js");
+            const res = await OpenAdvancedNetService.execute(args.target || "system");
+            return { output: `### OpenAdvancedNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativevault_whwf_logic": {
+          try {
+            const { OpenCloudNativeVaultService } = await import("../liberty/opencloud-nativevault_whwf.service.js");
+            const res = await OpenCloudNativeVaultService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeVault failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphoracle_850c_logic": {
+          try {
+            const { OpenGraphOracleService } = await import("../liberty/opengraphoracle_850c.service.js");
+            const res = await OpenGraphOracleService.execute(args.target || "system");
+            return { output: `### OpenGraphOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictiveledger_4sew_logic": {
+          try {
+            const { OpenPredictiveLedgerService } = await import("../liberty/openpredictiveledger_4sew.service.js");
+            const res = await OpenPredictiveLedgerService.execute(args.target || "system");
+            return { output: `### OpenPredictiveLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveLedger failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustengine_erjb_logic": {
           try {
             const { OpenZeroTrustEngineService } = await import("../liberty/openzero-trustengine_erjb.service.js");
