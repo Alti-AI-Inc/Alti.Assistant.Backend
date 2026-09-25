@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpulayer_6m03_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPULayer) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedchain_5e1r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedChain) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustvault_lnyn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustVault) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarystream_f5u0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryStream) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencygraph_njm2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyGraph) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentledger_p6hv_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentLedger) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29812,6 +29852,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpulayer_6m03_logic": {
+          try {
+            const { OpenGPULayerService } = await import("../liberty/opengpulayer_6m03.service.js");
+            const res = await OpenGPULayerService.execute(args.target || "system");
+            return { output: `### OpenGPULayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPULayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedchain_5e1r_logic": {
+          try {
+            const { OpenAutomatedChainService } = await import("../liberty/openautomatedchain_5e1r.service.js");
+            const res = await OpenAutomatedChainService.execute(args.target || "system");
+            return { output: `### OpenAutomatedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustvault_lnyn_logic": {
+          try {
+            const { OpenZeroTrustVaultService } = await import("../liberty/openzero-trustvault_lnyn.service.js");
+            const res = await OpenZeroTrustVaultService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarystream_f5u0_logic": {
+          try {
+            const { OpenPlanetaryStreamService } = await import("../liberty/openplanetarystream_f5u0.service.js");
+            const res = await OpenPlanetaryStreamService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencygraph_njm2_logic": {
+          try {
+            const { OpenHighFrequencyGraphService } = await import("../liberty/openhigh-frequencygraph_njm2.service.js");
+            const res = await OpenHighFrequencyGraphService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentledger_p6hv_logic": {
           try {
             const { OpenPersistentLedgerService } = await import("../liberty/openpersistentledger_p6hv.service.js");
