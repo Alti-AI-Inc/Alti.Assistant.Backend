@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablefabric_idbr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableFabric) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizednode_6hwm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedNode) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicrouter_6t9r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicRouter) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedvortex_hfg2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedVortex) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaosfabric_t1l7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosFabric) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisegrid_o1e5_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseGrid) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24652,6 +24692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablefabric_idbr_logic": {
+          try {
+            const { OpenImmutableFabricService } = await import("../liberty/openimmutablefabric_idbr.service.js");
+            const res = await OpenImmutableFabricService.execute(args.target || "system");
+            return { output: `### OpenImmutableFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizednode_6hwm_logic": {
+          try {
+            const { OpenDecentralizedNodeService } = await import("../liberty/opendecentralizednode_6hwm.service.js");
+            const res = await OpenDecentralizedNodeService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicrouter_6t9r_logic": {
+          try {
+            const { OpenNeuromorphicRouterService } = await import("../liberty/openneuromorphicrouter_6t9r.service.js");
+            const res = await OpenNeuromorphicRouterService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedvortex_hfg2_logic": {
+          try {
+            const { OpenAutomatedVortexService } = await import("../liberty/openautomatedvortex_hfg2.service.js");
+            const res = await OpenAutomatedVortexService.execute(args.target || "system");
+            return { output: `### OpenAutomatedVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaosfabric_t1l7_logic": {
+          try {
+            const { OpenChaosFabricService } = await import("../liberty/openchaosfabric_t1l7.service.js");
+            const res = await OpenChaosFabricService.execute(args.target || "system");
+            return { output: `### OpenChaosFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisegrid_o1e5_logic": {
           try {
             const { OpenEnterpriseGridService } = await import("../liberty/openenterprisegrid_o1e5.service.js");
