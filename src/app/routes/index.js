@@ -378,3 +378,5 @@ router.get('/api-map', (req, res) => {
 
 export default router;
 
+import { UnattendedCronService } from './modules/devops/cron.service.js';
+UnattendedCronService.startDaemon();
