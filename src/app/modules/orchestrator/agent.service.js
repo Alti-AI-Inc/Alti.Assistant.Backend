@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openabstractoracle_q7le_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractOracle) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriespipeline_73ed_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesPipeline) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphfabric_13vy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphFabric) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencygrid_b9of_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyGrid) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernellayer_ws67_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelLayer) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opendecentralizedring_qx8g_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRing) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26372,6 +26412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openabstractoracle_q7le_logic": {
+          try {
+            const { OpenAbstractOracleService } = await import("../liberty/openabstractoracle_q7le.service.js");
+            const res = await OpenAbstractOracleService.execute(args.target || "system");
+            return { output: `### OpenAbstractOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriespipeline_73ed_logic": {
+          try {
+            const { OpenTimeSeriesPipelineService } = await import("../liberty/opentime-seriespipeline_73ed.service.js");
+            const res = await OpenTimeSeriesPipelineService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphfabric_13vy_logic": {
+          try {
+            const { OpenGraphFabricService } = await import("../liberty/opengraphfabric_13vy.service.js");
+            const res = await OpenGraphFabricService.execute(args.target || "system");
+            return { output: `### OpenGraphFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencygrid_b9of_logic": {
+          try {
+            const { OpenHighFrequencyGridService } = await import("../liberty/openhigh-frequencygrid_b9of.service.js");
+            const res = await OpenHighFrequencyGridService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernellayer_ws67_logic": {
+          try {
+            const { OpenMicroKernelLayerService } = await import("../liberty/openmicro-kernellayer_ws67.service.js");
+            const res = await OpenMicroKernelLayerService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelLayer failed: ${err.message}` };
+          }
+        }
         case "execute_opendecentralizedring_qx8g_logic": {
           try {
             const { OpenDecentralizedRingService } = await import("../liberty/opendecentralizedring_qx8g.service.js");
