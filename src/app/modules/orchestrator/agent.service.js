@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openimmutablelayer_h927_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableLayer) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencyring_92l2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyRing) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendgraph_w4a5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendGraph) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgenode_balx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeNode) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedengine_6vua_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedEngine) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openvectornet_f79z_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenVectorNet) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -26452,6 +26492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openimmutablelayer_h927_logic": {
+          try {
+            const { OpenImmutableLayerService } = await import("../liberty/openimmutablelayer_h927.service.js");
+            const res = await OpenImmutableLayerService.execute(args.target || "system");
+            return { output: `### OpenImmutableLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencyring_92l2_logic": {
+          try {
+            const { OpenHighFrequencyRingService } = await import("../liberty/openhigh-frequencyring_92l2.service.js");
+            const res = await OpenHighFrequencyRingService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendgraph_w4a5_logic": {
+          try {
+            const { OpenMicroFrontendGraphService } = await import("../liberty/openmicro-frontendgraph_w4a5.service.js");
+            const res = await OpenMicroFrontendGraphService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgenode_balx_logic": {
+          try {
+            const { OpenZeroKnowledgeNodeService } = await import("../liberty/openzero-knowledgenode_balx.service.js");
+            const res = await OpenZeroKnowledgeNodeService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedengine_6vua_logic": {
+          try {
+            const { OpenDecentralizedEngineService } = await import("../liberty/opendecentralizedengine_6vua.service.js");
+            const res = await OpenDecentralizedEngineService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedEngine failed: ${err.message}` };
+          }
+        }
         case "execute_openvectornet_f79z_logic": {
           try {
             const { OpenVectorNetService } = await import("../liberty/openvectornet_f79z.service.js");
