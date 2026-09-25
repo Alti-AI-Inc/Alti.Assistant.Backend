@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicpipeline_cvwb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicPipeline) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumnode_hhhr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumNode) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphcontroller_rh8r_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphController) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeoracle_tmt2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeOracle) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialmesh_17fg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialMesh) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openzero-trustcompiler_1gqv_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustCompiler) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -28532,6 +28572,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicpipeline_cvwb_logic": {
+          try {
+            const { OpenHomomorphicPipelineService } = await import("../liberty/openhomomorphicpipeline_cvwb.service.js");
+            const res = await OpenHomomorphicPipelineService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumnode_hhhr_logic": {
+          try {
+            const { OpenQuantumNodeService } = await import("../liberty/openquantumnode_hhhr.service.js");
+            const res = await OpenQuantumNodeService.execute(args.target || "system");
+            return { output: `### OpenQuantumNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumNode failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphcontroller_rh8r_logic": {
+          try {
+            const { OpenGraphControllerService } = await import("../liberty/opengraphcontroller_rh8r.service.js");
+            const res = await OpenGraphControllerService.execute(args.target || "system");
+            return { output: `### OpenGraphController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphController failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeoracle_tmt2_logic": {
+          try {
+            const { OpenEdgeOracleService } = await import("../liberty/openedgeoracle_tmt2.service.js");
+            const res = await OpenEdgeOracleService.execute(args.target || "system");
+            return { output: `### OpenEdgeOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeOracle failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialmesh_17fg_logic": {
+          try {
+            const { OpenFinancialMeshService } = await import("../liberty/openfinancialmesh_17fg.service.js");
+            const res = await OpenFinancialMeshService.execute(args.target || "system");
+            return { output: `### OpenFinancialMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openzero-trustcompiler_1gqv_logic": {
           try {
             const { OpenZeroTrustCompilerService } = await import("../liberty/openzero-trustcompiler_1gqv.service.js");
