@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "provision_enterprise_sso", description: "Use the Aphura Identity Engine (Keycloak, Apache 2.0) to configure SAML 2.0, OpenID Connect, and LDAP/Active Directory synchronization. Replaces Microsoft Entra ID and Okta.", parameters: { type: "object", properties: { tenantId: { type: "string" }, idpType: { type: "string" } }, required: ["tenantId", "idpType"] } } },
+  { type: "function", function: { name: "configure_api_gateway", description: "Use the Aphura API Gateway (Kong, Apache 2.0) to apply extreme-scale rate limiting, bot detection, and caching natively in C/Lua. Replaces IBM API Connect.", parameters: { type: "object", properties: { apiRoute: { type: "string" }, policyOptions: { type: "string" } }, required: ["apiRoute"] } } },
+  { type: "function", function: { name: "create_kafka_stream", description: "Use the Aphura Distributed Event Streaming Engine (Apache Kafka, Apache 2.0) to provision high-throughput, fault-tolerant message streams. Replaces IBM MQ.", parameters: { type: "object", properties: { topicName: { type: "string" }, partitions: { type: "number" } }, required: ["topicName"] } } },
+  { type: "function", function: { name: "query_realtime_olap", description: "Use the Aphura Real-Time OLAP Engine (Apache Pinot, Apache 2.0) to execute multi-dimensional analytics queries across millions of rows in milliseconds for user-facing dashboards. Replaces Oracle Exadata.", parameters: { type: "object", properties: { sqlQuery: { type: "string" } }, required: ["sqlQuery"] } } },
+  { type: "function", function: { name: "record_immutable_audit", description: "Use the Aphura Immutable Ledger Engine (Hyperledger Fabric, Apache 2.0) to permanently record critical events to a cryptographically secure permissioned blockchain. Replaces IBM Blockchain.", parameters: { type: "object", properties: { action: { type: "string" }, actorId: { type: "string" }, payload: { type: "string" } }, required: ["action", "actorId"] } } },
   { type: "function", function: { name: "query_sovereign_erp", description: "Use the Aphura ERP Engine (Apache OFBiz, Apache 2.0) to query financials, create purchase orders, manage HR, inventory, and CRM — a complete sovereign ERP that replaces Oracle ERP, SAP, and NetSuite at zero license cost.", parameters: { type: "object", properties: { reportType: { type: "string" }, dateRange: { type: "string" } }, required: ["reportType"] } } },
   { type: "function", function: { name: "generate_internal_tool", description: "Use the Aphura Internal Tool Builder (Appsmith, 34k stars, Apache 2.0) to generate admin panels, customer dashboards, approval workflows, and data entry forms from a single prompt. Replaces Microsoft Power Apps and Retool.", parameters: { type: "object", properties: { toolDescription: { type: "string" }, dataSources: { type: "string" } }, required: ["toolDescription"] } } },
   { type: "function", function: { name: "create_enterprise_integration", description: "Use the Aphura Enterprise Integration Engine (Apache Camel, 300+ connectors) to connect any system to any system — SAP, Salesforce, Oracle, JDBC, FTP, SOAP, Kafka. Replaces IBM Integration Bus and MuleSoft.", parameters: { type: "object", properties: { source: { type: "string" }, destination: { type: "string" }, transformations: { type: "string" } }, required: ["source", "destination"] } } },
@@ -8860,6 +8865,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "provision_enterprise_sso": {
+          try {
+            const { KeycloakService } = await import("../enterprise/keycloak.service.js");
+            const res = await KeycloakService.provisionTenantSSO(args.tenantId, args.idpType);
+            return { output: "### Enterprise SSO Provisioned\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "SSO provision failed: " + err.message };
+          }
+        }
+        case "configure_api_gateway": {
+          try {
+            const { KongService } = await import("../enterprise/kong.service.js");
+            const res = await KongService.configureGatewayPolicy(args.apiRoute, { rateLimit: args.policyOptions });
+            return { output: "### API Gateway Configured\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Gateway config failed: " + err.message };
+          }
+        }
+        case "create_kafka_stream": {
+          try {
+            const { KafkaService } = await import("../data/kafka.service.js");
+            const res = await KafkaService.createEventStream(args.topicName, args.partitions);
+            return { output: "### Event Stream Created\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Kafka stream failed: " + err.message };
+          }
+        }
+        case "query_realtime_olap": {
+          try {
+            const { PinotService } = await import("../data/pinot.service.js");
+            const res = await PinotService.executeRealTimeQuery(args.sqlQuery);
+            return { output: "### Real-Time OLAP Query\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "OLAP query failed: " + err.message };
+          }
+        }
+        case "record_immutable_audit": {
+          try {
+            const { HyperledgerService } = await import("../security/hyperledger.service.js");
+            const res = await HyperledgerService.recordAuditTransaction(args.action, args.actorId, args.payload);
+            return { output: "### Immutable Audit Recorded\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Audit recording failed: " + err.message };
+          }
+        }
         case "query_sovereign_erp": {
           try {
             const { OFBizService } = await import("../business/ofbiz.service.js");
