@@ -36,6 +36,11 @@ import { recordToolUsage } from './toolUsage.model.js';
 
 // Define schemas for the LLM
 const tools = [
+  { type: "function", function: { name: "run_autogen_debate", description: "Use the Aphura Multi-Agent Debate Engine (Microsoft AutoGen, 36k stars, MIT) to launch collaborative cross-examining conversations between specialized AI agents. Beats ChatGPT and Claude on planning.", parameters: { type: "object", properties: { taskGoal: { type: "string" }, agentRoles: { type: "string" } }, required: ["taskGoal"] } } },
+  { type: "function", function: { name: "process_image_sharp", description: "Use the Aphura Multimodal Image Engine (Sharp, 28k stars, Apache 2.0) to resize, convert, and optimize images for vision LLMs 5x faster than ImageMagick.", parameters: { type: "object", properties: { inputImagePath: { type: "string" }, targetFormat: { type: "string" } }, required: ["inputImagePath"] } } },
+  { type: "function", function: { name: "evaluate_symbolic_math", description: "Use the Aphura Deterministic Math Engine (Math.js, 14k stars, Apache 2.0) for symbolic algebra, arbitrary-precision arithmetic, and matrix calculation with zero hallucination.", parameters: { type: "object", properties: { expression: { type: "string" } }, required: ["expression"] } } },
+  { type: "function", function: { name: "execute_portable_git", description: "Use the Aphura Universal Git Engine (isomorphic-git, 7.3k stars, MIT) to clone, branch, commit, and push Git repos in pure JavaScript across Web, Mobile, and Desktop without native git binaries.", parameters: { type: "object", properties: { operation: { type: "string" }, repoUrl: { type: "string" } }, required: ["operation"] } } },
+  { type: "function", function: { name: "apply_surgical_diff_patch", description: "Use the Aphura Semantic Patch Engine (Google diff-match-patch, Apache 2.0) to compute character-level diffs and apply fuzzy-matched surgical code patches without overwriting. Beats Cursor.", parameters: { type: "object", properties: { originalText: { type: "string" }, deltaPatch: { type: "string" } }, required: ["originalText", "deltaPatch"] } } },
   { type: "function", function: { name: "autofix_codebase_ruff", description: "Use the Aphura Rust Code Refactoring Engine (Ruff, 36k stars, MIT) to automatically format, lint, and repair codebases in milliseconds with AST safety. Beats Cursor and Copilot.", parameters: { type: "object", properties: { targetPath: { type: "string" } }, required: ["targetPath"] } } },
   { type: "function", function: { name: "route_llm_gateway", description: "Use the Aphura Unified LLM Gateway (LiteLLM, 18k stars, MIT) to route inference requests with automatic fallback, load balancing, and spend caps on Together.ai.", parameters: { type: "object", properties: { tenantId: { type: "string" }, promptContext: { type: "string" } }, required: ["tenantId"] } } },
   { type: "function", function: { name: "run_autonomous_tests", description: "Use the Aphura Multi-Threaded Test Engine (Vitest, 14k stars, MIT) to execute unit and integration test passes in milliseconds, powering self-correcting agent loops.", parameters: { type: "object", properties: { testSuitePath: { type: "string" } }, required: ["testSuitePath"] } } },
@@ -8920,6 +8925,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "run_autogen_debate": {
+          try {
+            const { AutoGenService } = await import("../ai/autogen.service.js");
+            const res = await AutoGenService.runMultiAgentDebate(args.taskGoal, args.agentRoles);
+            return { output: "### AutoGen Multi-Agent Debate\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "AutoGen debate failed: " + err.message };
+          }
+        }
+        case "process_image_sharp": {
+          try {
+            const { SharpService } = await import("../media/sharp.service.js");
+            const res = await SharpService.processMultimodalImage(args.inputImagePath, args.targetFormat, "1920x1080");
+            return { output: "### Sharp Image Optimization\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Image processing failed: " + err.message };
+          }
+        }
+        case "evaluate_symbolic_math": {
+          try {
+            const { MathJSService } = await import("../math/mathjs.service.js");
+            const res = await MathJSService.evaluateSymbolicMath(args.expression, {});
+            return { output: "### Math.js Computation\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Math evaluation failed: " + err.message };
+          }
+        }
+        case "execute_portable_git": {
+          try {
+            const { IsomorphicGitService } = await import("../vcs/isomorphic_git.service.js");
+            const res = await IsomorphicGitService.executeClientGitOperation(args.operation, args.repoUrl, "main");
+            return { output: "### Isomorphic Git Operation\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Git operation failed: " + err.message };
+          }
+        }
+        case "apply_surgical_diff_patch": {
+          try {
+            const { DiffMatchPatchService } = await import("../ide/diff_match_patch.service.js");
+            const res = await DiffMatchPatchService.applySurgicalPatch(args.originalText, args.deltaPatch);
+            return { output: "### Surgical Diff Patch\n\n```text\n" + res.report + "\n```" };
+          } catch (err) {
+            return { output: "Diff patch failed: " + err.message };
+          }
+        }
         case "autofix_codebase_ruff": {
           try {
             const { RuffService } = await import("../ide/ruff.service.js");
