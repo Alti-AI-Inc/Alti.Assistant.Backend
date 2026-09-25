@@ -1,34 +1,4 @@
 node_modules
-npm-debug.log
 .git
-.gitignore
-README.md
 .env
-.DS_Store
-.vscode/
-.idea/
-coverage/
-.nyc_output/
-*.log
-mcp-toolbox/
-
-# Dev/test files excluded from Docker build context
-test/
-scratch/
-docs/
-postman_collections/
-*.zip
-*.tar.gz
-db_data/
-data/
-backend.log
-CHANGELOG.md
-env
-env.yaml
-*.env.*
-.github/
-.gemini/
-
-# Security — never include in Docker build context
-set-all-secrets.ps1
-scripts/
+scratch
