@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openzero-trustnet_cmuu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustNet) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablenet_iha6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableNet) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpuring_4kh9_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPURing) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opentime-seriesdaemon_i1vi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesDaemon) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpgraph_vmap_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPGraph) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfledger_vi9h_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFLedger) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -29092,6 +29132,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openzero-trustnet_cmuu_logic": {
+          try {
+            const { OpenZeroTrustNetService } = await import("../liberty/openzero-trustnet_cmuu.service.js");
+            const res = await OpenZeroTrustNetService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablenet_iha6_logic": {
+          try {
+            const { OpenImmutableNetService } = await import("../liberty/openimmutablenet_iha6.service.js");
+            const res = await OpenImmutableNetService.execute(args.target || "system");
+            return { output: `### OpenImmutableNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpuring_4kh9_logic": {
+          try {
+            const { OpenGPURingService } = await import("../liberty/opengpuring_4kh9.service.js");
+            const res = await OpenGPURingService.execute(args.target || "system");
+            return { output: `### OpenGPURing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPURing failed: ${err.message}` };
+          }
+        }
+        case "execute_opentime-seriesdaemon_i1vi_logic": {
+          try {
+            const { OpenTimeSeriesDaemonService } = await import("../liberty/opentime-seriesdaemon_i1vi.service.js");
+            const res = await OpenTimeSeriesDaemonService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesDaemon Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesDaemon failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpgraph_vmap_logic": {
+          try {
+            const { OpenBGPGraphService } = await import("../liberty/openbgpgraph_vmap.service.js");
+            const res = await OpenBGPGraphService.execute(args.target || "system");
+            return { output: `### OpenBGPGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPGraph failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfledger_vi9h_logic": {
           try {
             const { OpeneBPFLedgerService } = await import("../liberty/openebpfledger_vi9h.service.js");
