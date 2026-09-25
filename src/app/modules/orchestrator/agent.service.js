@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opengpuvortex_j3zc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUVortex) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphnexus_ckut_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphNexus) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openautomatedcompiler_rdk7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedCompiler) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partyvortex_nsdl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyVortex) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalswarm_zzqi_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalSwarm) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfrouter_nu4l_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFRouter) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -23412,6 +23452,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opengpuvortex_j3zc_logic": {
+          try {
+            const { OpenGPUVortexService } = await import("../liberty/opengpuvortex_j3zc.service.js");
+            const res = await OpenGPUVortexService.execute(args.target || "system");
+            return { output: `### OpenGPUVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphnexus_ckut_logic": {
+          try {
+            const { OpenGraphNexusService } = await import("../liberty/opengraphnexus_ckut.service.js");
+            const res = await OpenGraphNexusService.execute(args.target || "system");
+            return { output: `### OpenGraphNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openautomatedcompiler_rdk7_logic": {
+          try {
+            const { OpenAutomatedCompilerService } = await import("../liberty/openautomatedcompiler_rdk7.service.js");
+            const res = await OpenAutomatedCompilerService.execute(args.target || "system");
+            return { output: `### OpenAutomatedCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partyvortex_nsdl_logic": {
+          try {
+            const { OpenMultiPartyVortexService } = await import("../liberty/openmulti-partyvortex_nsdl.service.js");
+            const res = await OpenMultiPartyVortexService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalswarm_zzqi_logic": {
+          try {
+            const { OpenHyperDimensionalSwarmService } = await import("../liberty/openhyper-dimensionalswarm_zzqi.service.js");
+            const res = await OpenHyperDimensionalSwarmService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalSwarm failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfrouter_nu4l_logic": {
           try {
             const { OpeneBPFRouterService } = await import("../liberty/openebpfrouter_nu4l.service.js");
