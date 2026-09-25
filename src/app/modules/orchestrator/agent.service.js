@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openautomatedgrid_kib0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAutomatedGrid) to Autonomously deploy limitless Automated Load Balancing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterfabric_9c34_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterFabric) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustcluster_a2h2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustCluster) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelnet_oiwo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNet) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivematrix_pb5a_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveMatrix) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivesync_19fm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveSync) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24012,6 +24052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openautomatedgrid_kib0_logic": {
+          try {
+            const { OpenAutomatedGridService } = await import("../liberty/openautomatedgrid_kib0.service.js");
+            const res = await OpenAutomatedGridService.execute(args.target || "system");
+            return { output: `### OpenAutomatedGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAutomatedGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterfabric_9c34_logic": {
+          try {
+            const { OpenCrossClusterFabricService } = await import("../liberty/opencross-clusterfabric_9c34.service.js");
+            const res = await OpenCrossClusterFabricService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustcluster_a2h2_logic": {
+          try {
+            const { OpenZeroTrustClusterService } = await import("../liberty/openzero-trustcluster_a2h2.service.js");
+            const res = await OpenZeroTrustClusterService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustCluster Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustCluster failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelnet_oiwo_logic": {
+          try {
+            const { OpenMicroKernelNetService } = await import("../liberty/openmicro-kernelnet_oiwo.service.js");
+            const res = await OpenMicroKernelNetService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivematrix_pb5a_logic": {
+          try {
+            const { OpenPredictiveMatrixService } = await import("../liberty/openpredictivematrix_pb5a.service.js");
+            const res = await OpenPredictiveMatrixService.execute(args.target || "system");
+            return { output: `### OpenPredictiveMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveMatrix failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivesync_19fm_logic": {
           try {
             const { OpenPredictiveSyncService } = await import("../liberty/openpredictivesync_19fm.service.js");
