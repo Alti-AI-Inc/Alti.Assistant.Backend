@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partygraph_tmum_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyGraph) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-frontendpipeline_yumr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-FrontendPipeline) to Autonomously deploy limitless Micro-Frontend Architecture architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialcontroller_o9yl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialController) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogfabric_0fay_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogFabric) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openheadlessbroker_8smj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessBroker) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativenode_rbsm_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNode) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -24732,6 +24772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partygraph_tmum_logic": {
+          try {
+            const { OpenMultiPartyGraphService } = await import("../liberty/openmulti-partygraph_tmum.service.js");
+            const res = await OpenMultiPartyGraphService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-frontendpipeline_yumr_logic": {
+          try {
+            const { OpenMicroFrontendPipelineService } = await import("../liberty/openmicro-frontendpipeline_yumr.service.js");
+            const res = await OpenMicroFrontendPipelineService.execute(args.target || "system");
+            return { output: `### OpenMicro-FrontendPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-FrontendPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialcontroller_o9yl_logic": {
+          try {
+            const { OpenFinancialControllerService } = await import("../liberty/openfinancialcontroller_o9yl.service.js");
+            const res = await OpenFinancialControllerService.execute(args.target || "system");
+            return { output: `### OpenFinancialController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialController failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogfabric_0fay_logic": {
+          try {
+            const { OpenLogFabricService } = await import("../liberty/openlogfabric_0fay.service.js");
+            const res = await OpenLogFabricService.execute(args.target || "system");
+            return { output: `### OpenLogFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_openheadlessbroker_8smj_logic": {
+          try {
+            const { OpenHeadlessBrokerService } = await import("../liberty/openheadlessbroker_8smj.service.js");
+            const res = await OpenHeadlessBrokerService.execute(args.target || "system");
+            return { output: `### OpenHeadlessBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessBroker failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativenode_rbsm_logic": {
           try {
             const { OpenCloudNativeNodeService } = await import("../liberty/opencloud-nativenode_rbsm.service.js");
