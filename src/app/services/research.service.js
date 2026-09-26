@@ -56,7 +56,7 @@ export class AphuraDeepResearchAgent {
           const criticPrompt = `You are a ruthless data critic. Evaluate the following extracted data for the query: "${sq}".
           Extract ONLY verified, high-signal facts. Ignore SEO spam. Generate 2 deeper questions to find missing technical details.
           DATA: ${exaData}\n${compData}
-          RESPOND JSON: {"verified_facts": "...", "missing_knowledge_queries": ["...", "..."]}`;
+          RESPOND JSON: {"verified_facts": "...", "source_urls_used": ["..."], "missing_knowledge_queries": ["...", "..."]}`;
 
           const critic = await TOGETHER.chat.completions.create({
             messages: [{ role: 'system', content: criticPrompt }],
@@ -68,7 +68,7 @@ export class AphuraDeepResearchAgent {
           
           // Store securely in NVMe representation
           const hashKey = Buffer.from(sq).toString('base64').substring(0, 10);
-          nvmeVectorStore.set(hashKey, { query: sq, facts: parsed.verified_facts });
+          nvmeVectorStore.set(hashKey, { query: sq, facts: parsed.verified_facts, sources: parsed.source_urls_used || [] });
 
           return parsed.missing_knowledge_queries || [];
 
@@ -97,7 +97,8 @@ export class AphuraDeepResearchAgent {
     CRITICAL INSTRUCTIONS:
     - Write with unparalleled academic and technical rigor.
     - Structure with an Executive Summary, Deep Technical Dive, and Strategic Conclusions.
-    - Cite data inherently based on the provided vectors.
+    - RIGOROUS CITATIONS: You MUST insert bracketed inline citations (e.g. [1], [2]) after EVERY factual claim.
+    - REFERENCES SECTION: You MUST include a heavily formatted 'References' section at the end mapping all inline numbers to their exact Source URLs.
     - DO NOT hallucinate. If data is missing, state it is unknown.
     
     KNOWLEDGE VECTORS (Stored on Liberty Center One NVMe):
