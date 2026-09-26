@@ -4,17 +4,28 @@ import { ChatTogether } from '@langchain/community/chat_models/togetherai';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
+import crypto from 'crypto';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// COST OPTIMIZATION 1: In-Memory Query Cache
+// If a user asks a question that was asked recently, we return the cached response.
+// Cost = $0.00. Latency = 1ms.
+const queryCache = new Map();
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
 // 1. Define the Exa Web Search Tool
 const searchWebTool = tool(
   async ({ query }) => {
     console.log(`[EXA] Executing deep web search for: "${query}"`);
-    // In production, this calls Exa API. We limit to 3 results to save LLM context costs.
-    return `Mocked search results for ${query}`;
+    // COST OPTIMIZATION 2: Exa Highlights
+    // Instead of fetching full webpage HTML (10k+ tokens per page), we tell Exa
+    // to only return AI-generated 'highlights' (2-3 sentences per page).
+    // This reduces the input tokens passed to the 70B model by over 90%.
+    // In production: return await exa.searchAndContents(query, { highlights: true, numResults: 3 });
+    return `Mocked high-density search highlights for ${query}`;
   },
   {
     name: 'search_web',
@@ -25,16 +36,13 @@ const searchWebTool = tool(
   }
 );
 
-// 2. COST OPTIMIZATION: Tiered Models
-// We use the ultra-cheap 8B model ONLY for deciding if we need to search.
-// It costs ~95% less than the 70B model but has 99% accuracy for simple routing.
+// COST OPTIMIZATION 3: Tiered Models (8B for logic, 70B for synthesis)
 const routingLlm = new ChatTogether({
   modelName: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
   temperature: 0,
   togetherAIApiKey: process.env.TOGETHER_API_KEY || 'mock-key',
 });
 
-// We reserve the heavy 70B model ONLY for generating the high-quality final answer.
 const synthesisLlm = new ChatTogether({
   modelName: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
   temperature: 0.2,
@@ -48,38 +56,55 @@ app.post('/api/v1/search/stream', async (req, res) => {
   const { messages } = req.body;
   if (!messages || messages.length === 0) return res.status(400).json({ error: 'Messages array is required' });
 
+  // Generate cache key based on the latest user message
+  const lastUserMsg = messages.slice().reverse().find(m => m.role === 'user')?.content || '';
+  const cacheKey = crypto.createHash('md5').update(lastUserMsg.toLowerCase().trim()).digest('hex');
+
+  // Check Cache
+  if (queryCache.has(cacheKey)) {
+    const cachedData = queryCache.get(cacheKey);
+    if (Date.now() - cachedData.timestamp < CACHE_TTL) {
+      console.log('[CACHE HIT] Serving from memory. Cost: $0.00');
+      return res.json(cachedData.response);
+    } else {
+      queryCache.delete(cacheKey);
+    }
+  }
+
   const lcMessages = [
     new SystemMessage(`You are a router. If the user asks for facts or news, use the 'search_web' tool. Otherwise, just reply normally.`),
     ...messages.map(m => m.role === 'user' ? new HumanMessage(m.content) : new AIMessage(m.content))
   ];
 
   try {
-    // Step 1: Cheap 8B model decides intent
     const initialResponse = await routerWithTools.invoke(lcMessages);
+    let finalPayload;
 
-    // ROUTE A: Conversational (Bypass Exa, still use 70B for high-quality chat)
     if (!initialResponse.tool_calls || initialResponse.tool_calls.length === 0) {
       const finalChat = await synthesisLlm.invoke(lcMessages);
-      return res.json({ route: 'chat', content: finalChat.content });
+      finalPayload = { route: 'chat', content: finalChat.content };
+    } else {
+      const toolCall = initialResponse.tool_calls[0];
+      const searchResults = await searchWebTool.invoke(toolCall.args);
+
+      const finalMessages = [
+        ...lcMessages,
+        initialResponse,
+        { role: 'tool', tool_call_id: toolCall.id, name: toolCall.name, content: searchResults }
+      ];
+      
+      const finalResponse = await synthesisLlm.invoke(finalMessages);
+      finalPayload = {
+        route: 'search',
+        tool_used: toolCall.args.query,
+        content: finalResponse.content
+      };
     }
 
-    // ROUTE B: Search Required
-    const toolCall = initialResponse.tool_calls[0];
-    const searchResults = await searchWebTool.invoke(toolCall.args);
+    // Save to Cache
+    queryCache.set(cacheKey, { timestamp: Date.now(), response: finalPayload });
 
-    // Step 2: Heavy 70B model synthesizes the high-quality final answer
-    const finalMessages = [
-      ...lcMessages,
-      initialResponse,
-      { role: 'tool', tool_call_id: toolCall.id, name: toolCall.name, content: searchResults }
-    ];
-    
-    const finalResponse = await synthesisLlm.invoke(finalMessages);
-    return res.json({
-      route: 'search',
-      tool_used: toolCall.args.query,
-      content: finalResponse.content
-    });
+    return res.json(finalPayload);
 
   } catch (error) {
     res.status(500).json({ error: error.message });
