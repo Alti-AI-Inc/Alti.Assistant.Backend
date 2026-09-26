@@ -1,6 +1,8 @@
 import express from 'express';
 import ExtractRoutes from './extract.routes.js';
 import ResearchRoutes from './research.routes.js';
+import WorkflowRoutes from './workflow.routes.js';
+
 import { ComposioRoutes } from '../modules/composio/composio.route.js';
 
 const router = express.Router();
@@ -14,6 +16,10 @@ const moduleRoutes = [
   {
     path: '/research',
     route: ResearchRoutes,
+  },
+  {
+    path: '/workflow',
+    route: WorkflowRoutes,
   },
 
   {
