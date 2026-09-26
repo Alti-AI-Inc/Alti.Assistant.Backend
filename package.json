@@ -3,6 +3,15 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "@langchain/community": "^1.1.29",
+    "@langchain/core": "^1.2.12",
+    "composio-core": "^0.5.39",
+    "exa-js": "^2.23.0",
+    "langchain": "^1.5.12",
+    "together-ai": "^0.56.0"
   }
 }
