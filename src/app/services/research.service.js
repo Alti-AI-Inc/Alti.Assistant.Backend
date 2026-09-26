@@ -1,3 +1,4 @@
+import { scraperService } from './scraper.service.js';
 import Exa from 'exa-js';
 import Together from 'together-ai';
 import { Composio } from 'composio-core';
