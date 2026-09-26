@@ -6,10 +6,11 @@ const router = Router();
 // Standard blocking REST call
 router.post('/invoke', async (req, res) => {
   try {
-    const { query, composioAction, composioEntityId, channel } = req.body;
-    if (!query) return res.status(400).json({ error: 'Missing query parameter.' });
+    const { query, message, composioAction, composioEntityId, channel } = req.body;
+    const targetQuery = query || message;
+    if (!targetQuery) return res.status(400).json({ error: 'Missing query parameter.' });
 
-    const result = await AphuraDeepResearchAgent.executeOmniResearch(query, {
+    const result = await AphuraDeepResearchAgent.executeOmniResearch(targetQuery, {
       composioAction,
       composioEntityId,
       channel
@@ -22,9 +23,11 @@ router.post('/invoke', async (req, res) => {
 });
 
 // Advanced Server-Sent Events (SSE) Streaming Call (CRUSHES LINKUP)
-router.get('/stream', async (req, res) => {
-  const { query, composioAction, composioEntityId } = req.query;
-  if (!query) return res.status(400).json({ error: 'Missing query parameter.' });
+router.post('/stream', async (req, res) => {
+  const { query, message, composioAction, composioEntityId } = req.body;
+  const targetQuery = query || message;
+  
+  if (!targetQuery) return res.status(400).json({ error: 'Missing query parameter.' });
 
   // Set SSE Headers
   res.setHeader('Content-Type', 'text/event-stream');
@@ -33,21 +36,22 @@ router.get('/stream', async (req, res) => {
   res.flushHeaders();
 
   const sendEvent = (type, payload) => {
-    res.write(`event: ${type}\n`);
-    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    // The frontend PostConversationStream parser expects data objects
+    // Wrap events into chunks
+    res.write(`data: ${JSON.stringify({ type: 'chunk', content: `[${type.toUpperCase()}] ${JSON.stringify(payload)}\n\n` })}\n\n`);
   };
 
   try {
-    const result = await AphuraDeepResearchAgent.executeOmniResearch(query, {
+    const result = await AphuraDeepResearchAgent.executeOmniResearch(targetQuery, {
       composioAction,
       composioEntityId,
       onEvent: (type, msg) => sendEvent(type, msg)
     });
 
-    sendEvent('final_report', result);
+    res.write(`data: ${JSON.stringify({ type: 'chunk', content: `\n\n### DEEP RESEARCH FINAL REPORT\n\n${result.report}` })}\n\n`);
     res.end();
   } catch (error) {
-    sendEvent('error', { message: error.message });
+    res.write(`data: ${JSON.stringify({ type: 'chunk', content: `[ERROR] ${error.message}` })}\n\n`);
     res.end();
   }
 });
