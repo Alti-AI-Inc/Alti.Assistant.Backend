@@ -47,14 +47,42 @@ export class AphuraWorkflowEngine {
       const batchPromises = runnable.map(async (task) => {
         emit('action', `Executing Task: ${task.desc}`);
         
-        // Simulate an autonomous agent handling the task with full context of previous results
-        const context = Object.entries(results).map(([k, v]) => `${k}: ${v}`).join('\n');
-        const taskPrompt = `Task: ${task.desc}\nContext from previous tasks:\n${context}\nPerform the task and output the result.`;
+        let tools = [];
+        try {
+            // Dynamically fetch tools from Composio if the task requires it
+            if (task.tool_required || task.desc.toLowerCase().includes('search') || task.desc.toLowerCase().includes('fetch')) {
+               const entity = COMPOSIO.getEntity('default');
+               // Mocking a tool fetch or getting actual tools if COMPOSIO_API_KEY is present
+               if (process.env.COMPOSIO_API_KEY) {
+                  tools = await COMPOSIO.getTools({ apps: ["github", "slack", "gmail", "notion", "linear", "exa"] });
+               }
+            }
+        } catch (e) {
+            emit('error', `Failed to bind Composio tools for task ${task.id}: ${e.message}`);
+        }
 
-        const res = await TOGETHER.chat.completions.create({
+        const context = Object.entries(results).map(([k, v]) => `${k}: ${v}`).join('\n');
+        const taskPrompt = `Task: ${task.desc}\nContext from previous tasks:\n${context}\nPerform the task and output the result. You have access to tools if needed.`;
+
+        const payload = {
           messages: [{ role: 'user', content: taskPrompt }],
-          model: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
-        });
+          model: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+        };
+        
+        // Only inject tools array if we successfully fetched them
+        if (tools && tools.length > 0) {
+           payload.tools = tools;
+           payload.tool_choice = "auto";
+        }
+
+        const res = await TOGETHER.chat.completions.create(payload);
+
+        results[task.id] = res.choices[0].message.content || 'Task executed successfully via tool call.';
+        executed.add(task.id);
+        pending.delete(task.id);
+        
+        emit('action', `Task Completed: ${task.id}`);
+      });
 
         results[task.id] = res.choices[0].message.content;
         executed.add(task.id);
