@@ -1,5 +1,6 @@
 import { AphuraDeepResearchAgent } from './research.service.js';
-import { scraperService } from './scraper.service.js';
+import { AphuraMonitorEngine } from './monitor.service.js';
+import { AphuraWorkflowEngine } from './workflow.service.js';
 
 export const APHURA_CUSTOM_AGENTS = [
   {
@@ -20,35 +21,47 @@ export const APHURA_CUSTOM_AGENTS = [
     type: 'function',
     function: {
       name: 'aphura_monitor_changes',
-      description: 'Monitors a specific URL for semantic DOM changes or rips target CSS data using ZenRows Omni-Extractor (God Mode / Anti-Bot Bypass).',
+      description: 'Monitors a specific URL for semantic DOM changes using ZenRows Omni-Extractor and an LLM-based diffing engine.',
       parameters: {
         type: 'object',
         properties: {
-          url: { type: 'string', description: 'The target URL to monitor or scrape.' },
-          cssSelector: { type: 'string', description: 'Optional CSS selector to extract specific data.' },
-          mode: { type: 'string', enum: ['god_mode', 'lightning'], description: 'Extraction mode. God mode bypasses antibot.' }
+          url: { type: 'string', description: 'The target URL to monitor.' },
+          cssSelector: { type: 'string', description: 'Optional CSS selector to extract specific data.' }
         },
         required: ['url']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'aphura_automate_workflow',
+      description: 'Compiles a natural language instruction into a Directed Acyclic Graph (DAG) and executes it using parallel autonomous agents.',
+      parameters: {
+        type: 'object',
+        properties: {
+          instruction: { type: 'string', description: 'The complex multi-step workflow instruction.' }
+        },
+        required: ['instruction']
       }
     }
   }
 ];
 
-export async function executeAphuraAgent(name, args) {
+export async function executeAphuraAgent(name, args, options = {}) {
   if (name === 'aphura_deep_research') {
-    const res = await AphuraDeepResearchAgent.executeOmniResearch(args.query);
+    const res = await AphuraDeepResearchAgent.executeOmniResearch(args.query, options);
     return JSON.stringify(res);
   }
   
   if (name === 'aphura_monitor_changes') {
-    const { url, cssSelector, mode } = args;
-    if (mode === 'lightning') {
-      const res = await scraperService.extractLightning(url, { cssSelector });
-      return JSON.stringify(res);
-    } else {
-      const res = await scraperService.extractGodMode(url, { cssSelector });
-      return JSON.stringify(res);
-    }
+    const res = await AphuraMonitorEngine.checkChanges(args.url, null, null, { cssSelector: args.cssSelector, ...options });
+    return JSON.stringify(res);
+  }
+
+  if (name === 'aphura_automate_workflow') {
+    const res = await AphuraWorkflowEngine.executeWorkflow(args.instruction, options);
+    return JSON.stringify(res);
   }
 
   throw new Error(`Agent tool ${name} not found.`);
