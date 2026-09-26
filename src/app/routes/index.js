@@ -2,6 +2,8 @@ import express from 'express';
 import ExtractRoutes from './extract.routes.js';
 import ResearchRoutes from './research.routes.js';
 import WorkflowRoutes from './workflow.routes.js';
+import MonitorRoutes from './monitor.routes.js';
+
 
 import { ComposioRoutes } from '../modules/composio/composio.route.js';
 
@@ -20,6 +22,10 @@ const moduleRoutes = [
   {
     path: '/workflow',
     route: WorkflowRoutes,
+  },
+  {
+    path: '/monitor',
+    route: MonitorRoutes,
   },
 
   {
